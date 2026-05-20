@@ -14,11 +14,9 @@ body {
 
 /* POPUP */
 .popup {
-  width: 700px;
-  background: #2b2b2b;
-  border-radius: 14px;
-  padding: 20px;
-  color: white;
+  width: 800px;
+  max-width: 90%;
+  margin: auto;
 }
 
 /* HEADER */

@@ -2,7 +2,7 @@ const TrelloPowerUp = window.TrelloPowerUp;
 
 export const initializePowerUp = () => {
   if (!TrelloPowerUp) {
-    console.error("TrelloPowerUp not loaded");
+    console.log("Running locally (no Trello)");
     return;
   }
 
@@ -11,11 +11,9 @@ export const initializePowerUp = () => {
       return [{
         text: 'Cardlytics',
         callback: function (t) {
-          return t.popup({
+          return t.modal({
             title: "Cardlytics",
-            url: window.location.origin, // VERY IMPORTANT
-            height: 600,
-            width: 900
+            url: window.location.origin
           });
         }
       }];
