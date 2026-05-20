@@ -2,10 +2,9 @@ import "./index.css";
 
 export default function App() {
   return (
-    <div className="modal-center">   {/* ✅ ADDED */}
+    <div className="modal-center">
       <div className="popup">
 
-        {/* HEADER */}
         <div className="header">
           <div className="header-left">
             <div className="trello-icon">T</div>
@@ -19,21 +18,18 @@ export default function App() {
 
         <div className="body">
 
-          {/* MY WORK */}
           <Section title="MY WORK">
             <StatCard value="4" label="Assigned to me across workspace" tag="live" />
             <StatCard value="2" label="Due this week on this board" />
             <StatCard value="1" label="Overdue cards on this board" tag="hot" />
           </Section>
 
-          {/* BOARD INSIGHTS */}
           <Section title="BOARD INSIGHTS">
             <StatCard value="7" label="Unassigned cards on this board" />
             <StatCard value="3" label="With a label on this board" />
             <StatCard value="0" label="Stale cards on this board" />
           </Section>
 
-          {/* ACTIVITY */}
           <Section title="ACTIVITY">
             <StatCard value="0" label="Created today on this board" />
             <StatCard value="2" label="Cards in this list" />
@@ -41,8 +37,9 @@ export default function App() {
           </Section>
 
         </div>
+
       </div>
-    </div>   {/* ✅ ADDED */}
+    </div>
   );
 }
 
