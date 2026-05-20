@@ -1,8 +1,7 @@
 import "./index.css";
 
 export default function App() {
- return (
-  <div className="modal-center">
+  return (
     <div className="popup">
 
       <div className="header">
@@ -36,9 +35,10 @@ export default function App() {
           <div className="add-filter-card">+ Add filter</div>
         </Section>
 
-        </div>
-  </div>
-);
+      </div>
+    </div>
+  );
+}
 
 function Section({ title, children }) {
   return (
