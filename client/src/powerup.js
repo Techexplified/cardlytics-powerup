@@ -5,11 +5,10 @@ window.TrelloPowerUp.initialize({
     return [{
       text: 'Cardlytics',
       callback: function (t) {
-        return t.popup({
+        return t.modal({
           title: 'Cardlytics',
           url: './index.html',
-          height: 600,
-          width: 500
+          fullscreen: false   // 👈 keeps it centered modal
         });
       }
     }];
