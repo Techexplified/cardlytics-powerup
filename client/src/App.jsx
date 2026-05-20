@@ -2,43 +2,43 @@ import "./index.css";
 
 export default function App() {
   return (
-    <div className="modal-center">
-      <div className="popup">
+    <div className="popup">
 
-        <div className="header">
-          <div className="header-left">
-            <div className="trello-icon">T</div>
-            <h3>Cardlytics — Track</h3>
-          </div>
-          <div className="header-actions">
-            <button className="btn-customize">Customize</button>
-            <button className="close-btn">✕</button>
-          </div>
+      {/* HEADER */}
+      <div className="header">
+        <div className="header-left">
+          <div className="trello-icon">T</div>
+          <h3>Cardlytics — Track</h3>
         </div>
-
-        <div className="body">
-
-          <Section title="MY WORK">
-            <StatCard value="4" label="Assigned to me across workspace" tag="live" />
-            <StatCard value="2" label="Due this week on this board" />
-            <StatCard value="1" label="Overdue cards on this board" tag="hot" />
-          </Section>
-
-          <Section title="BOARD INSIGHTS">
-            <StatCard value="7" label="Unassigned cards on this board" />
-            <StatCard value="3" label="With a label on this board" />
-            <StatCard value="0" label="Stale cards on this board" />
-          </Section>
-
-          <Section title="ACTIVITY">
-            <StatCard value="0" label="Created today on this board" />
-            <StatCard value="2" label="Cards in this list" />
-            <div className="add-filter-card">+ Add filter</div>
-          </Section>
-
+        <div className="header-actions">
+          <button className="btn-customize">Customize</button>
+          <button className="close-btn">✕</button>
         </div>
+      </div> {/* ✅ FIX: closed header */}
+
+      {/* BODY */}
+      <div className="body">
+
+        <Section title="MY WORK">
+          <StatCard value="4" label="Assigned to me across workspace" tag="live" />
+          <StatCard value="2" label="Due this week on this board" />
+          <StatCard value="1" label="Overdue cards on this board" tag="hot" />
+        </Section>
+
+        <Section title="BOARD INSIGHTS">
+          <StatCard value="7" label="Unassigned cards on this board" />
+          <StatCard value="3" label="With a label on this board" />
+          <StatCard value="0" label="Stale cards on this board" />
+        </Section>
+
+        <Section title="ACTIVITY">
+          <StatCard value="0" label="Created today on this board" />
+          <StatCard value="2" label="Cards in this list" />
+          <div className="add-filter-card">+ Add filter</div>
+        </Section>
 
       </div>
+
     </div>
   );
 }
