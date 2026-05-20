@@ -4,7 +4,6 @@ export default function App() {
   return (
     <div className="popup">
 
-      {/* HEADER */}
       <div className="header">
         <div className="header-left">
           <div className="trello-icon">T</div>
@@ -14,9 +13,8 @@ export default function App() {
           <button className="btn-customize">Customize</button>
           <button className="close-btn">✕</button>
         </div>
-      </div> {/* ✅ FIX: closed header */}
+      </div>
 
-      {/* BODY */}
       <div className="body">
 
         <Section title="MY WORK">
@@ -38,7 +36,6 @@ export default function App() {
         </Section>
 
       </div>
-
     </div>
   );
 }
