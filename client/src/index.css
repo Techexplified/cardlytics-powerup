@@ -15,20 +15,17 @@ body {
 
 /* ─── POPUP ─── */
 .popup {
-  width: 720px;        /* ✅ FIXED WIDTH */
-  max-width: 95vw;     /* responsive */
-  margin: auto;
+  width: 100%;
+  height: 100%;
 
-  height: auto;        /* ❌ remove 100% */
-  
   display: flex;
   flex-direction: column;
 
   background: #1e1e1e;
   color: #e0e0e0;
 
-  border-radius: 14px; /* ✅ make it modal */
-  overflow: hidden;
+  border-radius: 0;
+  overflow: hidden; /* ✅ IMPORTANT */
 }
 
 /* ─── HEADER ─── */
