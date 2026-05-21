@@ -28,14 +28,13 @@ window.TrelloPowerUp.initialize({
     text: 'Cardlytics',
 
     callback: function (t) {
-      return t.list('id').then(function (listId) {
+      return t.list('id').then(function (list) {
+  alert("List ID: " + list.id); // ✅ correct
 
-        alert("List ID: " + listId); // debug
-
-        return t.modal({
-          title: 'Cardlytics',
-          url: `./index.html?mode=list&listId=${listId}`,
-          fullscreen: false
+  return t.modal({
+    title: 'Cardlytics',
+    url: `./index.html?mode=list&listId=${list.id}`, // ✅ correct
+    fullscreen: false
         });
       });
     }
