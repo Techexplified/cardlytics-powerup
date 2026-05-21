@@ -24,19 +24,21 @@ window.TrelloPowerUp.initialize({
 
   // 🟩 LIST ACTION (3 dots menu)
   'list-actions': function (t) {
-    return [{
-      text: 'Cardlytics',
+  return [{
+    text: 'Cardlytics',
 
-      callback: async function (t) {
-        const listId = await t.list('id'); // ✅ directly get ID
+    callback: async function (t) {
+      const list = await t.list();   // ✅ get full object
 
-        return t.modal({
-          title: 'Cardlytics',
-          url: `./index.html?mode=list&listId=${listId}`, // list mode
-          fullscreen: false
-        });
-      }
-    }];
-  }
+      console.log("LIST:", list);    // 🔍 debug (optional)
+
+      return t.modal({
+        title: 'Cardlytics',
+        url: `./index.html?mode=list&listId=${list.id}`, // ✅ correct
+        fullscreen: false
+      });
+    }
+  }];
+}
 
 });
