@@ -30,7 +30,7 @@ window.TrelloPowerUp.initialize({
     callback: async function (t) {
       const list = await t.list();   // ✅ get full object
 
-      console.log("LIST:", list);    // 👈 debug
+        alert("List ID: " + list.id);    // 👈 debug
 
       return t.modal({
         title: 'Cardlytics',
