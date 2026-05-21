@@ -75,7 +75,7 @@ if (mode === "list" && listId) {
         </div>
         <div className="header-actions">
           <button className="btn-customize">Customize</button>
-          <button className="close-btn">✕</button>
+        
         </div>
       </div>
 
