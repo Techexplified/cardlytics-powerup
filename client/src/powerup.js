@@ -30,11 +30,11 @@ window.TrelloPowerUp.initialize({
     callback: async function (t) {
       const list = await t.list();   // ✅ get full object
 
-      console.log("LIST:", list);    // 🔍 debug (optional)
+      console.log("LIST:", list);    // 👈 debug
 
       return t.modal({
         title: 'Cardlytics',
-        url: `./index.html?mode=list&listId=${list.id}`, // ✅ correct
+        url: `./index.html?mode=list&listId=${list.id}`, // ✅ FIXED
         fullscreen: false
       });
     }
