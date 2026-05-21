@@ -27,15 +27,16 @@ window.TrelloPowerUp.initialize({
   return [{
     text: 'Cardlytics',
 
-    callback: async function (t) {
-      const list = await t.list();   // ✅ get full object
+    callback: function (t) {
+      return t.list('id').then(function (listId) {
 
-        alert("List ID: " + list.id);    // 👈 debug
+        alert("List ID: " + listId); // debug
 
-      return t.modal({
-        title: 'Cardlytics',
-        url: `./index.html?mode=list&listId=${list.id}`, // ✅ FIXED
-        fullscreen: false
+        return t.modal({
+          title: 'Cardlytics',
+          url: `./index.html?mode=list&listId=${listId}`,
+          fullscreen: false
+        });
       });
     }
   }];
