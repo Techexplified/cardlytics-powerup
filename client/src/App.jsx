@@ -1,6 +1,39 @@
+import { useState, useEffect } from "react";
+import { getBoardCards, computeStats } from "./trello";
 import "./index.css";
 
 export default function App() {
+
+  const [stats, setStats] = useState({
+  assigned: 4,
+  dueThisWeek: 2,
+  overdue: 1,
+  unassigned: 7,
+  withLabel: 3,
+  stale: 0,
+  createdToday: 0,
+});
+
+useEffect(() => {
+    async function fetchData() {
+      try {
+        const key = import.meta.env.VITE_TRELLO_API_KEY;
+        const token = import.meta.env.VITE_TRELLO_TOKEN;
+        const boardId = "p8fosANE";
+
+        const cards = await getBoardCards(key, token, boardId);
+        const computed = computeStats(cards, null);
+
+        setStats(computed);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+
   return (
     <div className="popup">
 
@@ -18,23 +51,35 @@ export default function App() {
       <div className="body">
 
         <Section title="MY WORK">
-          <StatCard value="4" label="Assigned to me across workspace" tag="live" />
-          <StatCard value="2" label="Due this week on this board" />
-          <StatCard value="1" label="Overdue cards on this board" tag="hot" />
-        </Section>
+  <StatCard 
+    value={stats.assigned} 
+    label="Assigned to me across workspace" 
+    tag="live" 
+  />
+  
+  <StatCard 
+    value={stats.dueThisWeek} 
+    label="Due this week on this board" 
+  />
+  
+  <StatCard 
+    value={stats.overdue} 
+    label="Overdue cards on this board" 
+    tag="hot" 
+  />
+</Section>
 
         <Section title="BOARD INSIGHTS">
-          <StatCard value="7" label="Unassigned cards on this board" />
-          <StatCard value="3" label="With a label on this board" />
-          <StatCard value="0" label="Stale cards on this board" />
+          <StatCard value={stats.unassigned} label="Unassigned cards on this board" />
+          <StatCard value={stats.withLabel} label="With a label on this board" />
+          <StatCard value={stats.stale} label="Stale cards on this board" />
         </Section>
 
-        <Section title="ACTIVITY">
-          <StatCard value="0" label="Created today on this board" />
-          <StatCard value="2" label="Cards in this list" />
-          <div className="add-filter-card">+ Add filter</div>
-        </Section>
-
+      <Section title="ACTIVITY">
+  <StatCard value={stats.createdToday} label="Created today on this board" />
+  <StatCard value="2" label="Cards in this list" />
+  <div className="add-filter-card">+ Add filter</div>
+</Section>
       </div>
     </div>
   );
