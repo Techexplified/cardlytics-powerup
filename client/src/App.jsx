@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
-import { getBoardCards, computeStats } from "./trello";
+import { getBoardCards, computeStats, getMemberId, getListCards } from "./trello";
 import "./index.css";
 
 export default function App() {
+
+  const params = new URLSearchParams(window.location.search);
+  const mode = params.get("mode");
+  const listId = params.get("listId");
+
+  console.log("MODE:", mode);
+  console.log("LIST ID:", listId);
 
   const [stats, setStats] = useState({
   assigned: 4,
@@ -12,6 +19,7 @@ export default function App() {
   withLabel: 3,
   stale: 0,
   createdToday: 0,
+  cardsInList: 0
 });
 
 useEffect(() => {
@@ -21,10 +29,33 @@ useEffect(() => {
         const token = import.meta.env.VITE_TRELLO_TOKEN;
         const boardId = "p8fosANE";
 
-        const cards = await getBoardCards(key, token, boardId);
-        const computed = computeStats(cards, null);
+        console.log("KEY:", key);
+      console.log("TOKEN:", token);
 
-        setStats(computed);
+        // ✅ STEP 1: get cards
+      const cards = await getBoardCards(key, token, boardId);
+      console.log("CARDS:", cards);
+
+      // ✅ STEP 2: get current user ID
+      const memberId = await getMemberId(key, token);
+      console.log("MEMBER ID:", memberId);
+
+let listCardsCount = 0;
+
+
+if (mode === "list" && listId) {
+  const listCards = await getListCards(key, token, listId);
+  listCardsCount = listCards.length;
+  console.log("LIST CARDS COUNT:", listCardsCount);
+}
+
+      // ✅ STEP 3: compute stats using memberId
+      const computed = computeStats(cards, memberId);
+
+      computed.cardsInList = listCardsCount;
+
+      // ✅ STEP 4: update UI
+      setStats(computed);
       } catch (err) {
         console.error(err);
       }
@@ -77,7 +108,9 @@ useEffect(() => {
 
       <Section title="ACTIVITY">
   <StatCard value={stats.createdToday} label="Created today on this board" />
-  <StatCard value="2" label="Cards in this list" />
+ {mode === "list" && (
+  <StatCard value={stats.cardsInList} label="Cards in this list" />
+)}
   <div className="add-filter-card">+ Add filter</div>
 </Section>
       </div>

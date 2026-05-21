@@ -1,10 +1,12 @@
 /* global TrelloPowerUp */
 
 window.TrelloPowerUp.initialize({
-  'board-buttons': function (t, options) {
+
+  // 🟦 BOARD BUTTON (Top bar)
+  'board-buttons': function (t) {
     return [{
       text: 'Cardlytics',
-      
+
       icon: {
         dark: 'https://cardlytics-powerup.vercel.app/logo.png',
         light: 'https://cardlytics-powerup.vercel.app/logo.png'
@@ -13,10 +15,28 @@ window.TrelloPowerUp.initialize({
       callback: function (t) {
         return t.modal({
           title: 'Cardlytics',
-          url: './index.html',
+          url: './index.html?mode=board', // board mode
+          fullscreen: false
+        });
+      }
+    }];
+  },
+
+  // 🟩 LIST ACTION (3 dots menu)
+  'list-actions': function (t) {
+    return [{
+      text: 'Cardlytics',
+
+      callback: async function (t) {
+        const listId = await t.list('id'); // ✅ directly get ID
+
+        return t.modal({
+          title: 'Cardlytics',
+          url: `./index.html?mode=list&listId=${listId}`, // list mode
           fullscreen: false
         });
       }
     }];
   }
+
 });
