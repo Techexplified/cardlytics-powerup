@@ -12,11 +12,11 @@ export default function App() {
   console.log("LIST ID:", listId);
 
   const [stats, setStats] = useState({
-  assigned: 4,
-  dueThisWeek: 2,
-  overdue: 1,
-  unassigned: 7,
-  withLabel: 3,
+  assigned: 0,
+  dueThisWeek: 0,
+  overdue: 0,
+  unassigned: 0,
+  withLabel: 0,
   stale: 0,
   createdToday: 0,
   cardsInList: 0
