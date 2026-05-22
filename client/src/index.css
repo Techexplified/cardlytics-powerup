@@ -187,3 +187,31 @@ body {
   background-color: #1f1f23;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
 }
+
+/* ─── FOOTER ─── */
+.footer {
+  padding: 10px 14px;
+  border-top: 1px solid #2e2e2e;
+  background: #252525;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-text {
+  font-size: 11px;
+  color: #666;
+}
+
+.btn-refresh {
+  background: none;
+  border: 1px solid #3e3e3e;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-refresh:hover { background: #3a3a3a; }

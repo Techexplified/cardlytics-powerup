@@ -93,9 +93,12 @@ if (mode === "list") {
           <h3>Cardlytics — Track</h3>
         </div>
         <div className="header-actions">
+          <button className="btn-track">Track</button>
           <button className="btn-customize">Customize</button>
         
         </div>
+
+        
       </div>
 
       <div className="body">
@@ -176,6 +179,12 @@ if (mode === "list") {
   <div className="add-filter-card">+ Add filter</div>
 </Section>
       </div>
+
+       <div className="footer">
+        <span className="footer-text">Last updated: {new Date().toLocaleTimeString()}</span>
+        <button className="btn-refresh">↻ Refresh</button>
+      </div>
+      
     </div>
   );
 }
