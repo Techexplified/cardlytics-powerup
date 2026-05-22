@@ -137,13 +137,17 @@ export async function getBoardLists(key, token, boardId) {
 
 // ➕ Create a new card
 export async function createCard(key, token, listId, name, desc) {
-  const res = await fetch(
-    `${BASE}/cards?${buildAuth(key, token)}&idList=${listId}&name=${encodeURIComponent(name)}&desc=${encodeURIComponent(desc)}`,
-    {
-      method: "POST",
-    }
-  );
+  const url = `${BASE}/cards?${buildAuth(key, token)}&idList=${listId}&name=${encodeURIComponent(name)}&desc=${encodeURIComponent(desc)}`;
 
-  if (!res.ok) throw new Error("Failed to create card");
+  const res = await fetch(url, {
+    method: "POST",
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text(); // 🔥 IMPORTANT
+    console.error("Trello API Error:", errorText);
+    throw new Error("Failed to create card");
+  }
+
   return res.json();
 }
