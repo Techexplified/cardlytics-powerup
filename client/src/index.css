@@ -228,4 +228,4 @@ body {
   outline: none;
   cursor: pointer;
 }
-.list-dropdown:focus { border-color: #0052cc; }
+.list-dropdown:focus { border-color: #555; }
