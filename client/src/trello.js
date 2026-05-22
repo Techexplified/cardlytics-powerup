@@ -40,7 +40,7 @@ export async function getListCards(key, token, listId) {
     `${BASE}/lists/${listId}/cards?${buildAuth(
       key,
       token
-    )}&fields=id`
+    )}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList`
   );
   if (!res.ok) return [];
   return res.json();
