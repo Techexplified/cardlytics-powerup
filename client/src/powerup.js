@@ -14,9 +14,11 @@ window.TrelloPowerUp.initialize({
 
       callback: function (t) {
         return t.modal({
+          
           title: 'Cardlytics',
           url: './index.html?mode=board', // board mode
-          fullscreen: false
+          fullscreen: false,
+          height: 600 
         });
       }
     }];
@@ -34,7 +36,8 @@ window.TrelloPowerUp.initialize({
   return t.modal({
     title: 'Cardlytics',
     url: `./index.html?mode=list&listId=${list.id}`, // ✅ correct
-    fullscreen: false
+    fullscreen: false,
+    height: 600
         });
       });
     }
