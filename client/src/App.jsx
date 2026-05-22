@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getBoardCards, computeStats, getMemberId, getListCards, getBoardLists } from "./trello";
+import { getBoardCards, computeStats, getMemberId, getListCards, getBoardLists,  createCard  } from "./trello";
 import "./index.css";
 
 export default function App() {
@@ -84,6 +84,44 @@ export default function App() {
     fetchData();
   }, []);
 
+  const handleTrack = async () => {
+  try {
+    const key = import.meta.env.VITE_TRELLO_API_KEY;
+    const token = import.meta.env.VITE_TRELLO_TOKEN;
+    const boardId = "p8fosANE";
+
+    // 1️⃣ Get all lists
+    const lists = await getBoardLists(key, token, boardId);
+
+    if (!lists.length) return;
+
+    // 2️⃣ Decide target list
+    let targetListId;
+
+    if (mode === "list" && listId) {
+      targetListId = listId; // current list
+    } else {
+      targetListId = lists[0].id; // default first list
+    }
+
+    // 3️⃣ Create cards for each selected stat
+    for (const stat of selectedStats) {
+      const value = stats[stat];
+
+      const name = `${stat} (${value})`;
+      const desc = `Auto-created from Cardlytics`;
+
+      await createCard(key, token, targetListId, name, desc);
+    }
+
+    alert("Cards added successfully 🚀");
+
+  } catch (err) {
+    console.error(err);
+    alert("Error creating cards");
+  }
+};
+
   return (
     <div className="popup">
 
@@ -93,7 +131,9 @@ export default function App() {
           <h3>Cardlytics — Track</h3>
         </div>
         <div className="header-actions">
-          <button className="btn-customize">Track</button>
+          <button className="btn-customize" onClick={handleTrack}>
+            Track
+          </button>
           <button className="btn-customize">Customize</button>
         </div>
       </div>

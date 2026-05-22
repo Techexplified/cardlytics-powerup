@@ -134,3 +134,16 @@ export async function getBoardLists(key, token, boardId) {
   if (!res.ok) return [];
   return res.json();
 }
+
+// ➕ Create a new card
+export async function createCard(key, token, listId, name, desc) {
+  const res = await fetch(
+    `${BASE}/cards?${buildAuth(key, token)}&idList=${listId}&name=${encodeURIComponent(name)}&desc=${encodeURIComponent(desc)}`,
+    {
+      method: "POST",
+    }
+  );
+
+  if (!res.ok) throw new Error("Failed to create card");
+  return res.json();
+}
