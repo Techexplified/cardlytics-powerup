@@ -159,16 +159,18 @@ export default function App() {
             selected={selectedStats}
           />
 
-         {mode === "board" && (
+        {mode === "board" && (
   <div className="card list-picker">
-    <div className="card-value">{selectedListCount !== null ? selectedListCount : "—"}</div>
-    <div className="card-label" style={{ marginBottom: "6px" }}>Cards in list</div>
+    {selectedListCount !== null && (
+      <div className="card-value">{selectedListCount}</div>
+    )}
     <select className="list-dropdown" value={selectedListId} onChange={handleListChange}>
       <option value="">Select a list</option>
       {lists.map((l) => (
         <option key={l.id} value={l.id}>{l.name}</option>
       ))}
     </select>
+    <div className="card-label" style={{ marginTop: "6px" }}>Cards in list</div>
   </div>
 )}
 
