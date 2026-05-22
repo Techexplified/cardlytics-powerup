@@ -7,6 +7,7 @@ export default function App() {
   const params = new URLSearchParams(window.location.search);
   const mode = params.get("mode");
   const listId = params.get("listId");
+  const context = mode === "list" ? "list" : "board";
 
   console.log("MODE:", mode);
   console.log("LIST ID:", listId);
@@ -33,8 +34,15 @@ useEffect(() => {
       console.log("TOKEN:", token);
 
         // ✅ STEP 1: get cards
-      const cards = await getBoardCards(key, token, boardId);
-      console.log("CARDS:", cards);
+      let cards = [];
+
+if (mode === "list" && listId) {
+  cards = await getListCards(key, token, listId);
+  console.log("LIST CARDS:", cards);
+} else {
+  cards = await getBoardCards(key, token, boardId);
+  console.log("BOARD CARDS:", cards);
+}
 
       // ✅ STEP 2: get current user ID
       const memberId = await getMemberId(key, token);
@@ -42,11 +50,8 @@ useEffect(() => {
 
 let listCardsCount = 0;
 
-
-if (mode === "list" && listId) {
-  const listCards = await getListCards(key, token, listId);
-  listCardsCount = listCards.length;
-  console.log("LIST CARDS COUNT:", listCardsCount);
+if (mode === "list") {
+  listCardsCount = cards.length; // ✅ use already fetched data
 }
 
       // ✅ STEP 3: compute stats using memberId
@@ -90,24 +95,24 @@ if (mode === "list" && listId) {
   
   <StatCard 
     value={stats.dueThisWeek} 
-    label="Due this week on this board" 
+    label={`Due this week on this ${context}`} 
   />
   
   <StatCard 
     value={stats.overdue} 
-    label="Overdue cards on this board" 
+   label={`Overdue cards on this ${context}`}
     tag="hot" 
   />
 </Section>
 
         <Section title="BOARD INSIGHTS">
-          <StatCard value={stats.unassigned} label="Unassigned cards on this board" />
-          <StatCard value={stats.withLabel} label="With a label on this board" />
-          <StatCard value={stats.stale} label="Stale cards on this board" />
+          <StatCard value={stats.unassigned} label={`Unassigned cards on this ${context}`} />
+          <StatCard value={stats.withLabel} label={`With a label on this ${context}`} />
+          <StatCard value={stats.stale} label={`Stale cards on this ${context}`} />
         </Section>
 
       <Section title="ACTIVITY">
-  <StatCard value={stats.createdToday} label="Created today on this board" />
+  <StatCard value={stats.createdToday} label={`Created today on this ${context}`} />
  {mode === "list" && (
   <StatCard value={stats.cardsInList} label="Cards in this list" />
 )}

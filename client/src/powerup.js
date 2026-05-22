@@ -29,7 +29,7 @@ window.TrelloPowerUp.initialize({
 
     callback: function (t) {
       return t.list('id').then(function (list) {
-  alert("List ID: " + list.id); // ✅ correct
+  
 
   return t.modal({
     title: 'Cardlytics',
