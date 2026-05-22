@@ -86,14 +86,14 @@ body {
 
 /* ─── BODY ─── */
 .body {
-  padding: 12px 14px 14px;
+  padding: 14px 16px 16px;
   flex: 1;
   overflow-y: auto; /* ✅ scroll inside */
 }
 
 /* ─── SECTION ─── */
 .section {
-  margin-top: 12px;
+  margin-top: 16px;
 }
 
 .section-title {
@@ -109,7 +109,7 @@ body {
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 12px;
 }
 
 /* ─── CARD ─── */
@@ -117,7 +117,7 @@ body {
   background: #252525;
   border: 1px solid #2e2e2e;
   border-radius: 10px;
-  padding: 10px;
+  padding: 14px;
   position: relative;
   transition: 0.15s;
 }
