@@ -84,32 +84,38 @@ export default function App() {
     fetchData();
   }, []);
 
-  const handleTrack = async () => {
+ const handleTrack = async () => {
   try {
     const key = import.meta.env.VITE_TRELLO_API_KEY;
     const token = import.meta.env.VITE_TRELLO_TOKEN;
     const boardId = "p8fosANE";
 
-    // 1️⃣ Get all lists
-    const lists = await getBoardLists(key, token, boardId);
-
-    if (!lists.length) return;
-
-    // 2️⃣ Decide target list
     let targetListId;
 
+    // ✅ LIST MODE → use current list
     if (mode === "list" && listId) {
-      targetListId = listId; // current list
-    } else {
-      targetListId = lists[0].id; // default first list
+      targetListId = listId;
     }
 
-    // 3️⃣ Create cards for each selected stat
+    // ✅ BOARD MODE → use first list (default)
+    else {
+      const lists = await getBoardLists(key, token, boardId);
+      targetListId = lists[0]?.id;
+    }
+
+    console.log("FINAL LIST ID:", targetListId); // 👈 VERY IMPORTANT
+
+    // 🚨 Safety check
+    if (!targetListId) {
+      alert("List not found ❌");
+      return;
+    }
+
+    // ✅ Create cards
     for (const stat of selectedStats) {
       const value = stats[stat];
-
       const name = `${stat} (${value})`;
-      const desc = `Auto-created from Cardlytics`;
+      const desc = "Auto-created from Cardlytics";
 
       await createCard(key, token, targetListId, name, desc);
     }
@@ -117,7 +123,7 @@ export default function App() {
     alert("Cards added successfully 🚀");
 
   } catch (err) {
-    console.error(err);
+    console.error("Trello API Error:", err);
     alert("Error creating cards");
   }
 };
