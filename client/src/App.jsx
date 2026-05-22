@@ -23,6 +23,18 @@ export default function App() {
   cardsInList: 0
 });
 
+const [selectedStat, setSelectedStat] = useState(null);
+
+const handleStatClick = (type) => {
+  if (selectedStat === type) {
+    setSelectedStat(null);
+  } else {
+    setSelectedStat(type);
+  }
+};
+
+
+
 useEffect(() => {
     async function fetchData() {
       try {
@@ -88,34 +100,77 @@ if (mode === "list") {
 
         <Section title="MY WORK">
   <StatCard 
-    value={stats.assigned} 
-    label="Assigned to me across workspace" 
-    tag="live" 
-  />
+  value={stats.assigned} 
+  label="Assigned to me across workspace" 
+  tag="live"
+  type="assigned"
+  onClick={handleStatClick}
+  selected={selectedStat}
+/>
   
   <StatCard 
-    value={stats.dueThisWeek} 
-    label={`Due this week on this ${context}`} 
-  />
+  value={stats.dueThisWeek} 
+  label={`Due this week on this ${context}`} 
+  type="dueThisWeek"
+  onClick={handleStatClick}
+  selected={selectedStat}
+/>
   
   <StatCard 
-    value={stats.overdue} 
-   label={`Overdue cards on this ${context}`}
-    tag="hot" 
+  value={stats.overdue} 
+  label={`Overdue cards on this ${context}`} 
+  tag="hot"
+  type="overdue"
+  onClick={handleStatClick}
+  selected={selectedStat}
+/>
+</Section>
+
+       <Section title="BOARD INSIGHTS">
+  <StatCard 
+    value={stats.unassigned} 
+    label={`Unassigned cards on this ${context}`} 
+    type="unassigned"
+    onClick={handleStatClick}
+    selected={selectedStat}
+  />
+
+  <StatCard 
+    value={stats.withLabel} 
+    label={`With a label on this ${context}`} 
+    type="withLabel"
+    onClick={handleStatClick}
+    selected={selectedStat}
+  />
+
+  <StatCard 
+    value={stats.stale} 
+    label={`Stale cards on this ${context}`} 
+    type="stale"
+    onClick={handleStatClick}
+    selected={selectedStat}
   />
 </Section>
 
-        <Section title="BOARD INSIGHTS">
-          <StatCard value={stats.unassigned} label={`Unassigned cards on this ${context}`} />
-          <StatCard value={stats.withLabel} label={`With a label on this ${context}`} />
-          <StatCard value={stats.stale} label={`Stale cards on this ${context}`} />
-        </Section>
+     <Section title="ACTIVITY">
+  <StatCard 
+    value={stats.createdToday} 
+    label={`Created today on this ${context}`} 
+    type="createdToday"
+    onClick={handleStatClick}
+    selected={selectedStat}
+  />
 
-      <Section title="ACTIVITY">
-  <StatCard value={stats.createdToday} label={`Created today on this ${context}`} />
- {mode === "list" && (
-  <StatCard value={stats.cardsInList} label="Cards in this list" />
-)}
+  {mode === "list" && (
+    <StatCard 
+      value={stats.cardsInList} 
+      label="Cards in this list" 
+      type="cardsInList"
+      onClick={handleStatClick}
+      selected={selectedStat}
+    />
+  )}
+
   <div className="add-filter-card">+ Add filter</div>
 </Section>
       </div>
@@ -132,9 +187,12 @@ function Section({ title, children }) {
   );
 }
 
-function StatCard({ value, label, tag }) {
+function StatCard({ value, label, tag, type, onClick, selected }) {
   return (
-    <div className="card">
+    <div 
+      className={`card ${selected === type ? "selected" : ""}`}
+      onClick={() => onClick(type)}
+    >
       {tag === "live" && <span className="tag live">Live</span>}
       {tag === "hot" && <span className="tag hot">Hot</span>}
       <div className="card-value">{value}</div>

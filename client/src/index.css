@@ -176,3 +176,14 @@ body {
   border-color: #4ea1ff;
   background: #1a2a3a;
 }
+
+.card {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.card.selected {
+  border: 1px solid #52525b;
+  background-color: #1f1f23;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
