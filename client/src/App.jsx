@@ -23,14 +23,16 @@ export default function App() {
   cardsInList: 0
 });
 
-const [selectedStat, setSelectedStat] = useState(null);
+const [selectedStats, setSelectedStats] = useState([]);
 
 const handleStatClick = (type) => {
-  if (selectedStat === type) {
-    setSelectedStat(null);
-  } else {
-    setSelectedStat(type);
-  }
+  setSelectedStats((prev) => {
+    if (prev.includes(type)) {
+      return prev.filter((item) => item !== type); // remove
+    } else {
+      return [...prev, type]; // add
+    }
+  });
 };
 
 
@@ -105,7 +107,7 @@ if (mode === "list") {
   tag="live"
   type="assigned"
   onClick={handleStatClick}
-  selected={selectedStat}
+  selected={selectedStats}
 />
   
   <StatCard 
@@ -113,7 +115,7 @@ if (mode === "list") {
   label={`Due this week on this ${context}`} 
   type="dueThisWeek"
   onClick={handleStatClick}
-  selected={selectedStat}
+  selected={selectedStats}
 />
   
   <StatCard 
@@ -122,7 +124,7 @@ if (mode === "list") {
   tag="hot"
   type="overdue"
   onClick={handleStatClick}
-  selected={selectedStat}
+  selected={selectedStats}
 />
 </Section>
 
@@ -132,7 +134,7 @@ if (mode === "list") {
     label={`Unassigned cards on this ${context}`} 
     type="unassigned"
     onClick={handleStatClick}
-    selected={selectedStat}
+    selected={selectedStats}
   />
 
   <StatCard 
@@ -140,7 +142,7 @@ if (mode === "list") {
     label={`With a label on this ${context}`} 
     type="withLabel"
     onClick={handleStatClick}
-    selected={selectedStat}
+    selected={selectedStats}
   />
 
   <StatCard 
@@ -148,7 +150,7 @@ if (mode === "list") {
     label={`Stale cards on this ${context}`} 
     type="stale"
     onClick={handleStatClick}
-    selected={selectedStat}
+    selected={selectedStats}
   />
 </Section>
 
@@ -158,7 +160,7 @@ if (mode === "list") {
     label={`Created today on this ${context}`} 
     type="createdToday"
     onClick={handleStatClick}
-    selected={selectedStat}
+    selected={selectedStats}
   />
 
   {mode === "list" && (
@@ -167,7 +169,7 @@ if (mode === "list") {
       label="Cards in this list" 
       type="cardsInList"
       onClick={handleStatClick}
-      selected={selectedStat}
+      selected={selectedStats}
     />
   )}
 
@@ -190,7 +192,7 @@ function Section({ title, children }) {
 function StatCard({ value, label, tag, type, onClick, selected }) {
   return (
     <div 
-      className={`card ${selected === type ? "selected" : ""}`}
+     className={`card ${selected.includes(type) ? "selected" : ""}`}
       onClick={() => onClick(type)}
     >
       {tag === "live" && <span className="tag live">Live</span>}
