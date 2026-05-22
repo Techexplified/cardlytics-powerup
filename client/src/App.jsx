@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getBoardCards, computeStats, getMemberId, getListCards } from "./trello";
+import { getBoardCards, computeStats, getMemberId, getListCards, getBoardLists } from "./trello";
 import "./index.css";
 
 export default function App() {
@@ -22,6 +22,9 @@ export default function App() {
 
   const [selectedStats, setSelectedStats] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString());
+  const [lists, setLists] = useState([]);
+  const [selectedListId, setSelectedListId] = useState("");
+  const [selectedListCount, setSelectedListCount] = useState(null);
 
   const handleStatClick = (type) => {
     setSelectedStats((prev) => {
@@ -59,9 +62,22 @@ export default function App() {
 
       setStats(computed);
       setLastUpdated(new Date().toLocaleTimeString());
+
+      const boardLists = await getBoardLists(key, token, boardId);
+      setLists(boardLists);
     } catch (err) {
       console.error(err);
     }
+  }
+
+  async function handleListChange(e) {
+    const id = e.target.value;
+    setSelectedListId(id);
+    if (!id) { setSelectedListCount(null); return; }
+    const key = import.meta.env.VITE_TRELLO_API_KEY;
+    const token = import.meta.env.VITE_TRELLO_TOKEN;
+    const cards = await getListCards(key, token, id);
+    setSelectedListCount(cards.length);
   }
 
   useEffect(() => {
@@ -142,6 +158,22 @@ export default function App() {
             onClick={handleStatClick}
             selected={selectedStats}
           />
+
+          {mode === "board" && (
+            <div className="card list-picker">
+              <div className="card-label" style={{ marginBottom: "6px" }}>Cards in list</div>
+              <select className="list-dropdown" value={selectedListId} onChange={handleListChange}>
+                <option value="">Select a list</option>
+                {lists.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+              {selectedListCount !== null && (
+                <div className="card-value" style={{ marginTop: "6px" }}>{selectedListCount}</div>
+              )}
+            </div>
+          )}
+
           {mode === "list" && (
             <StatCard
               value={stats.cardsInList}
@@ -151,6 +183,7 @@ export default function App() {
               selected={selectedStats}
             />
           )}
+
           <div className="add-filter-card">+ Add filter</div>
         </Section>
 

@@ -215,3 +215,17 @@ body {
   transition: background 0.15s;
 }
 .btn-refresh:hover { background: #3a3a3a; }
+
+.list-dropdown {
+  width: 100%;
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  padding: 4px 6px;
+  color: #ccc;
+  font-size: 11px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  cursor: pointer;
+}
+.list-dropdown:focus { border-color: #0052cc; }

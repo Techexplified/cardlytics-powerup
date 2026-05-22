@@ -125,3 +125,12 @@ export function computeStats(cards, memberId) {
     createdToday,
   };
 }
+
+// 📋 Get all lists from board
+export async function getBoardLists(key, token, boardId) {
+  const res = await fetch(
+    `${BASE}/boards/${boardId}/lists?${buildAuth(key, token)}&fields=id,name`
+  );
+  if (!res.ok) return [];
+  return res.json();
+}
