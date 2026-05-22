@@ -229,3 +229,18 @@ body {
   cursor: pointer;
 }
 .list-dropdown:focus { border-color: #555; }
+
+.list-picker-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.list-picker-top .card-value {
+  flex-shrink: 0;
+}
+
+.list-picker-top .list-dropdown {
+  flex: 1;
+}
