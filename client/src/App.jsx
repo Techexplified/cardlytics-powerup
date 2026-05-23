@@ -30,19 +30,48 @@ function cardCreatedDate(cardId) {
   return new Date(ts);
 }
 
+const STAT_LABELS = {
+  assigned:     "Assigned to Me",
+  dueThisWeek:  "Due This Week",
+  overdue:      "Overdue Cards",
+  unassigned:   "Unassigned Cards",
+  withLabel:    "Cards With Label",
+  stale:        "Stale Cards",
+  createdToday: "Created Today",
+  cardsInList:  "Cards in List",
+  all:          "All Cards",
+};
+
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
 function CardBackView() {
   function handleOpenCardlytics() {
     const t = window.TrelloPowerUp?.iframe?.();
-    if (t) {
-      t.card("id", "idList", "name").then((card) => {
+    if (!t) return;
+
+    t.card("id", "idList", "name", "desc").then((card) => {
+      const nameMap = {
+        "📌 Assigned to Me":   "assigned",
+        "📅 Due This Week":    "dueThisWeek",
+        "⚠️ Overdue Cards":    "overdue",
+        "👤 Unassigned Cards": "unassigned",
+        "🏷️ Cards With Label": "withLabel",
+        "💤 Stale Cards":      "stale",
+        "✨ Created Today":    "createdToday",
+        "📋 Cards in List":    "cardsInList",
+      };
+      const statType = nameMap[card.name] || "all";
+
+      const modeMatch = card.desc?.match(/mode:(board|list)/);
+      const cardMode  = modeMatch ? modeMatch[1] : "board";
+
+      t.board("id").then((board) => {
         t.modal({
           title: "Cardlytics",
-          url: `./index.html?view=card-details&listId=${card.idList}`,
+          url: `./index.html?view=card-details&listId=${card.idList}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
           fullscreen: true,
         });
       });
-    }
+    });
   }
 
   return (
@@ -55,15 +84,16 @@ function CardBackView() {
 }
 
 // ─── CARD DETAILS VIEW ────────────────────────────────────────────────────────
-
-
 function CardDetailsView() {
-  const params = new URLSearchParams(window.location.search);
-  const listId = params.get("listId");
+  const params   = new URLSearchParams(window.location.search);
+  const listId   = params.get("listId");
+  const boardId  = params.get("boardId");
+  const statType = params.get("statType") || "all";
+  const mode     = params.get("mode") || "board";
 
   const [cards, setCards]             = useState([]);
   const [listName, setListName]       = useState("List");
-  const [boardName, setBoardName] = useState("Board");
+  const [boardName, setBoardName]     = useState("Board");
   const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
   const [fullStats, setFullStats]     = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0 });
   const [memberMap, setMemberMap]     = useState({});
@@ -79,39 +109,89 @@ function CardDetailsView() {
 
   useEffect(() => {
     async function load() {
-      if (!listId) return;
       setLoading(true);
       try {
-        const fetchedCards = await getListCards(key, token, listId);
-        setCards(fetchedCards);
-        setDetailStats(computeDetailStats(fetchedCards));
+        // cardsInList is always list-scoped; everything else is board-scoped
+        const isListScoped = statType === "cardsInList";
+
+        let allCards;
+        if (isListScoped && listId) {
+          allCards = await getListCards(key, token, listId);
+        } else if (boardId) {
+          allCards = await getBoardCards(key, token, boardId);
+        } else if (listId) {
+          // fallback: no boardId but we have listId
+          allCards = await getListCards(key, token, listId);
+        } else {
+          allCards = [];
+        }
 
         const mid = await getMemberId(key, token);
         setMemberId(mid);
-        const computed = computeStats(fetchedCards, mid);
+
+        // ── Build filter for the table / banner count ──
+        const now           = new Date();
+        const weekFromNow   = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const fourteenAgo   = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        const todayStart    = new Date(now); todayStart.setHours(0, 0, 0, 0);
+
+        const filterMap = {
+          assigned:     (c) => c.idMembers?.includes(mid),
+          dueThisWeek:  (c) => c.due && new Date(c.due) >= now && new Date(c.due) <= weekFromNow,
+          overdue:      (c) => c.due && new Date(c.due) < now && !c.dueComplete,
+          unassigned:   (c) => !c.idMembers || c.idMembers.length === 0,
+          withLabel:    (c) => c.labels?.length > 0,
+          stale:        (c) => c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
+          createdToday: (c) => cardCreatedDate(c.id) >= todayStart,
+          cardsInList:  () => true,  // already scoped by fetch
+          all:          () => true,
+        };
+
+        const fn = filterMap[statType] || (() => true);
+        const filteredCards = allCards.filter(fn);
+
+        setCards(filteredCards);
+        setDetailStats(computeDetailStats(filteredCards));
+
+        // Left sidebar always uses full board-wide stats
+        const computed = computeStats(allCards, mid);
+        computed.cardsInList = isListScoped ? filteredCards.length : 0;
         setFullStats(computed);
 
-        // Fetch list name
-       // Fetch list name + board name
-const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`);
-if (listRes.ok) {
-  const listData = await listRes.json();
-  setListName(listData.name);
+        // ── Fetch list name + board name ──
+        if (listId) {
+          const listRes = await fetch(
+            `https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`
+          );
+          if (listRes.ok) {
+            const listData = await listRes.json();
+            setListName(listData.name);
+            const resolvedBoardId = boardId || listData.idBoard;
+            const boardRes = await fetch(
+              `https://api.trello.com/1/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`
+            );
+            if (boardRes.ok) {
+              const boardData = await boardRes.json();
+              setBoardName(boardData.name);
+            }
+          }
+        } else if (boardId) {
+          const boardRes = await fetch(
+            `https://api.trello.com/1/boards/${boardId}?key=${key}&token=${token}&fields=name`
+          );
+          if (boardRes.ok) {
+            const boardData = await boardRes.json();
+            setBoardName(boardData.name);
+          }
+        }
 
-  const boardRes = await fetch(`https://api.trello.com/1/boards/${listData.idBoard}?key=${key}&token=${token}&fields=name`);
-  if (boardRes.ok) {
-    const boardData = await boardRes.json();
-    setBoardName(boardData.name);
-  }
-}
-
-        // Collect all unique member IDs
-        const allMemberIds = [...new Set(fetchedCards.flatMap(c => c.idMembers || []))];
+        // ── Member details for table avatars ──
+        const allMemberIds = [...new Set(filteredCards.flatMap((c) => c.idMembers || []))];
         const details = {};
         await Promise.all(
-          allMemberIds.map(async (mid) => {
-            const m = await getMemberDetails(key, token, mid);
-            if (m) details[mid] = m;
+          allMemberIds.map(async (id) => {
+            const m = await getMemberDetails(key, token, id);
+            if (m) details[id] = m;
           })
         );
         setMemberMap(details);
@@ -122,15 +202,15 @@ if (listRes.ok) {
       }
     }
     load();
-  }, [listId]);
+  }, [listId, boardId, statType]);
 
-  // Filter + sort
+  // ── Filter + sort ──
   const filtered = cards
-    .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       let va, vb;
-      if (sortCol === "name")     { va = a.name; vb = b.name; }
-      else if (sortCol === "due") { va = a.due || ""; vb = b.due || ""; }
+      if (sortCol === "name")         { va = a.name; vb = b.name; }
+      else if (sortCol === "due")     { va = a.due || ""; vb = b.due || ""; }
       else if (sortCol === "created") {
         va = cardCreatedDate(a.id).getTime();
         vb = cardCreatedDate(b.id).getTime();
@@ -144,7 +224,7 @@ if (listRes.ok) {
     });
 
   function handleSort(col) {
-    if (sortCol === col) setSortAsc(s => !s);
+    if (sortCol === col) setSortAsc((s) => !s);
     else { setSortCol(col); setSortAsc(true); }
   }
 
@@ -156,37 +236,40 @@ if (listRes.ok) {
   function DueChip({ due, dueComplete }) {
     if (!due) return <span style={{ color: "#555" }}>—</span>;
     const now = new Date();
-    const d = new Date(due);
-    const isOverdue  = d < now && !dueComplete;
-    const isDone     = dueComplete;
-    const cls = isDone ? "done" : isOverdue ? "overdue" : "upcoming";
+    const d   = new Date(due);
+    const cls = dueComplete ? "done" : d < now ? "overdue" : "upcoming";
     return <span className={`cb-due ${cls}`}>{formatDate(due)}</span>;
   }
 
   if (loading) {
     return (
       <div className="cd-root">
-        <div className="cb-loading"><div className="cb-spinner" /><span>Loading...</span></div>
+        <div className="cb-loading">
+          <div className="cb-spinner" />
+          <span>Loading...</span>
+        </div>
       </div>
     );
   }
 
+  const isListScoped = statType === "cardsInList";
+
   const leftStats = [
-    { value: detailStats.total,       label: "In this list",              accent: "#4caf50" },
-    { value: fullStats.assigned,      label: "Assigned to me",            accent: "#4ea1ff" },
-    { value: fullStats.dueThisWeek,   label: "Due this week",             accent: "#f9c74f" },
-    { value: fullStats.overdue,       label: "Overdue cards",             accent: "#ff5252" },
-    { value: fullStats.unassigned,    label: "Unassigned cards",          accent: "#ab47bc" },
-    { value: fullStats.withLabel,     label: "Cards with a label",        accent: "#ff9800" },
-    { value: fullStats.stale,         label: "Stale (14+ days inactive)", accent: "#888"    },
-    { value: fullStats.createdToday,  label: "Created today",             accent: "#2ec4b6" },
+    { value: detailStats.total,      label: "In this view",              accent: "#4caf50" },
+    { value: fullStats.assigned,     label: "Assigned to me",            accent: "#4ea1ff" },
+    { value: fullStats.dueThisWeek,  label: "Due this week",             accent: "#f9c74f" },
+    { value: fullStats.overdue,      label: "Overdue cards",             accent: "#ff5252" },
+    { value: fullStats.unassigned,   label: "Unassigned cards",          accent: "#ab47bc" },
+    { value: fullStats.withLabel,    label: "Cards with a label",        accent: "#ff9800" },
+    { value: fullStats.stale,        label: "Stale (14+ days inactive)", accent: "#888"    },
+    { value: fullStats.createdToday, label: "Created today",             accent: "#2ec4b6" },
   ];
 
   return (
     <div className="cd-root">
       {/* ── LEFT PANEL ── */}
       <div className="cd-left">
-        <div className="cd-list-label">{listName}</div>
+        <div className="cd-list-label">{isListScoped ? listName : boardName}</div>
 
         {leftStats.map((s, i) => (
           <div key={i} className="cd-stat-card" style={{ borderLeft: `3px solid ${s.accent}` }}>
@@ -207,14 +290,16 @@ if (listRes.ok) {
         <div className="cd-banner">
           <div className="cd-banner-count">{detailStats.total}</div>
           <div>
-            <div className="cd-banner-title">cards</div>
-            <div className="cd-banner-sub">In this list</div>
+            <div className="cd-banner-title">{STAT_LABELS[statType] || "Cards"}</div>
+            <div className="cd-banner-sub">
+              {isListScoped ? `In list: ${listName}` : `Board: ${boardName}`}
+            </div>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="cd-tabs">
-          {["table","metrics","history","alerts"].map(tab => (
+          {["table", "metrics", "history", "alerts"].map((tab) => (
             <div
               key={tab}
               className={`cd-tab ${activeTab === tab ? "active" : ""}`}
@@ -236,11 +321,13 @@ if (listRes.ok) {
             <span className="pill-sep">is</span>
             <span className="pill-val blue">{boardName}</span>
           </div>
-          <div className="cd-filter-pill">
-            <span className="pill-key">List</span>
-            <span className="pill-sep">is</span>
-            <span className="pill-val teal">{listName}</span>
-          </div>
+          {isListScoped && (
+            <div className="cd-filter-pill">
+              <span className="pill-key">List</span>
+              <span className="pill-sep">is</span>
+              <span className="pill-val teal">{listName}</span>
+            </div>
+          )}
           <div className="cd-toolbar-actions">
             <button className="cd-action-btn">✏ Edit filters</button>
             <button className="cd-action-btn">⊡ Clone</button>
@@ -255,7 +342,7 @@ if (listRes.ok) {
               type="text"
               placeholder="Search"
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               className="cd-search-input"
             />
           </div>
@@ -288,19 +375,26 @@ if (listRes.ok) {
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} style={{ textAlign: "center", color: "#555", padding: "20px" }}>No cards found</td></tr>
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: "center", color: "#555", padding: "20px" }}>
+                      No cards found
+                    </td>
+                  </tr>
                 )}
-                {filtered.map(card => (
+                {filtered.map((card) => (
                   <tr key={card.id}>
                     <td className="td-name">
                       {card.labels?.length > 0 && (
                         <span style={{ display: "inline-flex", gap: 3, marginRight: 6 }}>
                           {card.labels.map((lbl, i) => (
-                            <span key={i} style={{
-                              width: 10, height: 10, borderRadius: 2,
-                              background: LABEL_COLORS[lbl.color] || "#888",
-                              display: "inline-block", verticalAlign: "middle"
-                            }} />
+                            <span
+                              key={i}
+                              style={{
+                                width: 10, height: 10, borderRadius: 2,
+                                background: LABEL_COLORS[lbl.color] || "#888",
+                                display: "inline-block", verticalAlign: "middle",
+                              }}
+                            />
                           ))}
                         </span>
                       )}
@@ -309,7 +403,7 @@ if (listRes.ok) {
                     <td>
                       {card.idMembers?.length > 0 ? (
                         <div style={{ display: "flex", gap: 3 }}>
-                          {card.idMembers.map(mid => {
+                          {card.idMembers.map((mid) => {
                             const m = memberMap[mid];
                             return (
                               <div key={mid} className="cd-mini-avatar" style={{ background: memberColor(mid) }}>
@@ -318,15 +412,19 @@ if (listRes.ok) {
                             );
                           })}
                         </div>
-                      ) : <span style={{ color: "#555" }}>—</span>}
+                      ) : (
+                        <span style={{ color: "#555" }}>—</span>
+                      )}
                     </td>
-                  <td className="td-board">● {boardName}</td>
+                    <td className="td-board">● {boardName}</td>
                     <td>
-                      <span style={{
-                        width: 14, height: 14, border: "1px solid #444", borderRadius: 3,
-                        display: "inline-flex", alignItems: "center", justifyContent: "center",
-                        background: card.dueComplete ? "#0a3d0a" : "transparent"
-                      }}>
+                      <span
+                        style={{
+                          width: 14, height: 14, border: "1px solid #444", borderRadius: 3,
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                          background: card.dueComplete ? "#0a3d0a" : "transparent",
+                        }}
+                      >
                         {card.dueComplete && <span style={{ color: "#4caf50", fontSize: 10 }}>✓</span>}
                       </span>
                     </td>
@@ -382,7 +480,9 @@ export default function App() {
   const [selectedListCount, setSelectedListCount] = useState(null);
 
   const handleStatClick = (type) =>
-    setSelectedStats(prev => prev.includes(type) ? prev.filter(i => i !== type) : [...prev, type]);
+    setSelectedStats((prev) =>
+      prev.includes(type) ? prev.filter((i) => i !== type) : [...prev, type]
+    );
 
   async function fetchData() {
     try {
@@ -436,14 +536,14 @@ export default function App() {
       if (!targetListId) { alert("List not found ❌"); return; }
 
       const statConfig = {
-        assigned:     { name: "📌 Assigned to Me",    desc: v => `${v} card(s) are currently assigned to you across the workspace.` },
-        dueThisWeek:  { name: "📅 Due This Week",     desc: v => `${v} card(s) are due within the next 7 days.` },
-        overdue:      { name: "⚠️ Overdue Cards",      desc: v => `${v} card(s) have passed their due date and are not completed.` },
-        unassigned:   { name: "👤 Unassigned Cards",  desc: v => `${v} card(s) have no member assigned to them.` },
-        withLabel:    { name: "🏷️ Cards With Label",   desc: v => `${v} card(s) have at least one label applied.` },
-        stale:        { name: "💤 Stale Cards",        desc: v => `${v} card(s) have had no activity in the last 14 days.` },
-        createdToday: { name: "✨ Created Today",      desc: v => `${v} card(s) were created today on this board.` },
-        cardsInList:  { name: "📋 Cards in List",     desc: v => `${v} card(s) are currently in the selected list.` },
+        assigned:     { name: "📌 Assigned to Me",    desc: (v) => `${v} card(s) are currently assigned to you across the workspace.\nmode:${mode}` },
+        dueThisWeek:  { name: "📅 Due This Week",     desc: (v) => `${v} card(s) are due within the next 7 days.\nmode:${mode}` },
+        overdue:      { name: "⚠️ Overdue Cards",      desc: (v) => `${v} card(s) have passed their due date and are not completed.\nmode:${mode}` },
+        unassigned:   { name: "👤 Unassigned Cards",  desc: (v) => `${v} card(s) have no member assigned to them.\nmode:${mode}` },
+        withLabel:    { name: "🏷️ Cards With Label",   desc: (v) => `${v} card(s) have at least one label applied.\nmode:${mode}` },
+        stale:        { name: "💤 Stale Cards",        desc: (v) => `${v} card(s) have had no activity in the last 14 days.\nmode:${mode}` },
+        createdToday: { name: "✨ Created Today",      desc: (v) => `${v} card(s) were created today on this board.\nmode:${mode}` },
+        cardsInList:  { name: "📋 Cards in List",     desc: (v) => `${v} card(s) are currently in the selected list.\nmode:${mode}` },
       };
 
       for (const stat of selectedStats) {
@@ -492,7 +592,7 @@ export default function App() {
                 {selectedListCount !== null && <div className="card-value">{selectedListCount}</div>}
                 <select className="list-dropdown" value={selectedListId} onChange={handleListChange}>
                   <option value="">Select a list</option>
-                  {lists.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  {lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               </div>
               <div className="card-label">Cards in list</div>
