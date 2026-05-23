@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getBoardCards, computeStats, getMemberId, getListCards, getBoardLists,  createCard  } from "./trello";
+import { getBoardCards, computeStats, getMemberId, getListCards, getBoardLists, createCard } from "./trello";
 import "./index.css";
 
 export default function App() {
@@ -84,49 +84,74 @@ export default function App() {
     fetchData();
   }, []);
 
- const handleTrack = async () => {
-  try {
-    const key = import.meta.env.VITE_TRELLO_API_KEY;
-    const token = import.meta.env.VITE_TRELLO_TOKEN;
-    const boardId = "p8fosANE";
+  const handleTrack = async () => {
+    try {
+      const key = import.meta.env.VITE_TRELLO_API_KEY;
+      const token = import.meta.env.VITE_TRELLO_TOKEN;
+      const boardId = "p8fosANE";
 
-    let targetListId;
+      let targetListId;
 
-    // ✅ LIST MODE → use current list
-    if (mode === "list" && listId) {
-      targetListId = listId;
+      if (mode === "list" && listId) {
+        targetListId = listId;
+      } else {
+        const boardLists = await getBoardLists(key, token, boardId);
+        targetListId = boardLists[0]?.id;
+      }
+
+      if (!targetListId) {
+        alert("List not found ❌");
+        return;
+      }
+
+      const statConfig = {
+        assigned: {
+          name: "📌 Assigned to Me",
+          desc: (v) => `${v} card(s) are currently assigned to you across the workspace.`
+        },
+        dueThisWeek: {
+          name: "📅 Due This Week",
+          desc: (v) => `${v} card(s) are due within the next 7 days.`
+        },
+        overdue: {
+          name: "⚠️ Overdue Cards",
+          desc: (v) => `${v} card(s) have passed their due date and are not completed.`
+        },
+        unassigned: {
+          name: "👤 Unassigned Cards",
+          desc: (v) => `${v} card(s) have no member assigned to them.`
+        },
+        withLabel: {
+          name: "🏷️ Cards With Label",
+          desc: (v) => `${v} card(s) have at least one label applied.`
+        },
+        stale: {
+          name: "💤 Stale Cards",
+          desc: (v) => `${v} card(s) have had no activity in the last 14 days.`
+        },
+        createdToday: {
+          name: "✨ Created Today",
+          desc: (v) => `${v} card(s) were created today on this board.`
+        },
+        cardsInList: {
+          name: "📋 Cards in List",
+          desc: (v) => `${v} card(s) are currently in the selected list.`
+        }
+      };
+
+      for (const stat of selectedStats) {
+        const value = stats[stat];
+        const config = statConfig[stat];
+        await createCard(key, token, targetListId, config.name, config.desc(value));
+      }
+
+      alert("Cards added successfully 🚀");
+
+    } catch (err) {
+      console.error("Trello API Error:", err);
+      alert("Error creating cards");
     }
-
-    // ✅ BOARD MODE → use first list (default)
-    else {
-      const lists = await getBoardLists(key, token, boardId);
-      targetListId = lists[0]?.id;
-    }
-
-    console.log("FINAL LIST ID:", targetListId); // 👈 VERY IMPORTANT
-
-    // 🚨 Safety check
-    if (!targetListId) {
-      alert("List not found ❌");
-      return;
-    }
-
-    // ✅ Create cards
-    for (const stat of selectedStats) {
-      const value = stats[stat];
-      const name = `${stat} (${value})`;
-      const desc = "Auto-created from Cardlytics";
-
-      await createCard(key, token, targetListId, name, desc);
-    }
-
-    alert("Cards added successfully 🚀");
-
-  } catch (err) {
-    console.error("Trello API Error:", err);
-    alert("Error creating cards");
-  }
-};
+  };
 
   return (
     <div className="popup">
@@ -137,9 +162,7 @@ export default function App() {
           <h3>Cardlytics — Track</h3>
         </div>
         <div className="header-actions">
-          <button className="btn-customize" onClick={handleTrack}>
-            Track
-          </button>
+          <button className="btn-customize" onClick={handleTrack}>Track</button>
           <button className="btn-customize">Customize</button>
         </div>
       </div>
@@ -205,22 +228,22 @@ export default function App() {
             selected={selectedStats}
           />
 
-        {mode === "board" && (
-  <div className="card list-picker">
-    <div className="list-picker-top">
-      {selectedListCount !== null && (
-        <div className="card-value">{selectedListCount}</div>
-      )}
-      <select className="list-dropdown" value={selectedListId} onChange={handleListChange}>
-        <option value="">Select a list</option>
-        {lists.map((l) => (
-          <option key={l.id} value={l.id}>{l.name}</option>
-        ))}
-      </select>
-    </div>
-    <div className="card-label">Cards in list</div>
-  </div>
-)}
+          {mode === "board" && (
+            <div className="card list-picker">
+              <div className="list-picker-top">
+                {selectedListCount !== null && (
+                  <div className="card-value">{selectedListCount}</div>
+                )}
+                <select className="list-dropdown" value={selectedListId} onChange={handleListChange}>
+                  <option value="">Select a list</option>
+                  {lists.map((l) => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="card-label">Cards in list</div>
+            </div>
+          )}
 
           {mode === "list" && (
             <StatCard
