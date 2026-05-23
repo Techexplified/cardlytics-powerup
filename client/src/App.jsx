@@ -111,8 +111,9 @@ function CardDetailsView() {
     async function load() {
       setLoading(true);
       try {
-        // cardsInList is always list-scoped; everything else is board-scoped
-        const isListScoped = statType === "cardsInList";
+        // mode:list → fetch only that list's cards
+        // mode:board → fetch all board cards
+        const isListScoped = mode === "list";
 
         let allCards;
         if (isListScoped && listId) {
@@ -120,7 +121,6 @@ function CardDetailsView() {
         } else if (boardId) {
           allCards = await getBoardCards(key, token, boardId);
         } else if (listId) {
-          // fallback: no boardId but we have listId
           allCards = await getListCards(key, token, listId);
         } else {
           allCards = [];
@@ -153,9 +153,9 @@ function CardDetailsView() {
         setCards(filteredCards);
         setDetailStats(computeDetailStats(filteredCards));
 
-        // Left sidebar always uses full board-wide stats
+        // Left sidebar: list mode → show list stats, board mode → show board stats
         const computed = computeStats(allCards, mid);
-        computed.cardsInList = isListScoped ? filteredCards.length : 0;
+        computed.cardsInList = isListScoped ? allCards.length : 0;
         setFullStats(computed);
 
         // ── Fetch list name + board name ──
@@ -252,7 +252,7 @@ function CardDetailsView() {
     );
   }
 
-  const isListScoped = statType === "cardsInList";
+  const isListScoped = mode === "list";
 
   const leftStats = [
     { value: detailStats.total,      label: "In this view",              accent: "#4caf50" },
