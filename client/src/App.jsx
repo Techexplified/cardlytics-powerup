@@ -55,12 +55,15 @@ function CardBackView() {
 }
 
 // ─── CARD DETAILS VIEW ────────────────────────────────────────────────────────
+
+
 function CardDetailsView() {
   const params = new URLSearchParams(window.location.search);
   const listId = params.get("listId");
 
   const [cards, setCards]             = useState([]);
   const [listName, setListName]       = useState("List");
+  const [boardName, setBoardName] = useState("Board");
   const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
   const [fullStats, setFullStats]     = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0 });
   const [memberMap, setMemberMap]     = useState({});
@@ -89,11 +92,18 @@ function CardDetailsView() {
         setFullStats(computed);
 
         // Fetch list name
-        const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name`);
-        if (listRes.ok) {
-          const listData = await listRes.json();
-          setListName(listData.name);
-        }
+       // Fetch list name + board name
+const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`);
+if (listRes.ok) {
+  const listData = await listRes.json();
+  setListName(listData.name);
+
+  const boardRes = await fetch(`https://api.trello.com/1/boards/${listData.idBoard}?key=${key}&token=${token}&fields=name`);
+  if (boardRes.ok) {
+    const boardData = await boardRes.json();
+    setBoardName(boardData.name);
+  }
+}
 
         // Collect all unique member IDs
         const allMemberIds = [...new Set(fetchedCards.flatMap(c => c.idMembers || []))];
@@ -224,7 +234,7 @@ function CardDetailsView() {
           <div className="cd-filter-pill">
             <span className="pill-key">Board</span>
             <span className="pill-sep">is</span>
-            <span className="pill-val blue">this board</span>
+            <span className="pill-val blue">{boardName}</span>
           </div>
           <div className="cd-filter-pill">
             <span className="pill-key">List</span>
