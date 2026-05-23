@@ -46,15 +46,12 @@ window.TrelloPowerUp.initialize({
     return {
       title: 'Cardlytics',
 
-      icon: {
-        dark: 'https://cardlytics-powerup.vercel.app/logo.png',
-        light: 'https://cardlytics-powerup.vercel.app/logo.png'
-      },
+      icon: 'https://cardlytics-powerup.vercel.app/logo.png', // ← plain URL string, not {dark/light}
 
       content: {
         type: 'iframe',
         url: t.signUrl('./index.html?view=card'),
-        height: 280  // ← updated from 200
+        height: 280
       }
     };
   }
