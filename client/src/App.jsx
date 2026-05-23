@@ -30,6 +30,18 @@ function cardCreatedDate(cardId) {
   return new Date(ts);
 }
 
+// ─── CARDLYTICS TRACKER CARD NAMES (excluded from stats) ─────────────────────
+const TRACKED_CARD_NAMES = [
+  "📌 Assigned to Me",
+  "📅 Due This Week",
+  "⚠️ Overdue Cards",
+  "👤 Unassigned Cards",
+  "🏷️ Cards With Label",
+  "💤 Stale Cards",
+  "✨ Created Today",
+  "📋 Cards in List",
+];
+
 const STAT_LABELS = {
   assigned:     "Assigned to Me",
   dueThisWeek:  "Due This Week",
@@ -132,6 +144,9 @@ function CardDetailsView() {
 
         const mid = await getMemberId(key, token);
         setMemberId(mid);
+
+        // Remove Cardlytics tracker cards from stats — they should never count themselves
+        allCards = allCards.filter(c => !TRACKED_CARD_NAMES.includes(c.name));
 
         // ── Build filter for the table / banner count ──
         const now           = new Date();
@@ -498,9 +513,12 @@ export default function App() {
         ? await getListCards(key, token, listId)
         : await getBoardCards(key, token, boardId);
 
+      // Remove Cardlytics tracker cards — they should never count in stats
+      const filteredForStats = cards.filter(c => !TRACKED_CARD_NAMES.includes(c.name));
+
       const memberId = await getMemberId(key, token);
-      const computed = computeStats(cards, memberId);
-      computed.cardsInList = mode === "list" ? cards.length : 0;
+      const computed = computeStats(filteredForStats, memberId);
+      computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
 
       setStats(computed);
       setLastUpdated(new Date().toLocaleTimeString());
