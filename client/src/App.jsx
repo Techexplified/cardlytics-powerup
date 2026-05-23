@@ -115,7 +115,7 @@ function applyStatFilter(cards, statType, memberId) {
         const ts = parseInt(c.id.substring(0, 8), 16) * 1000;
         return new Date(ts) >= startOfDay;
       });
-    default: // "all" or "cardsInList" — show everything fetched
+    default:
       return cards;
   }
 }
