@@ -1,13 +1,48 @@
 import { useState, useEffect } from "react";
-import { getBoardCards, computeStats, getMemberId, getListCards, getBoardLists, createCard } from "./trello";
+import { getBoardCards, computeStats, computeDetailStats, getMemberId, getMemberDetails, getListCards, getBoardLists, createCard } from "./trello";
 import "./index.css";
+
+// ─── TRELLO LABEL COLOR MAP ───────────────────────────────────────────────────
+const LABEL_COLORS = {
+  red: "#ff5252", orange: "#ff9800", yellow: "#f9c74f",
+  green: "#4caf50", blue: "#4ea1ff", purple: "#ab47bc",
+  pink: "#f06292", sky: "#29b6f6", lime: "#a3e635",
+  black: "#555", null: "#888", none: "#888",
+};
+
+const MEMBER_AVATAR_COLORS = [
+  "#e85d2e","#2e7de8","#7e4de8","#e84e8a","#2ec4b6","#e8a62e","#4caf50"
+];
+function memberColor(id) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  return MEMBER_AVATAR_COLORS[Math.abs(hash) % MEMBER_AVATAR_COLORS.length];
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function cardCreatedDate(cardId) {
+  const ts = parseInt(cardId.substring(0, 8), 16) * 1000;
+  return new Date(ts);
+}
 
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
 function CardBackView() {
   function handleOpenCardlytics() {
     const t = window.TrelloPowerUp?.iframe?.();
     if (t) {
-      t.modal({ title: "Cardlytics", url: "./index.html?mode=board", fullscreen: false, height: 600 });
+      t.card("id", "idList", "name").then((card) => {
+        t.modal({
+          title: "Cardlytics",
+          url: `./index.html?view=card-details&listId=${card.idList}`,
+          fullscreen: false,
+          height: 600,
+        });
+      });
     }
   }
 
@@ -20,6 +55,300 @@ function CardBackView() {
   );
 }
 
+// ─── CARD DETAILS VIEW ────────────────────────────────────────────────────────
+function CardDetailsView() {
+  const params = new URLSearchParams(window.location.search);
+  const listId = params.get("listId");
+
+  const [cards, setCards]           = useState([]);
+  const [listName, setListName]     = useState("List");
+  const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
+  const [memberMap, setMemberMap]   = useState({});
+  const [loading, setLoading]       = useState(true);
+  const [activeTab, setActiveTab]   = useState("table");
+  const [search, setSearch]         = useState("");
+  const [sortCol, setSortCol]       = useState("name");
+  const [sortAsc, setSortAsc]       = useState(true);
+
+  const key   = import.meta.env.VITE_TRELLO_API_KEY;
+  const token = import.meta.env.VITE_TRELLO_TOKEN;
+
+  useEffect(() => {
+    async function load() {
+      if (!listId) return;
+      setLoading(true);
+      try {
+        const fetchedCards = await getListCards(key, token, listId);
+        setCards(fetchedCards);
+        setDetailStats(computeDetailStats(fetchedCards));
+
+        // Fetch list name
+        const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name`);
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          setListName(listData.name);
+        }
+
+        // Collect all unique member IDs
+        const allMemberIds = [...new Set(fetchedCards.flatMap(c => c.idMembers || []))];
+        const details = {};
+        await Promise.all(
+          allMemberIds.map(async (mid) => {
+            const m = await getMemberDetails(key, token, mid);
+            if (m) details[mid] = m;
+          })
+        );
+        setMemberMap(details);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [listId]);
+
+  // Filter + sort
+  const filtered = cards
+    .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      let va, vb;
+      if (sortCol === "name")     { va = a.name; vb = b.name; }
+      else if (sortCol === "due") { va = a.due || ""; vb = b.due || ""; }
+      else if (sortCol === "created") {
+        va = cardCreatedDate(a.id).getTime();
+        vb = cardCreatedDate(b.id).getTime();
+      } else if (sortCol === "modified") {
+        va = a.dateLastActivity || "";
+        vb = b.dateLastActivity || "";
+      } else { va = ""; vb = ""; }
+      if (va < vb) return sortAsc ? -1 : 1;
+      if (va > vb) return sortAsc ? 1 : -1;
+      return 0;
+    });
+
+  function handleSort(col) {
+    if (sortCol === col) setSortAsc(s => !s);
+    else { setSortCol(col); setSortAsc(true); }
+  }
+
+  function SortArrow({ col }) {
+    if (sortCol !== col) return <span style={{ color: "#444", marginLeft: 3 }}>↕</span>;
+    return <span style={{ color: "#4ea1ff", marginLeft: 3 }}>{sortAsc ? "↑" : "↓"}</span>;
+  }
+
+  function DueChip({ due, dueComplete }) {
+    if (!due) return <span style={{ color: "#555" }}>—</span>;
+    const now = new Date();
+    const d = new Date(due);
+    const isOverdue  = d < now && !dueComplete;
+    const isDone     = dueComplete;
+    const cls = isDone ? "done" : isOverdue ? "overdue" : "upcoming";
+    return <span className={`cb-due ${cls}`}>{formatDate(due)}</span>;
+  }
+
+  // Stat cards for left panel
+  const topLabel = Object.entries(detailStats.labelCounts).sort((a, b) => b[1].count - a[1].count)[0];
+
+  if (loading) {
+    return (
+      <div className="cd-root">
+        <div className="cb-loading"><div className="cb-spinner" /><span>Loading...</span></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="cd-root">
+      {/* ── LEFT PANEL ── */}
+      <div className="cd-left">
+        <div className="cd-list-label">{listName}</div>
+
+        {topLabel && (
+          <div className="cd-stat-card" style={{ borderLeft: `3px solid ${LABEL_COLORS[topLabel[0]] || "#888"}` }}>
+            <div className="cd-stat-num" style={{ color: LABEL_COLORS[topLabel[0]] || "#fff" }}>
+              {topLabel[1].count}
+            </div>
+            <div className="cd-stat-lbl">
+              With a {topLabel[0]} label on this board
+            </div>
+          </div>
+        )}
+
+        {detailStats.dueThisWeek > 0 && (
+          <div className="cd-stat-card" style={{ borderLeft: "3px solid #4ea1ff" }}>
+            <div className="cd-stat-num">{detailStats.dueThisWeek}</div>
+            <div className="cd-stat-lbl">Due this week on this board</div>
+          </div>
+        )}
+
+        <div className="cd-stat-card" style={{ borderLeft: "3px solid #4caf50" }}>
+          <div className="cd-stat-num">{detailStats.total}</div>
+          <div className="cd-stat-lbl">In this list</div>
+        </div>
+
+        <div className="add-filter-card" style={{ marginTop: 4 }}>+ Add filter</div>
+      </div>
+
+      {/* ── RIGHT PANEL ── */}
+      <div className="cd-right">
+
+        {/* Blue count banner */}
+        <div className="cd-banner">
+          <div className="cd-banner-count">{detailStats.total}</div>
+          <div>
+            <div className="cd-banner-title">cards</div>
+            <div className="cd-banner-sub">In this list</div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="cd-tabs">
+          {["table","metrics","history","alerts"].map(tab => (
+            <div
+              key={tab}
+              className={`cd-tab ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === "table" && (
+                <span className="cd-tab-count">{detailStats.total}</span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Active filters bar */}
+        <div className="cd-toolbar">
+          <span className="cd-toolbar-label">Active filters</span>
+          <div className="cd-filter-pill">
+            <span className="pill-key">Board</span>
+            <span className="pill-sep">is</span>
+            <span className="pill-val blue">this board</span>
+          </div>
+          <div className="cd-filter-pill">
+            <span className="pill-key">List</span>
+            <span className="pill-sep">is</span>
+            <span className="pill-val teal">{listName}</span>
+          </div>
+          <div className="cd-toolbar-actions">
+            <button className="cd-action-btn">✏ Edit filters</button>
+            <button className="cd-action-btn">⊡ Clone</button>
+          </div>
+        </div>
+
+        {/* Search + export */}
+        <div className="cd-toolbar" style={{ borderTop: "none", paddingTop: 6 }}>
+          <div className="cd-search">
+            <span style={{ color: "#555", fontSize: 13 }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Search"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="cd-search-input"
+            />
+          </div>
+          <button className="cd-action-btn">Columns</button>
+          <button className="cd-action-btn">Export</button>
+        </div>
+
+        {/* Created by */}
+        <div className="cd-created-by">
+          <div className="cd-mini-avatar" style={{ background: "#e85d2e" }}>SR</div>
+          <span>Created by</span>
+          <span className="cd-created-name">Cardlytics</span>
+        </div>
+
+        {/* Table */}
+        {activeTab === "table" && (
+          <div className="cd-table-wrap">
+            <table className="cd-table">
+              <thead>
+                <tr>
+                  <th onClick={() => handleSort("name")}>Name <SortArrow col="name" /></th>
+                  <th>Assigned</th>
+                  <th>Board</th>
+                  <th>Done</th>
+                  <th onClick={() => handleSort("created")}>Created <SortArrow col="created" /></th>
+                  <th onClick={() => handleSort("due")}>Due <SortArrow col="due" /></th>
+                  <th onClick={() => handleSort("modified")}>Last Modified <SortArrow col="modified" /></th>
+                  <th>List</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.length === 0 && (
+                  <tr><td colSpan={8} style={{ textAlign: "center", color: "#555", padding: "20px" }}>No cards found</td></tr>
+                )}
+                {filtered.map(card => (
+                  <tr key={card.id}>
+                    <td className="td-name">
+                      {card.labels?.length > 0 && (
+                        <span style={{ display: "inline-flex", gap: 3, marginRight: 6 }}>
+                          {card.labels.map((lbl, i) => (
+                            <span key={i} style={{
+                              width: 10, height: 10, borderRadius: 2,
+                              background: LABEL_COLORS[lbl.color] || "#888",
+                              display: "inline-block", verticalAlign: "middle"
+                            }} />
+                          ))}
+                        </span>
+                      )}
+                      {card.name}
+                    </td>
+                    <td>
+                      {card.idMembers?.length > 0 ? (
+                        <div style={{ display: "flex", gap: 3 }}>
+                          {card.idMembers.map(mid => {
+                            const m = memberMap[mid];
+                            return (
+                              <div key={mid} className="cd-mini-avatar" style={{ background: memberColor(mid) }}>
+                                {m?.initials || mid.slice(0, 2).toUpperCase()}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : <span style={{ color: "#555" }}>—</span>}
+                    </td>
+                    <td className="td-board">● testing</td>
+                    <td>
+                      <span style={{
+                        width: 14, height: 14, border: "1px solid #444", borderRadius: 3,
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        background: card.dueComplete ? "#0a3d0a" : "transparent"
+                      }}>
+                        {card.dueComplete && <span style={{ color: "#4caf50", fontSize: 10 }}>✓</span>}
+                      </span>
+                    </td>
+                    <td className="td-date">{formatDate(cardCreatedDate(card.id).toISOString())}</td>
+                    <td><DueChip due={card.due} dueComplete={card.dueComplete} /></td>
+                    <td className="td-date">{formatDate(card.dateLastActivity)}</td>
+                    <td><span className="td-list-tag">{listName}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab !== "table" && (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#555", fontSize: 13 }}>
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} — coming soon
+          </div>
+        )}
+
+        {/* Bottom nav */}
+        <div className="cd-bottom-nav">
+          <button className="cd-nav-btn">📥 Inbox</button>
+          <button className="cd-nav-btn">📅 Planner</button>
+          <button className="cd-nav-btn active">⊞ Board</button>
+          <button className="cd-nav-btn switch">⇄ Switch boards</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ────────────────────────────────────────────────────────────────
 export default function App() {
   const params  = new URLSearchParams(window.location.search);
@@ -28,7 +357,8 @@ export default function App() {
   const listId  = params.get("listId");
   const context = mode === "list" ? "list" : "board";
 
-  if (view === "card") return <CardBackView />;
+  if (view === "card")         return <CardBackView />;
+  if (view === "card-details") return <CardDetailsView />;
 
   const [stats, setStats] = useState({
     assigned: 0, dueThisWeek: 0, overdue: 0,
