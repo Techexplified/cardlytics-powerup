@@ -39,8 +39,7 @@ function CardBackView() {
         t.modal({
           title: "Cardlytics",
           url: `./index.html?view=card-details&listId=${card.idList}`,
-          fullscreen: false,
-          height: 600,
+          fullscreen: true,
         });
       });
     }
@@ -60,15 +59,17 @@ function CardDetailsView() {
   const params = new URLSearchParams(window.location.search);
   const listId = params.get("listId");
 
-  const [cards, setCards]           = useState([]);
-  const [listName, setListName]     = useState("List");
+  const [cards, setCards]             = useState([]);
+  const [listName, setListName]       = useState("List");
   const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
-  const [memberMap, setMemberMap]   = useState({});
-  const [loading, setLoading]       = useState(true);
-  const [activeTab, setActiveTab]   = useState("table");
-  const [search, setSearch]         = useState("");
-  const [sortCol, setSortCol]       = useState("name");
-  const [sortAsc, setSortAsc]       = useState(true);
+  const [fullStats, setFullStats]     = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0 });
+  const [memberMap, setMemberMap]     = useState({});
+  const [memberId, setMemberId]       = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [activeTab, setActiveTab]     = useState("table");
+  const [search, setSearch]           = useState("");
+  const [sortCol, setSortCol]         = useState("name");
+  const [sortAsc, setSortAsc]         = useState(true);
 
   const key   = import.meta.env.VITE_TRELLO_API_KEY;
   const token = import.meta.env.VITE_TRELLO_TOKEN;
@@ -81,6 +82,11 @@ function CardDetailsView() {
         const fetchedCards = await getListCards(key, token, listId);
         setCards(fetchedCards);
         setDetailStats(computeDetailStats(fetchedCards));
+
+        const mid = await getMemberId(key, token);
+        setMemberId(mid);
+        const computed = computeStats(fetchedCards, mid);
+        setFullStats(computed);
 
         // Fetch list name
         const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name`);
@@ -147,9 +153,6 @@ function CardDetailsView() {
     return <span className={`cb-due ${cls}`}>{formatDate(due)}</span>;
   }
 
-  // Stat cards for left panel
-  const topLabel = Object.entries(detailStats.labelCounts).sort((a, b) => b[1].count - a[1].count)[0];
-
   if (loading) {
     return (
       <div className="cd-root">
@@ -158,34 +161,31 @@ function CardDetailsView() {
     );
   }
 
+  const leftStats = [
+    { value: detailStats.total,       label: "In this list",              accent: "#4caf50" },
+    { value: fullStats.assigned,      label: "Assigned to me",            accent: "#4ea1ff" },
+    { value: fullStats.dueThisWeek,   label: "Due this week",             accent: "#f9c74f" },
+    { value: fullStats.overdue,       label: "Overdue cards",             accent: "#ff5252" },
+    { value: fullStats.unassigned,    label: "Unassigned cards",          accent: "#ab47bc" },
+    { value: fullStats.withLabel,     label: "Cards with a label",        accent: "#ff9800" },
+    { value: fullStats.stale,         label: "Stale (14+ days inactive)", accent: "#888"    },
+    { value: fullStats.createdToday,  label: "Created today",             accent: "#2ec4b6" },
+  ];
+
   return (
     <div className="cd-root">
       {/* ── LEFT PANEL ── */}
       <div className="cd-left">
         <div className="cd-list-label">{listName}</div>
 
-        {topLabel && (
-          <div className="cd-stat-card" style={{ borderLeft: `3px solid ${LABEL_COLORS[topLabel[0]] || "#888"}` }}>
-            <div className="cd-stat-num" style={{ color: LABEL_COLORS[topLabel[0]] || "#fff" }}>
-              {topLabel[1].count}
+        {leftStats.map((s, i) => (
+          <div key={i} className="cd-stat-card" style={{ borderLeft: `3px solid ${s.accent}` }}>
+            <div className="cd-stat-num" style={{ color: s.value > 0 ? s.accent : "#666" }}>
+              {s.value}
             </div>
-            <div className="cd-stat-lbl">
-              With a {topLabel[0]} label on this board
-            </div>
+            <div className="cd-stat-lbl">{s.label}</div>
           </div>
-        )}
-
-        {detailStats.dueThisWeek > 0 && (
-          <div className="cd-stat-card" style={{ borderLeft: "3px solid #4ea1ff" }}>
-            <div className="cd-stat-num">{detailStats.dueThisWeek}</div>
-            <div className="cd-stat-lbl">Due this week on this board</div>
-          </div>
-        )}
-
-        <div className="cd-stat-card" style={{ borderLeft: "3px solid #4caf50" }}>
-          <div className="cd-stat-num">{detailStats.total}</div>
-          <div className="cd-stat-lbl">In this list</div>
-        </div>
+        ))}
 
         <div className="add-filter-card" style={{ marginTop: 4 }}>+ Add filter</div>
       </div>

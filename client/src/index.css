@@ -420,16 +420,15 @@ body {
   overflow: hidden;
 }
 
-/* Left panel */
 .cd-left {
   width: 200px;
   flex-shrink: 0;
   background: #1a1a1a;
   border-right: 1px solid #2a2a2a;
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   overflow-y: auto;
 }
 .cd-list-label {
@@ -438,27 +437,28 @@ body {
   color: #555;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 4px 0 2px;
+  padding: 2px 0 2px;
+  flex-shrink: 0;
 }
 .cd-stat-card {
   background: #252525;
   border: 1px solid #2e2e2e;
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 8px;
+  padding: 8px 12px;
   cursor: pointer;
   transition: border-color 0.15s;
+  flex-shrink: 0;
 }
 .cd-stat-card:hover { border-color: #444; }
 .cd-stat-num {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
-  color: #fff;
   line-height: 1;
 }
 .cd-stat-lbl {
-  font-size: 11px;
+  font-size: 10px;
   color: #888;
-  margin-top: 4px;
+  margin-top: 3px;
   line-height: 1.3;
 }
 
@@ -632,6 +632,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 12px;
+  table-layout: fixed;
 }
 .cd-table thead th {
   padding: 8px 12px;
@@ -646,11 +647,27 @@ body {
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+.cd-table thead th:nth-child(1) { width: 28%; }
+.cd-table thead th:nth-child(2) { width: 12%; }
+.cd-table thead th:nth-child(3) { width: 12%; }
+.cd-table thead th:nth-child(4) { width: 7%;  }
+.cd-table thead th:nth-child(5) { width: 10%; }
+.cd-table thead th:nth-child(6) { width: 10%; }
+.cd-table thead th:nth-child(7) { width: 13%; }
+.cd-table thead th:nth-child(8) { width: 8%;  }
 .cd-table thead th:hover { color: #888; }
 .cd-table tbody tr { border-bottom: 1px solid #222; }
 .cd-table tbody tr:hover { background: #222; }
-.cd-table tbody td { padding: 9px 12px; color: #ccc; }
+.cd-table tbody td {
+  padding: 9px 12px;
+  color: #ccc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .td-name  { font-weight: 500; color: #e0e0e0 !important; }
 .td-board { color: #60b4ff !important; }
 .td-date  { color: #888 !important; }

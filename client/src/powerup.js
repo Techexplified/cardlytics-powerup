@@ -38,7 +38,7 @@ window.TrelloPowerUp.initialize({
     }];
   },
 
-  // 🟥 CARD BACK SECTION
+  // 🟥 CARD BACK SECTION — opens fullscreen details modal
   'card-back-section': function (t) {
     return {
       title: 'Cardlytics',
