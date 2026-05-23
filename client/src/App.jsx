@@ -61,13 +61,17 @@ function CardBackView() {
       };
       const statType = nameMap[card.name] || "all";
 
-      const modeMatch = card.desc?.match(/mode:(board|list)/);
-      const cardMode  = modeMatch ? modeMatch[1] : "board";
+      const modeMatch    = card.desc?.match(/mode:(board|list)/);
+      const cardMode     = modeMatch ? modeMatch[1] : "board";
+
+      // Read the original listId saved in description (so moving the card doesn't break it)
+      const listIdMatch    = card.desc?.match(/listId:([a-f0-9]+)/);
+      const resolvedListId = listIdMatch ? listIdMatch[1] : card.idList;
 
       t.board("id").then((board) => {
         t.modal({
           title: "Cardlytics",
-          url: `./index.html?view=card-details&listId=${card.idList}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
+          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
           fullscreen: true,
         });
       });
@@ -536,14 +540,14 @@ export default function App() {
       if (!targetListId) { alert("List not found ❌"); return; }
 
       const statConfig = {
-        assigned:     { name: "📌 Assigned to Me",    desc: (v) => `${v} card(s) are currently assigned to you across the workspace.\nmode:${mode}` },
-        dueThisWeek:  { name: "📅 Due This Week",     desc: (v) => `${v} card(s) are due within the next 7 days.\nmode:${mode}` },
-        overdue:      { name: "⚠️ Overdue Cards",      desc: (v) => `${v} card(s) have passed their due date and are not completed.\nmode:${mode}` },
-        unassigned:   { name: "👤 Unassigned Cards",  desc: (v) => `${v} card(s) have no member assigned to them.\nmode:${mode}` },
-        withLabel:    { name: "🏷️ Cards With Label",   desc: (v) => `${v} card(s) have at least one label applied.\nmode:${mode}` },
-        stale:        { name: "💤 Stale Cards",        desc: (v) => `${v} card(s) have had no activity in the last 14 days.\nmode:${mode}` },
-        createdToday: { name: "✨ Created Today",      desc: (v) => `${v} card(s) were created today on this board.\nmode:${mode}` },
-        cardsInList:  { name: "📋 Cards in List",     desc: (v) => `${v} card(s) are currently in the selected list.\nmode:${mode}` },
+        assigned:     { name: "📌 Assigned to Me",    desc: (v) => `${v} card(s) are currently assigned to you across the workspace.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
+        dueThisWeek:  { name: "📅 Due This Week",     desc: (v) => `${v} card(s) are due within the next 7 days.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
+        overdue:      { name: "⚠️ Overdue Cards",      desc: (v) => `${v} card(s) have passed their due date and are not completed.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
+        unassigned:   { name: "👤 Unassigned Cards",  desc: (v) => `${v} card(s) have no member assigned to them.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
+        withLabel:    { name: "🏷️ Cards With Label",   desc: (v) => `${v} card(s) have at least one label applied.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
+        stale:        { name: "💤 Stale Cards",        desc: (v) => `${v} card(s) have had no activity in the last 14 days.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
+        createdToday: { name: "✨ Created Today",      desc: (v) => `${v} card(s) were created today on this board.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
+        cardsInList:  { name: "📋 Cards in List",     desc: (v) => `${v} card(s) are currently in the selected list.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
       };
 
       for (const stat of selectedStats) {
