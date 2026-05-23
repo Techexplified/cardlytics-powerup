@@ -46,7 +46,7 @@ window.TrelloPowerUp.initialize({
       content: {
         type: 'iframe',
         url: t.signUrl('./index.html?view=card'),
-        height: 260
+        height: 44
       }
     };
   }

@@ -2,185 +2,20 @@ import { useState, useEffect } from "react";
 import { getBoardCards, computeStats, getMemberId, getListCards, getBoardLists, createCard } from "./trello";
 import "./index.css";
 
-// ─── STAT META ───────────────────────────────────────────────────────────────
-const STAT_META = {
-  assigned:     { emoji: "📌", label: "Assigned to Me",   color: "#4ea1ff" },
-  dueThisWeek:  { emoji: "📅", label: "Due This Week",    color: "#a78bfa" },
-  overdue:      { emoji: "⚠️",  label: "Overdue Cards",    color: "#ff5252" },
-  unassigned:   { emoji: "👤", label: "Unassigned Cards", color: "#fbbf24" },
-  withLabel:    { emoji: "🏷️",  label: "Cards With Label", color: "#34d399" },
-  stale:        { emoji: "💤", label: "Stale Cards",      color: "#9ca3af" },
-  createdToday: { emoji: "✨", label: "Created Today",    color: "#f472b6" },
-  cardsInList:  { emoji: "📋", label: "Cards in List",   color: "#60a5fa" },
-};
-
-function detectStatKey(cardName) {
-  if (!cardName) return null;
-  for (const [key, meta] of Object.entries(STAT_META)) {
-    if (cardName.startsWith(meta.emoji) || cardName.toLowerCase().includes(meta.label.toLowerCase())) {
-      return key;
-    }
-  }
-  return null;
-}
-
-function stringToColor(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  return `hsl(${Math.abs(hash) % 360}, 55%, 40%)`;
-}
-
-function labelColor(name) {
-  const map = {
-    green: "#2e7d32", yellow: "#f9a825", orange: "#e65100",
-    red: "#b71c1c", purple: "#6a1b9a", blue: "#1565c0",
-    sky: "#0277bd", lime: "#558b2f", pink: "#ad1457", black: "#212121",
-  };
-  return map[name] || "#444";
-}
-
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
 function CardBackView() {
-  const [cardData, setCardData]   = useState(null);
-  const [liveValue, setLiveValue] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [members, setMembers]     = useState([]);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const key     = import.meta.env.VITE_TRELLO_API_KEY;
-  const token   = import.meta.env.VITE_TRELLO_TOKEN;
-  const boardId = "p8fosANE";
-
-  async function fetchCardData() {
-    try {
-      const t    = window.TrelloPowerUp?.iframe?.();
-      const card = t ? await t.card("all") : null;
-      setCardData(card);
-
-      const statKey = detectStatKey(card?.name);
-      const allCards = await getBoardCards(key, token, boardId);
-      const memberId = await getMemberId(key, token);
-      const computed = computeStats(allCards, memberId);
-
-      if (statKey) setLiveValue({ key: statKey, value: computed[statKey] });
-
-      if (card?.members?.length > 0) {
-        setMembers(card.members.map(m => ({
-          id: m.id,
-          initials: m.initials || m.fullName?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "?",
-          name: m.fullName || m.username || "Member",
-          color: stringToColor(m.id),
-        })));
-      } else {
-        setMembers([]);
-      }
-
-      setLastUpdated(new Date());
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleRefresh() {
-    setRefreshing(true);
-    await fetchCardData();
-    setRefreshing(false);
-  }
-
   function handleOpenCardlytics() {
     const t = window.TrelloPowerUp?.iframe?.();
-    if (t) t.modal({ title: "Cardlytics", url: "./index.html?mode=board", fullscreen: false, height: 600 });
-  }
-
-  useEffect(() => { fetchCardData(); }, []);
-
-  const statKey  = detectStatKey(cardData?.name);
-  const meta     = statKey ? STAT_META[statKey] : null;
-  const due      = cardData?.due ? new Date(cardData.due) : null;
-  const isOverdue = due && !cardData?.dueComplete && due < new Date();
-  const labels   = cardData?.labels || [];
-  const minutesAgo = lastUpdated ? Math.floor((new Date() - lastUpdated) / 60000) : null;
-
-  if (loading) {
-    return (
-      <div className="cb-loading">
-        <div className="cb-spinner" />
-        <span>Loading…</span>
-      </div>
-    );
+    if (t) {
+      t.modal({ title: "Cardlytics", url: "./index.html?mode=board", fullscreen: false, height: 600 });
+    }
   }
 
   return (
     <div className="cb-root">
-
-      {/* ── Stat Block ── */}
-      {meta && liveValue !== null ? (
-        <div className="cb-stat-block" style={{ "--stat-color": meta.color }}>
-          <div className="cb-stat-left">
-            <span className="cb-stat-emoji">{meta.emoji}</span>
-            <div>
-              <div className="cb-stat-label">{meta.label}</div>
-              <div className="cb-stat-sub">
-                {minutesAgo === 0 ? "Just refreshed" : `Updated ${minutesAgo}m ago`}
-              </div>
-            </div>
-          </div>
-          <div className="cb-stat-value" style={{ color: meta.color }}>
-            {liveValue.value}
-          </div>
-        </div>
-      ) : (
-        <div className="cb-no-stat">No stat linked to this card</div>
-      )}
-
-      {/* ── Members ── */}
-      <div className="cb-row">
-        <span className="cb-row-label">Members</span>
-        <div className="cb-members">
-          {members.length > 0 ? members.map(m => (
-            <div key={m.id} className="cb-avatar" style={{ background: m.color }} title={m.name}>
-              {m.initials}
-            </div>
-          )) : <span className="cb-empty">Unassigned</span>}
-        </div>
-      </div>
-
-      {/* ── Labels ── */}
-      <div className="cb-row">
-        <span className="cb-row-label">Labels</span>
-        <div className="cb-labels">
-          {labels.length > 0 ? labels.map((l, i) => (
-            <span key={i} className="cb-label-pill" style={{ background: labelColor(l.color) }}>
-              {l.name || l.color}
-            </span>
-          )) : <span className="cb-empty">None</span>}
-        </div>
-      </div>
-
-      {/* ── Due Date ── */}
-      <div className="cb-row">
-        <span className="cb-row-label">Due</span>
-        {due ? (
-          <span className={`cb-due ${isOverdue ? "overdue" : cardData?.dueComplete ? "done" : "upcoming"}`}>
-            {cardData?.dueComplete ? "✓ " : isOverdue ? "⚠ " : ""}
-            {due.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-          </span>
-        ) : <span className="cb-empty">No due date</span>}
-      </div>
-
-      {/* ── Actions ── */}
-      <div className="cb-actions">
-        <button className="cb-btn-primary" onClick={handleOpenCardlytics}>
-          Open Cardlytics
-        </button>
-        <button className={`cb-btn-refresh ${refreshing ? "spinning" : ""}`} onClick={handleRefresh} title="Refresh">
-          ↻
-        </button>
-      </div>
-
+      <button className="cb-btn-primary" onClick={handleOpenCardlytics}>
+        View Details
+      </button>
     </div>
   );
 }
