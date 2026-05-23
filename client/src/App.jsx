@@ -61,6 +61,7 @@ function CardDetailsView() {
 
   const [cards, setCards]             = useState([]);
   const [listName, setListName]       = useState("List");
+  const [boardName, setBoardName]     = useState("board");
   const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
   const [fullStats, setFullStats]     = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0 });
   const [memberMap, setMemberMap]     = useState({});
@@ -88,11 +89,18 @@ function CardDetailsView() {
         const computed = computeStats(fetchedCards, mid);
         setFullStats(computed);
 
-        // Fetch list name
-        const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name`);
+        // Fetch list name + board name
+        const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`);
         if (listRes.ok) {
           const listData = await listRes.json();
           setListName(listData.name);
+
+          // Now fetch board name using idBoard from list
+          const boardRes = await fetch(`https://api.trello.com/1/boards/${listData.idBoard}?key=${key}&token=${token}&fields=name`);
+          if (boardRes.ok) {
+            const boardData = await boardRes.json();
+            setBoardName(boardData.name);
+          }
         }
 
         // Collect all unique member IDs
@@ -310,7 +318,7 @@ function CardDetailsView() {
                         </div>
                       ) : <span style={{ color: "#555" }}>—</span>}
                     </td>
-                    <td className="td-board">● testing</td>
+                    <td className="td-board">● {boardName}</td>
                     <td>
                       <span style={{
                         width: 14, height: 14, border: "1px solid #444", borderRadius: 3,
