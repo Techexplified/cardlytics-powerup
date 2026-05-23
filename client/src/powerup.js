@@ -17,7 +17,7 @@ window.TrelloPowerUp.initialize({
           title: 'Cardlytics',
           url: './index.html?mode=board',
           fullscreen: false,
-          height: 600 
+          height: 600
         });
       }
     }];
@@ -41,7 +41,7 @@ window.TrelloPowerUp.initialize({
     }];
   },
 
-  // 🟥 CARD BACK SECTION (THIS WAS MISSING / WRONG)
+  // 🟥 CARD BACK SECTION
   'card-back-section': function (t) {
     return {
       title: 'Cardlytics',
@@ -54,7 +54,7 @@ window.TrelloPowerUp.initialize({
       content: {
         type: 'iframe',
         url: t.signUrl('./index.html?view=card'),
-        height: 200
+        height: 280  // ← updated from 200
       }
     };
   }
