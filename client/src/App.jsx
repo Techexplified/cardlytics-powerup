@@ -320,7 +320,7 @@ if (listRes.ok) {
                         </div>
                       ) : <span style={{ color: "#555" }}>—</span>}
                     </td>
-                    <td className="td-board">● testing</td>
+                  <td className="td-board">● {boardName}</td>
                     <td>
                       <span style={{
                         width: 14, height: 14, border: "1px solid #444", borderRadius: 3,
