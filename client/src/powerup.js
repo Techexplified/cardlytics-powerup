@@ -14,9 +14,8 @@ window.TrelloPowerUp.initialize({
 
       callback: function (t) {
         return t.modal({
-          
           title: 'Cardlytics',
-          url: './index.html?mode=board', // board mode
+          url: './index.html?mode=board',
           fullscreen: false,
           height: 600 
         });
@@ -26,22 +25,38 @@ window.TrelloPowerUp.initialize({
 
   // 🟩 LIST ACTION (3 dots menu)
   'list-actions': function (t) {
-  return [{
-    text: 'Cardlytics',
+    return [{
+      text: 'Cardlytics',
 
-    callback: function (t) {
-      return t.list('id').then(function (list) {
-  
-
-  return t.modal({
-    title: 'Cardlytics',
-    url: `./index.html?mode=list&listId=${list.id}`, // ✅ correct
-    fullscreen: false,
-    height: 600
+      callback: function (t) {
+        return t.list('id').then(function (list) {
+          return t.modal({
+            title: 'Cardlytics',
+            url: `./index.html?mode=list&listId=${list.id}`,
+            fullscreen: false,
+            height: 600
+          });
         });
-      });
-    }
-  }];
-}
+      }
+    }];
+  },
+
+  // 🟥 CARD BACK SECTION (THIS WAS MISSING / WRONG)
+  'card-back-section': function (t) {
+    return {
+      title: 'Cardlytics',
+
+      icon: {
+        dark: 'https://cardlytics-powerup.vercel.app/logo.png',
+        light: 'https://cardlytics-powerup.vercel.app/logo.png'
+      },
+
+      content: {
+        type: 'iframe',
+        url: t.signUrl('./index.html?view=card'),
+        height: 200
+      }
+    };
+  }
 
 });
