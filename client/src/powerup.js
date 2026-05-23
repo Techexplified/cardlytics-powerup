@@ -51,4 +51,4 @@ window.TrelloPowerUp.initialize({
     };
   }
 
-});
+})

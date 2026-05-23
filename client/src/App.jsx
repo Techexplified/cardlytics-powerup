@@ -31,31 +31,14 @@ function cardCreatedDate(cardId) {
 }
 
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
-// When "View Details" is clicked on a card back section, we need to know:
-// 1. Which stat card was this (its "type" is encoded in the card name via powerup.js)
-// 2. The listId + boardId so we know what scope to fetch
-// We read the card name to detect the stat type, then pass it to the modal.
 function CardBackView() {
   function handleOpenCardlytics() {
     const t = window.TrelloPowerUp?.iframe?.();
     if (t) {
-      t.card("id", "idList", "name", "idBoard").then((card) => {
-        // Detect stat type from card name (set when "Track" creates the card)
-        const nameMap = {
-          "📌 Assigned to Me":   "assigned",
-          "📅 Due This Week":    "dueThisWeek",
-          "⚠️ Overdue Cards":    "overdue",
-          "👤 Unassigned Cards": "unassigned",
-          "🏷️ Cards With Label": "withLabel",
-          "💤 Stale Cards":      "stale",
-          "✨ Created Today":    "createdToday",
-          "📋 Cards in List":   "cardsInList",
-        };
-        const statType = nameMap[card.name] || "all";
-
+      t.card("id", "idList", "name").then((card) => {
         t.modal({
           title: "Cardlytics",
-          url: `./index.html?view=card-details&listId=${card.idList}&boardId=${card.idBoard}&statType=${statType}`,
+          url: `./index.html?view=card-details&listId=${card.idList}`,
           fullscreen: true,
         });
       });
@@ -72,69 +55,14 @@ function CardBackView() {
 }
 
 // ─── CARD DETAILS VIEW ────────────────────────────────────────────────────────
-// Stat type → how to filter cards + what labels to show in the UI
-const STAT_META = {
-  assigned:     { label: "Assigned to me",            accent: "#4ea1ff", filterLabel: "Assigned to me",       scope: "board" },
-  dueThisWeek:  { label: "Due this week",             accent: "#f9c74f", filterLabel: "Due this week",        scope: "board" },
-  overdue:      { label: "Overdue cards",             accent: "#ff5252", filterLabel: "Overdue",              scope: "board" },
-  unassigned:   { label: "Unassigned cards",          accent: "#ab47bc", filterLabel: "Unassigned",           scope: "board" },
-  withLabel:    { label: "Cards with a label",        accent: "#ff9800", filterLabel: "Has a label",          scope: "board" },
-  stale:        { label: "Stale (14+ days inactive)", accent: "#888",    filterLabel: "Stale (14+ days)",     scope: "board" },
-  createdToday: { label: "Created today",             accent: "#2ec4b6", filterLabel: "Created today",        scope: "board" },
-  cardsInList:  { label: "In this list",              accent: "#4caf50", filterLabel: "In this list",         scope: "list"  },
-  all:          { label: "All cards",                 accent: "#4caf50", filterLabel: "All cards",            scope: "list"  },
-};
-
-function applyStatFilter(cards, statType, memberId) {
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfWeek = new Date(startOfDay);
-  endOfWeek.setDate(startOfDay.getDate() + 7);
-  const staleThreshold = new Date(now);
-  staleThreshold.setDate(now.getDate() - 14);
-
-  switch (statType) {
-    case "assigned":
-      return cards.filter(c => memberId && c.idMembers?.includes(memberId));
-    case "dueThisWeek":
-      return cards.filter(c => {
-        if (!c.due || c.dueComplete) return false;
-        const due = new Date(c.due);
-        return due >= startOfDay && due <= endOfWeek;
-      });
-    case "overdue":
-      return cards.filter(c => c.due && !c.dueComplete && new Date(c.due) < now);
-    case "unassigned":
-      return cards.filter(c => !c.idMembers || c.idMembers.length === 0);
-    case "withLabel":
-      return cards.filter(c => c.labels && c.labels.length > 0);
-    case "stale":
-      return cards.filter(c => c.dateLastActivity && new Date(c.dateLastActivity) < staleThreshold);
-    case "createdToday":
-      return cards.filter(c => {
-        const ts = parseInt(c.id.substring(0, 8), 16) * 1000;
-        return new Date(ts) >= startOfDay;
-      });
-    default:
-      return cards;
-  }
-}
-
 function CardDetailsView() {
-  const params   = new URLSearchParams(window.location.search);
-  const listId   = params.get("listId");
-  const boardId  = params.get("boardId");
-  // statType drives: which cards to show + what filters bar says
-  // scope: "board" = fetch all board cards; "list" = fetch only this list
-  const statType = params.get("statType") || "all";
-  const meta     = STAT_META[statType] || STAT_META["all"];
-  // Board-scoped stats show all board cards filtered; list-scoped show list cards
-  const isBoardScope = meta.scope === "board" && !!boardId;
+  const params = new URLSearchParams(window.location.search);
+  const listId = params.get("listId");
 
-  const [allCards, setAllCards]       = useState([]);   // source pool (board or list)
-  const [cards, setCards]             = useState([]);   // filtered by statType
+  const [cards, setCards]             = useState([]);
   const [listName, setListName]       = useState("List");
-  const [boardName, setBoardName]     = useState("Board");
+  const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
+  const [fullStats, setFullStats]     = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0 });
   const [memberMap, setMemberMap]     = useState({});
   const [memberId, setMemberId]       = useState(null);
   const [loading, setLoading]         = useState(true);
@@ -143,71 +71,37 @@ function CardDetailsView() {
   const [sortCol, setSortCol]         = useState("name");
   const [sortAsc, setSortAsc]         = useState(true);
 
-  // Left sidebar stats are always computed from the list (same scope as before)
-  const [leftStats, setLeftStats]     = useState([]);
-
   const key   = import.meta.env.VITE_TRELLO_API_KEY;
   const token = import.meta.env.VITE_TRELLO_TOKEN;
 
   useEffect(() => {
     async function load() {
+      if (!listId) return;
       setLoading(true);
       try {
+        const fetchedCards = await getListCards(key, token, listId);
+        setCards(fetchedCards);
+        setDetailStats(computeDetailStats(fetchedCards));
+
         const mid = await getMemberId(key, token);
         setMemberId(mid);
+        const computed = computeStats(fetchedCards, mid);
+        setFullStats(computed);
 
-        // Always fetch list cards for the left sidebar counts
-        const listCards = listId ? await getListCards(key, token, listId) : [];
-        const listStats = computeStats(listCards, mid);
-
-        // Fetch board/list name info
-        if (listId) {
-          const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`);
-          if (listRes.ok) {
-            const listData = await listRes.json();
-            setListName(listData.name);
-            const resolvedBoardId = boardId || listData.idBoard;
-            const boardRes = await fetch(`https://api.trello.com/1/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`);
-            if (boardRes.ok) {
-              const boardData = await boardRes.json();
-              setBoardName(boardData.name);
-            }
-          }
+        // Fetch list name
+        const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name`);
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          setListName(listData.name);
         }
 
-        // Fetch the source pool: board cards (for board-scoped stats) or list cards
-        let sourceCards;
-        if (isBoardScope) {
-          sourceCards = await getBoardCards(key, token, boardId);
-        } else {
-          sourceCards = listCards;
-        }
-        setAllCards(sourceCards);
-
-        // Apply the stat filter
-        const filtered = applyStatFilter(sourceCards, statType, mid);
-        setCards(filtered);
-
-        // Left sidebar always reflects list-level counts
-        const ls = [
-          { value: listCards.length,        label: "In this list",              accent: "#4caf50", type: "cardsInList"  },
-          { value: listStats.assigned,       label: "Assigned to me",            accent: "#4ea1ff", type: "assigned"     },
-          { value: listStats.dueThisWeek,    label: "Due this week",             accent: "#f9c74f", type: "dueThisWeek"  },
-          { value: listStats.overdue,        label: "Overdue cards",             accent: "#ff5252", type: "overdue"      },
-          { value: listStats.unassigned,     label: "Unassigned cards",          accent: "#ab47bc", type: "unassigned"   },
-          { value: listStats.withLabel,      label: "Cards with a label",        accent: "#ff9800", type: "withLabel"    },
-          { value: listStats.stale,          label: "Stale (14+ days inactive)", accent: "#888",    type: "stale"        },
-          { value: listStats.createdToday,   label: "Created today",             accent: "#2ec4b6", type: "createdToday" },
-        ];
-        setLeftStats(ls);
-
-        // Fetch member details for all cards in filtered set
-        const allMemberIds = [...new Set(filtered.flatMap(c => c.idMembers || []))];
+        // Collect all unique member IDs
+        const allMemberIds = [...new Set(fetchedCards.flatMap(c => c.idMembers || []))];
         const details = {};
         await Promise.all(
-          allMemberIds.map(async (id) => {
-            const m = await getMemberDetails(key, token, id);
-            if (m) details[id] = m;
+          allMemberIds.map(async (mid) => {
+            const m = await getMemberDetails(key, token, mid);
+            if (m) details[mid] = m;
           })
         );
         setMemberMap(details);
@@ -218,29 +112,10 @@ function CardDetailsView() {
       }
     }
     load();
-  }, [listId, boardId, statType]);
+  }, [listId]);
 
-  // When a left sidebar stat is clicked, re-filter from the already-fetched pool
-  function handleLeftStatClick(type) {
-    const clickedMeta = STAT_META[type] || STAT_META["all"];
-    // If this stat is board-scoped but we haven't fetched board cards, we can't filter properly
-    // — just filter from whatever pool we have
-    const filtered = applyStatFilter(allCards, type, memberId);
-    setCards(filtered);
-    // Update URL silently (no reload) so filter pill updates
-    const url = new URL(window.location.href);
-    url.searchParams.set("statType", type);
-    window.history.replaceState({}, "", url.toString());
-    // Force re-render by re-reading — simplest: use a local activeStatType state
-    setActiveStatType(type);
-  }
-
-  const [activeStatType, setActiveStatType] = useState(statType);
-  const activeMeta = STAT_META[activeStatType] || STAT_META["all"];
-  const isBoardScopeActive = activeMeta.scope === "board" && !!boardId;
-
-  // Separate display-filtered cards (search + sort on top of stat-filtered cards)
-  const displayCards = cards
+  // Filter + sort
+  const filtered = cards
     .filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       let va, vb;
@@ -286,6 +161,17 @@ function CardDetailsView() {
     );
   }
 
+  const leftStats = [
+    { value: detailStats.total,       label: "In this list",              accent: "#4caf50" },
+    { value: fullStats.assigned,      label: "Assigned to me",            accent: "#4ea1ff" },
+    { value: fullStats.dueThisWeek,   label: "Due this week",             accent: "#f9c74f" },
+    { value: fullStats.overdue,       label: "Overdue cards",             accent: "#ff5252" },
+    { value: fullStats.unassigned,    label: "Unassigned cards",          accent: "#ab47bc" },
+    { value: fullStats.withLabel,     label: "Cards with a label",        accent: "#ff9800" },
+    { value: fullStats.stale,         label: "Stale (14+ days inactive)", accent: "#888"    },
+    { value: fullStats.createdToday,  label: "Created today",             accent: "#2ec4b6" },
+  ];
+
   return (
     <div className="cd-root">
       {/* ── LEFT PANEL ── */}
@@ -293,12 +179,7 @@ function CardDetailsView() {
         <div className="cd-list-label">{listName}</div>
 
         {leftStats.map((s, i) => (
-          <div
-            key={i}
-            className={`cd-stat-card ${activeStatType === s.type ? "selected" : ""}`}
-            style={{ borderLeft: `3px solid ${s.accent}`, cursor: "pointer" }}
-            onClick={() => handleLeftStatClick(s.type)}
-          >
+          <div key={i} className="cd-stat-card" style={{ borderLeft: `3px solid ${s.accent}` }}>
             <div className="cd-stat-num" style={{ color: s.value > 0 ? s.accent : "#666" }}>
               {s.value}
             </div>
@@ -312,12 +193,12 @@ function CardDetailsView() {
       {/* ── RIGHT PANEL ── */}
       <div className="cd-right">
 
-        {/* Blue count banner — shows count of filtered cards + stat label */}
+        {/* Blue count banner */}
         <div className="cd-banner">
-          <div className="cd-banner-count">{cards.length}</div>
+          <div className="cd-banner-count">{detailStats.total}</div>
           <div>
             <div className="cd-banner-title">cards</div>
-            <div className="cd-banner-sub" style={{ color: activeMeta.accent }}>{activeMeta.label}</div>
+            <div className="cd-banner-sub">In this list</div>
           </div>
         </div>
 
@@ -331,39 +212,25 @@ function CardDetailsView() {
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
               {tab === "table" && (
-                <span className="cd-tab-count">{cards.length}</span>
+                <span className="cd-tab-count">{detailStats.total}</span>
               )}
             </div>
           ))}
         </div>
 
-        {/* Active filters bar — dynamic based on stat type and scope */}
+        {/* Active filters bar */}
         <div className="cd-toolbar">
           <span className="cd-toolbar-label">Active filters</span>
-          {/* Board pill: shows board name if board-scoped, or list name if list-scoped */}
           <div className="cd-filter-pill">
             <span className="pill-key">Board</span>
             <span className="pill-sep">is</span>
-            <span className="pill-val blue">{isBoardScopeActive ? boardName : listName}</span>
+            <span className="pill-val blue">this board</span>
           </div>
-          {/* Stat filter pill: only show "List is X" when list-scoped */}
-          {!isBoardScopeActive && (
-            <div className="cd-filter-pill">
-              <span className="pill-key">List</span>
-              <span className="pill-sep">is</span>
-              <span className="pill-val teal">{listName}</span>
-            </div>
-          )}
-          {/* Show the active stat filter */}
-          {activeStatType !== "all" && activeStatType !== "cardsInList" && (
-            <div className="cd-filter-pill">
-              <span className="pill-key">Filter</span>
-              <span className="pill-sep">is</span>
-              <span className="pill-val" style={{ background: "#1e1e2e", color: activeMeta.accent }}>
-                {activeMeta.filterLabel}
-              </span>
-            </div>
-          )}
+          <div className="cd-filter-pill">
+            <span className="pill-key">List</span>
+            <span className="pill-sep">is</span>
+            <span className="pill-val teal">{listName}</span>
+          </div>
           <div className="cd-toolbar-actions">
             <button className="cd-action-btn">✏ Edit filters</button>
             <button className="cd-action-btn">⊡ Clone</button>
@@ -410,10 +277,10 @@ function CardDetailsView() {
                 </tr>
               </thead>
               <tbody>
-                {displayCards.length === 0 && (
+                {filtered.length === 0 && (
                   <tr><td colSpan={8} style={{ textAlign: "center", color: "#555", padding: "20px" }}>No cards found</td></tr>
                 )}
-                {displayCards.map(card => (
+                {filtered.map(card => (
                   <tr key={card.id}>
                     <td className="td-name">
                       {card.labels?.length > 0 && (
@@ -443,7 +310,7 @@ function CardDetailsView() {
                         </div>
                       ) : <span style={{ color: "#555" }}>—</span>}
                     </td>
-                    <td className="td-board">● {boardName}</td>
+                    <td className="td-board">● testing</td>
                     <td>
                       <span style={{
                         width: 14, height: 14, border: "1px solid #444", borderRadius: 3,
