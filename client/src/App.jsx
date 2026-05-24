@@ -136,7 +136,7 @@ function CardDetailsView() {
     async function load() {
       setLoading(true);
       try {
-        const isListScoped = mode === "list";
+        const isListScoped = mode === "list" || statType === "cardsInList";
 
         let allCards;
         if (isListScoped && listId) {
