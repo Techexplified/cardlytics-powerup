@@ -583,18 +583,28 @@ export default function App() {
         <Section title="ACTIVITY">
           <StatCard value={stats.createdToday} label={`Created today on this ${context}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} />
 
-          {mode === "board" && (
-            <div className="card list-picker">
-              <div className="list-picker-top">
-                {selectedListCount !== null && <div className="card-value">{selectedListCount}</div>}
-                <select className="list-dropdown" value={selectedListId} onChange={handleListChange}>
-                  <option value="">Select a list</option>
-                  {lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                </select>
-              </div>
-              <div className="card-label">Cards in list</div>
-            </div>
-          )}
+         {mode === "board" && (
+  <div
+    className={`card list-picker ${selectedListId && selectedStats.includes("cardsInList") ? "selected" : ""}`}
+    onClick={() => { if (selectedListId) handleStatClick("cardsInList"); }}
+  >
+    <div className="list-picker-top">
+      {selectedListCount !== null && <div className="card-value">{selectedListCount}</div>}
+      <select
+        className="list-dropdown"
+        value={selectedListId}
+        onChange={handleListChange}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <option value="">Select a list</option>
+        {lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+      </select>
+    </div>
+    <div className="card-label">
+      {selectedListId ? "Click to select · Cards in list" : "Select a list first"}
+    </div>
+  </div>
+)}
 
           {mode === "list" && (
             <StatCard value={stats.cardsInList} label="Cards in this list" type="cardsInList" onClick={handleStatClick} selected={selectedStats} />
