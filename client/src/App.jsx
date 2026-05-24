@@ -588,8 +588,9 @@ export default function App() {
       <div className="body">
         {mode === "list" && trackingListName && (
           <div className="list-context-badge">
-            <span>📋</span>
-            <span>List: <strong>{trackingListName}</strong></span>
+            <span className="badge-scope">Scope</span>
+            <span className="badge-divider" />
+            <span className="badge-name">{trackingListName}</span>
           </div>
         )}
 

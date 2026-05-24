@@ -684,6 +684,7 @@ body {
   color: #60b4ff;
   border: 1px solid #2a3a4a;
 }
+
 /* ─── TOAST ─── */
 .toast {
   position: fixed;
@@ -745,18 +746,33 @@ body {
 
 /* ─── LIST CONTEXT BADGE ─── */
 .list-context-badge {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: #252525;
-  border: 1px solid #3a3a3a;
+  gap: 8px;
+  background: #202020;
+  border: 1px solid #303030;
+  border-left: 3px solid #4ea1ff;
   border-radius: 8px;
-  padding: 7px 12px;
-  font-size: 12px;
-  color: #888;
-  margin-bottom: 4px;
+  padding: 6px 12px 6px 10px;
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 2px;
+  width: fit-content;
 }
-.list-context-badge strong {
-  color: #e0e0e0;
+.list-context-badge .badge-scope {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #555;
+}
+.list-context-badge .badge-divider {
+  width: 1px;
+  height: 12px;
+  background: #333;
+}
+.list-context-badge .badge-name {
+  font-size: 12px;
   font-weight: 600;
+  color: #d0d0d0;
 }
