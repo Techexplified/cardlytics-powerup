@@ -266,17 +266,18 @@ function CardDetailsView() {
     return <span className={`cb-due ${cls}`}>{formatDate(due)}</span>;
   }
 
-  // FIX 1: Loading spans the full cd-root (both columns) so spinner is centered
+  // FIX 1: Full-screen loader — no cd-root so no split panel border shows
   if (loading) {
     return (
-      <div
-        className="cd-root"
-        style={{ alignItems: "center", justifyContent: "center" }}
-      >
-        <div className="cb-loading">
-          <div className="cb-spinner" />
-          <span>Loading...</span>
-        </div>
+      <div style={{
+        width: "100%", height: "100%",
+        background: "#1a1a1a",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'DM Sans', sans-serif",
+        gap: 10, color: "#666", fontSize: 13,
+      }}>
+        <div className="cb-spinner" />
+        <span>Loading...</span>
       </div>
     );
   }
