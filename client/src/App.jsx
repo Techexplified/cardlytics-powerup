@@ -85,8 +85,9 @@ function CardBackView() {
       };
       const statType = nameMap[card.name] || "all";
 
-      // FIX 3: No more hidden metadata — default to board mode using card's own list
-      const cardMode       = "board";
+      // Always scope to the list this tracker card lives in —
+      // the card is in e.g. "Later", so show data for "Later" only
+      const cardMode       = "list";
       const resolvedListId = card.idList;
 
       t.board("id").then((board) => {
