@@ -119,6 +119,7 @@ function CardDetailsView() {
   const [cards, setCards]             = useState([]);
   const [listName, setListName]       = useState("List");
   const [boardName, setBoardName]     = useState("Board");
+  const [listMap, setListMap]         = useState({}); // idList → list name
   const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
   const [fullStats, setFullStats]     = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0 });
   const [memberMap, setMemberMap]     = useState({});
@@ -182,6 +183,7 @@ function CardDetailsView() {
         computed.cardsInList = isListScoped ? allCards.length : 0;
         setFullStats(computed);
 
+        // ── Fetch list name + board name ──
         if (listId) {
           const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`);
           if (listRes.ok) {
@@ -202,6 +204,14 @@ function CardDetailsView() {
           }
         }
 
+        // ── Build listMap: idList → name (for LIST column in table) ──
+        const resolvedBoardId = boardId || "p8fosANE";
+        const boardLists = await getBoardLists(key, token, resolvedBoardId);
+        const lmap = {};
+        boardLists.forEach(l => lmap[l.id] = l.name);
+        setListMap(lmap);
+
+        // ── Member details ──
         const allMemberIds = [...new Set(filteredCards.flatMap((c) => c.idMembers || []))];
         const details = {};
         await Promise.all(
@@ -224,10 +234,10 @@ function CardDetailsView() {
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       let va, vb;
-      if (sortCol === "name")         { va = a.name; vb = b.name; }
-      else if (sortCol === "due")     { va = a.due || ""; vb = b.due || ""; }
-      else if (sortCol === "created") { va = cardCreatedDate(a.id).getTime(); vb = cardCreatedDate(b.id).getTime(); }
-      else if (sortCol === "modified"){ va = a.dateLastActivity || ""; vb = b.dateLastActivity || ""; }
+      if (sortCol === "name")          { va = a.name; vb = b.name; }
+      else if (sortCol === "due")      { va = a.due || ""; vb = b.due || ""; }
+      else if (sortCol === "created")  { va = cardCreatedDate(a.id).getTime(); vb = cardCreatedDate(b.id).getTime(); }
+      else if (sortCol === "modified") { va = a.dateLastActivity || ""; vb = b.dateLastActivity || ""; }
       else { va = ""; vb = ""; }
       if (va < vb) return sortAsc ? -1 : 1;
       if (va > vb) return sortAsc ? 1 : -1;
@@ -260,7 +270,8 @@ function CardDetailsView() {
     );
   }
 
-  const isListScoped = mode === "list";
+  // Fix: isListScoped should also include cardsInList for banner/pills/sidebar
+  const isListScoped = mode === "list" || statType === "cardsInList";
 
   const leftStats = [
     { value: detailStats.total,      label: "In this view",              accent: "#4caf50" },
@@ -393,7 +404,8 @@ function CardDetailsView() {
                     <td className="td-date">{formatDate(cardCreatedDate(card.id).toISOString())}</td>
                     <td><DueChip due={card.due} dueComplete={card.dueComplete} /></td>
                     <td className="td-date">{formatDate(card.dateLastActivity)}</td>
-                    <td><span className="td-list-tag">{listName}</span></td>
+                    {/* Show actual list name for each card using listMap */}
+                    <td><span className="td-list-tag">{listMap[card.idList] || listName}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -496,7 +508,7 @@ export default function App() {
     const key   = import.meta.env.VITE_TRELLO_API_KEY;
     const token = import.meta.env.VITE_TRELLO_TOKEN;
     const cards = await getListCards(key, token, id);
-    setSelectedListCount(cards.length);
+    setSelectedListCount(cards.filter(c => !TRACKED_CARD_NAMES.includes(c.name)).length);
   }
 
   useEffect(() => { fetchData(); }, []);
@@ -553,7 +565,6 @@ export default function App() {
 
   return (
     <div className="popup">
-      {/* Toast notification */}
       <Toast toast={toast} />
 
       <div className="header">
@@ -583,28 +594,28 @@ export default function App() {
         <Section title="ACTIVITY">
           <StatCard value={stats.createdToday} label={`Created today on this ${context}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} />
 
-         {mode === "board" && (
-  <div
-    className={`card list-picker ${selectedListId && selectedStats.includes("cardsInList") ? "selected" : ""}`}
-    onClick={() => { if (selectedListId) handleStatClick("cardsInList"); }}
-  >
-    <div className="list-picker-top">
-      {selectedListCount !== null && <div className="card-value">{selectedListCount}</div>}
-      <select
-        className="list-dropdown"
-        value={selectedListId}
-        onChange={handleListChange}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <option value="">Select a list</option>
-        {lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-      </select>
-    </div>
-    <div className="card-label">
-      {selectedListId ? "Click to select · Cards in list" : "Select a list first"}
-    </div>
-  </div>
-)}
+          {mode === "board" && (
+            <div
+              className={`card list-picker ${selectedListId && selectedStats.includes("cardsInList") ? "selected" : ""}`}
+              onClick={() => { if (selectedListId) handleStatClick("cardsInList"); }}
+            >
+              <div className="list-picker-top">
+                {selectedListCount !== null && <div className="card-value">{selectedListCount}</div>}
+                <select
+                  className="list-dropdown"
+                  value={selectedListId}
+                  onChange={handleListChange}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <option value="">Select a list</option>
+                  {lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              </div>
+              <div className="card-label">
+                {selectedListId ? "Click to select · Cards in list" : "Select a list first"}
+              </div>
+            </div>
+          )}
 
           {mode === "list" && (
             <StatCard value={stats.cardsInList} label="Cards in this list" type="cardsInList" onClick={handleStatClick} selected={selectedStats} />
