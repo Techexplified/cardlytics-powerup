@@ -66,6 +66,7 @@ function Toast({ toast }) {
 }
 
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
+// FIX 2: Inline layout — "Cardlytics" label + "View Details" button on same row
 function CardBackView() {
   function handleOpenCardlytics() {
     const t = window.TrelloPowerUp?.iframe?.();
@@ -84,10 +85,9 @@ function CardBackView() {
       };
       const statType = nameMap[card.name] || "all";
 
-      // Read hidden metadata from description
-      const metaMatch      = card.desc?.match(/<!--mode:(board|list)\|listId:([a-f0-9]*?)-->/);
-      const cardMode       = metaMatch ? metaMatch[1] : "board";
-      const resolvedListId = metaMatch ? metaMatch[2] || card.idList : card.idList;
+      // FIX 3: No more hidden metadata — default to board mode using card's own list
+      const cardMode       = "board";
+      const resolvedListId = card.idList;
 
       t.board("id").then((board) => {
         t.modal({
@@ -100,8 +100,16 @@ function CardBackView() {
   }
 
   return (
-    <div className="cb-root">
-      <button className="cb-btn-primary" onClick={handleOpenCardlytics}>
+    <div
+      className="cb-root"
+      style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}
+    >
+      <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>Cardlytics</span>
+      <button
+        className="cb-btn-primary"
+        style={{ width: "auto", padding: "7px 16px", flexShrink: 0 }}
+        onClick={handleOpenCardlytics}
+      >
         View Details
       </button>
     </div>
@@ -119,7 +127,7 @@ function CardDetailsView() {
   const [cards, setCards]             = useState([]);
   const [listName, setListName]       = useState("List");
   const [boardName, setBoardName]     = useState("Board");
-  const [listMap, setListMap]         = useState({}); // idList → list name
+  const [listMap, setListMap]         = useState({});
   const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
   const [fullStats, setFullStats]     = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0 });
   const [memberMap, setMemberMap]     = useState({});
@@ -153,7 +161,6 @@ function CardDetailsView() {
         const mid = await getMemberId(key, token);
         setMemberId(mid);
 
-        // Remove tracker cards from stats
         allCards = allCards.filter(c => !TRACKED_CARD_NAMES.includes(c.name));
 
         const now         = new Date();
@@ -183,7 +190,6 @@ function CardDetailsView() {
         computed.cardsInList = isListScoped ? allCards.length : 0;
         setFullStats(computed);
 
-        // ── Fetch list name + board name ──
         if (listId) {
           const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`);
           if (listRes.ok) {
@@ -204,14 +210,12 @@ function CardDetailsView() {
           }
         }
 
-        // ── Build listMap: idList → name (for LIST column in table) ──
         const resolvedBoardId = boardId || "p8fosANE";
         const boardLists = await getBoardLists(key, token, resolvedBoardId);
         const lmap = {};
         boardLists.forEach(l => lmap[l.id] = l.name);
         setListMap(lmap);
 
-        // ── Member details ──
         const allMemberIds = [...new Set(filteredCards.flatMap((c) => c.idMembers || []))];
         const details = {};
         await Promise.all(
@@ -262,15 +266,21 @@ function CardDetailsView() {
     return <span className={`cb-due ${cls}`}>{formatDate(due)}</span>;
   }
 
+  // FIX 1: Loading spans the full cd-root (both columns) so spinner is centered
   if (loading) {
     return (
-      <div className="cd-root">
-        <div className="cb-loading"><div className="cb-spinner" /><span>Loading...</span></div>
+      <div
+        className="cd-root"
+        style={{ alignItems: "center", justifyContent: "center" }}
+      >
+        <div className="cb-loading">
+          <div className="cb-spinner" />
+          <span>Loading...</span>
+        </div>
       </div>
     );
   }
 
-  // Fix: isListScoped should also include cardsInList for banner/pills/sidebar
   const isListScoped = mode === "list" || statType === "cardsInList";
 
   const leftStats = [
@@ -404,7 +414,6 @@ function CardDetailsView() {
                     <td className="td-date">{formatDate(cardCreatedDate(card.id).toISOString())}</td>
                     <td><DueChip due={card.due} dueComplete={card.dueComplete} /></td>
                     <td className="td-date">{formatDate(card.dateLastActivity)}</td>
-                    {/* Show actual list name for each card using listMap */}
                     <td><span className="td-list-tag">{listMap[card.idList] || listName}</span></td>
                   </tr>
                 ))}
@@ -486,9 +495,8 @@ export default function App() {
       const boardLists = await getBoardLists(key, token, boardId);
       setLists(boardLists);
 
-      // Set tracking destination name so user knows where cards will go
       if (mode === "list" && listId) {
-        const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name`);
+        const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${import.meta.env.VITE_TRELLO_TOKEN}&fields=name`);
         if (listRes.ok) {
           const listData = await listRes.json();
           setTrackingListName(listData.name);
@@ -535,19 +543,16 @@ export default function App() {
         return;
       }
 
-      // Hidden metadata stored in HTML comment — invisible to user in Trello
-      const meta = (v, txt) =>
-        `${txt}<!--mode:${mode}|listId:${mode === "list" ? listId : ""}-->`;
-
+      // FIX 3: Clean descriptions — no hidden metadata comments
       const statConfig = {
-        assigned:     { name: "📌 Assigned to Me",   desc: (v) => meta(v, `${v} card(s) are currently assigned to you.`) },
-        dueThisWeek:  { name: "📅 Due This Week",    desc: (v) => meta(v, `${v} card(s) are due within the next 7 days.`) },
-        overdue:      { name: "⚠️ Overdue Cards",     desc: (v) => meta(v, `${v} card(s) have passed their due date.`) },
-        unassigned:   { name: "👤 Unassigned Cards", desc: (v) => meta(v, `${v} card(s) have no member assigned.`) },
-        withLabel:    { name: "🏷️ Cards With Label",  desc: (v) => meta(v, `${v} card(s) have at least one label.`) },
-        stale:        { name: "💤 Stale Cards",       desc: (v) => meta(v, `${v} card(s) have had no activity in 14+ days.`) },
-        createdToday: { name: "✨ Created Today",     desc: (v) => meta(v, `${v} card(s) were created today.`) },
-        cardsInList:  { name: "📋 Cards in List",    desc: (v) => meta(v, `${v} card(s) are in the selected list.`) },
+        assigned:     { name: "📌 Assigned to Me",   desc: (v) => `${v} card(s) are currently assigned to you.` },
+        dueThisWeek:  { name: "📅 Due This Week",    desc: (v) => `${v} card(s) are due within the next 7 days.` },
+        overdue:      { name: "⚠️ Overdue Cards",     desc: (v) => `${v} card(s) have passed their due date.` },
+        unassigned:   { name: "👤 Unassigned Cards", desc: (v) => `${v} card(s) have no member assigned.` },
+        withLabel:    { name: "🏷️ Cards With Label",  desc: (v) => `${v} card(s) have at least one label.` },
+        stale:        { name: "💤 Stale Cards",       desc: (v) => `${v} card(s) have had no activity in 14+ days.` },
+        createdToday: { name: "✨ Created Today",     desc: (v) => `${v} card(s) were created today.` },
+        cardsInList:  { name: "📋 Cards in List",    desc: (v) => `${v} card(s) are in the selected list.` },
       };
 
       for (const stat of selectedStats) {
