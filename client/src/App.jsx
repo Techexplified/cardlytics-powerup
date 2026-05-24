@@ -54,6 +54,17 @@ const STAT_LABELS = {
   all:          "All Cards",
 };
 
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+function Toast({ toast }) {
+  if (!toast) return null;
+  return (
+    <div className={`toast toast-${toast.type}`}>
+      <span className="toast-icon">{toast.type === "success" ? "✅" : "❌"}</span>
+      <span className="toast-msg">{toast.message}</span>
+    </div>
+  );
+}
+
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
 function CardBackView() {
   function handleOpenCardlytics() {
@@ -73,12 +84,10 @@ function CardBackView() {
       };
       const statType = nameMap[card.name] || "all";
 
-      const modeMatch    = card.desc?.match(/mode:(board|list)/);
-      const cardMode     = modeMatch ? modeMatch[1] : "board";
-
-      // Read the original listId saved in description (so moving the card doesn't break it)
-      const listIdMatch    = card.desc?.match(/listId:([a-f0-9]+)/);
-      const resolvedListId = listIdMatch ? listIdMatch[1] : card.idList;
+      // Read hidden metadata from description
+      const metaMatch      = card.desc?.match(/<!--mode:(board|list)\|listId:([a-f0-9]*?)-->/);
+      const cardMode       = metaMatch ? metaMatch[1] : "board";
+      const resolvedListId = metaMatch ? metaMatch[2] || card.idList : card.idList;
 
       t.board("id").then((board) => {
         t.modal({
@@ -127,8 +136,6 @@ function CardDetailsView() {
     async function load() {
       setLoading(true);
       try {
-        // mode:list → fetch only that list's cards
-        // mode:board → fetch all board cards
         const isListScoped = mode === "list";
 
         let allCards;
@@ -145,14 +152,13 @@ function CardDetailsView() {
         const mid = await getMemberId(key, token);
         setMemberId(mid);
 
-        // Remove Cardlytics tracker cards from stats — they should never count themselves
+        // Remove tracker cards from stats
         allCards = allCards.filter(c => !TRACKED_CARD_NAMES.includes(c.name));
 
-        // ── Build filter for the table / banner count ──
-        const now           = new Date();
-        const weekFromNow   = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const fourteenAgo   = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-        const todayStart    = new Date(now); todayStart.setHours(0, 0, 0, 0);
+        const now         = new Date();
+        const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const fourteenAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        const todayStart  = new Date(now); todayStart.setHours(0, 0, 0, 0);
 
         const filterMap = {
           assigned:     (c) => c.idMembers?.includes(mid),
@@ -162,7 +168,7 @@ function CardDetailsView() {
           withLabel:    (c) => c.labels?.length > 0,
           stale:        (c) => c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
           createdToday: (c) => cardCreatedDate(c.id) >= todayStart,
-          cardsInList:  () => true,  // already scoped by fetch
+          cardsInList:  () => true,
           all:          () => true,
         };
 
@@ -172,39 +178,30 @@ function CardDetailsView() {
         setCards(filteredCards);
         setDetailStats(computeDetailStats(filteredCards));
 
-        // Left sidebar: list mode → show list stats, board mode → show board stats
         const computed = computeStats(allCards, mid);
         computed.cardsInList = isListScoped ? allCards.length : 0;
         setFullStats(computed);
 
-        // ── Fetch list name + board name ──
         if (listId) {
-          const listRes = await fetch(
-            `https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`
-          );
+          const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`);
           if (listRes.ok) {
             const listData = await listRes.json();
             setListName(listData.name);
             const resolvedBoardId = boardId || listData.idBoard;
-            const boardRes = await fetch(
-              `https://api.trello.com/1/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`
-            );
+            const boardRes = await fetch(`https://api.trello.com/1/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`);
             if (boardRes.ok) {
               const boardData = await boardRes.json();
               setBoardName(boardData.name);
             }
           }
         } else if (boardId) {
-          const boardRes = await fetch(
-            `https://api.trello.com/1/boards/${boardId}?key=${key}&token=${token}&fields=name`
-          );
+          const boardRes = await fetch(`https://api.trello.com/1/boards/${boardId}?key=${key}&token=${token}&fields=name`);
           if (boardRes.ok) {
             const boardData = await boardRes.json();
             setBoardName(boardData.name);
           }
         }
 
-        // ── Member details for table avatars ──
         const allMemberIds = [...new Set(filteredCards.flatMap((c) => c.idMembers || []))];
         const details = {};
         await Promise.all(
@@ -223,20 +220,15 @@ function CardDetailsView() {
     load();
   }, [listId, boardId, statType]);
 
-  // ── Filter + sort ──
   const filtered = cards
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       let va, vb;
       if (sortCol === "name")         { va = a.name; vb = b.name; }
       else if (sortCol === "due")     { va = a.due || ""; vb = b.due || ""; }
-      else if (sortCol === "created") {
-        va = cardCreatedDate(a.id).getTime();
-        vb = cardCreatedDate(b.id).getTime();
-      } else if (sortCol === "modified") {
-        va = a.dateLastActivity || "";
-        vb = b.dateLastActivity || "";
-      } else { va = ""; vb = ""; }
+      else if (sortCol === "created") { va = cardCreatedDate(a.id).getTime(); vb = cardCreatedDate(b.id).getTime(); }
+      else if (sortCol === "modified"){ va = a.dateLastActivity || ""; vb = b.dateLastActivity || ""; }
+      else { va = ""; vb = ""; }
       if (va < vb) return sortAsc ? -1 : 1;
       if (va > vb) return sortAsc ? 1 : -1;
       return 0;
@@ -263,10 +255,7 @@ function CardDetailsView() {
   if (loading) {
     return (
       <div className="cd-root">
-        <div className="cb-loading">
-          <div className="cb-spinner" />
-          <span>Loading...</span>
-        </div>
+        <div className="cb-loading"><div className="cb-spinner" /><span>Loading...</span></div>
       </div>
     );
   }
@@ -286,53 +275,35 @@ function CardDetailsView() {
 
   return (
     <div className="cd-root">
-      {/* ── LEFT PANEL ── */}
       <div className="cd-left">
         <div className="cd-list-label">{isListScoped ? listName : boardName}</div>
-
         {leftStats.map((s, i) => (
           <div key={i} className="cd-stat-card" style={{ borderLeft: `3px solid ${s.accent}` }}>
-            <div className="cd-stat-num" style={{ color: s.value > 0 ? s.accent : "#666" }}>
-              {s.value}
-            </div>
+            <div className="cd-stat-num" style={{ color: s.value > 0 ? s.accent : "#666" }}>{s.value}</div>
             <div className="cd-stat-lbl">{s.label}</div>
           </div>
         ))}
-
         <div className="add-filter-card" style={{ marginTop: 4 }}>+ Add filter</div>
       </div>
 
-      {/* ── RIGHT PANEL ── */}
       <div className="cd-right">
-
-        {/* Blue count banner */}
         <div className="cd-banner">
           <div className="cd-banner-count">{detailStats.total}</div>
           <div>
             <div className="cd-banner-title">{STAT_LABELS[statType] || "Cards"}</div>
-            <div className="cd-banner-sub">
-              {isListScoped ? `In list: ${listName}` : `Board: ${boardName}`}
-            </div>
+            <div className="cd-banner-sub">{isListScoped ? `In list: ${listName}` : `Board: ${boardName}`}</div>
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="cd-tabs">
           {["table", "metrics", "history", "alerts"].map((tab) => (
-            <div
-              key={tab}
-              className={`cd-tab ${activeTab === tab ? "active" : ""}`}
-              onClick={() => setActiveTab(tab)}
-            >
+            <div key={tab} className={`cd-tab ${activeTab === tab ? "active" : ""}`} onClick={() => setActiveTab(tab)}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              {tab === "table" && (
-                <span className="cd-tab-count">{detailStats.total}</span>
-              )}
+              {tab === "table" && <span className="cd-tab-count">{detailStats.total}</span>}
             </div>
           ))}
         </div>
 
-        {/* Active filters bar */}
         <div className="cd-toolbar">
           <span className="cd-toolbar-label">Active filters</span>
           <div className="cd-filter-pill">
@@ -353,30 +324,21 @@ function CardDetailsView() {
           </div>
         </div>
 
-        {/* Search + export */}
         <div className="cd-toolbar" style={{ borderTop: "none", paddingTop: 6 }}>
           <div className="cd-search">
             <span style={{ color: "#555", fontSize: 13 }}>🔍</span>
-            <input
-              type="text"
-              placeholder="Search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="cd-search-input"
-            />
+            <input type="text" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} className="cd-search-input" />
           </div>
           <button className="cd-action-btn">Columns</button>
           <button className="cd-action-btn">Export</button>
         </div>
 
-        {/* Created by */}
         <div className="cd-created-by">
           <div className="cd-mini-avatar" style={{ background: "#e85d2e" }}>SR</div>
           <span>Created by</span>
           <span className="cd-created-name">Cardlytics</span>
         </div>
 
-        {/* Table */}
         {activeTab === "table" && (
           <div className="cd-table-wrap">
             <table className="cd-table">
@@ -394,11 +356,7 @@ function CardDetailsView() {
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center", color: "#555", padding: "20px" }}>
-                      No cards found
-                    </td>
-                  </tr>
+                  <tr><td colSpan={8} style={{ textAlign: "center", color: "#555", padding: "20px" }}>No cards found</td></tr>
                 )}
                 {filtered.map((card) => (
                   <tr key={card.id}>
@@ -406,14 +364,7 @@ function CardDetailsView() {
                       {card.labels?.length > 0 && (
                         <span style={{ display: "inline-flex", gap: 3, marginRight: 6 }}>
                           {card.labels.map((lbl, i) => (
-                            <span
-                              key={i}
-                              style={{
-                                width: 10, height: 10, borderRadius: 2,
-                                background: LABEL_COLORS[lbl.color] || "#888",
-                                display: "inline-block", verticalAlign: "middle",
-                              }}
-                            />
+                            <span key={i} style={{ width: 10, height: 10, borderRadius: 2, background: LABEL_COLORS[lbl.color] || "#888", display: "inline-block", verticalAlign: "middle" }} />
                           ))}
                         </span>
                       )}
@@ -431,19 +382,11 @@ function CardDetailsView() {
                             );
                           })}
                         </div>
-                      ) : (
-                        <span style={{ color: "#555" }}>—</span>
-                      )}
+                      ) : <span style={{ color: "#555" }}>—</span>}
                     </td>
                     <td className="td-board">● {boardName}</td>
                     <td>
-                      <span
-                        style={{
-                          width: 14, height: 14, border: "1px solid #444", borderRadius: 3,
-                          display: "inline-flex", alignItems: "center", justifyContent: "center",
-                          background: card.dueComplete ? "#0a3d0a" : "transparent",
-                        }}
-                      >
+                      <span style={{ width: 14, height: 14, border: "1px solid #444", borderRadius: 3, display: "inline-flex", alignItems: "center", justifyContent: "center", background: card.dueComplete ? "#0a3d0a" : "transparent" }}>
                         {card.dueComplete && <span style={{ color: "#4caf50", fontSize: 10 }}>✓</span>}
                       </span>
                     </td>
@@ -464,7 +407,6 @@ function CardDetailsView() {
           </div>
         )}
 
-        {/* Bottom nav */}
         <div className="cd-bottom-nav">
           <button className="cd-nav-btn">📥 Inbox</button>
           <button className="cd-nav-btn">📅 Planner</button>
@@ -497,6 +439,13 @@ export default function App() {
   const [lists, setLists]                         = useState([]);
   const [selectedListId, setSelectedListId]       = useState("");
   const [selectedListCount, setSelectedListCount] = useState(null);
+  const [trackingListName, setTrackingListName]   = useState("");
+  const [toast, setToast]                         = useState(null);
+
+  function showToast(message, type = "success") {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   const handleStatClick = (type) =>
     setSelectedStats((prev) =>
@@ -513,7 +462,6 @@ export default function App() {
         ? await getListCards(key, token, listId)
         : await getBoardCards(key, token, boardId);
 
-      // Remove Cardlytics tracker cards — they should never count in stats
       const filteredForStats = cards.filter(c => !TRACKED_CARD_NAMES.includes(c.name));
 
       const memberId = await getMemberId(key, token);
@@ -525,6 +473,17 @@ export default function App() {
 
       const boardLists = await getBoardLists(key, token, boardId);
       setLists(boardLists);
+
+      // Set tracking destination name so user knows where cards will go
+      if (mode === "list" && listId) {
+        const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name`);
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          setTrackingListName(listData.name);
+        }
+      } else {
+        if (boardLists.length > 0) setTrackingListName(boardLists[0].name);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -543,6 +502,10 @@ export default function App() {
   useEffect(() => { fetchData(); }, []);
 
   const handleTrack = async () => {
+    if (selectedStats.length === 0) {
+      showToast("Please select at least one stat to track", "error");
+      return;
+    }
     try {
       const key     = import.meta.env.VITE_TRELLO_API_KEY;
       const token   = import.meta.env.VITE_TRELLO_TOKEN;
@@ -555,32 +518,44 @@ export default function App() {
         const boardLists = await getBoardLists(key, token, boardId);
         targetListId = boardLists[0]?.id;
       }
-      if (!targetListId) { alert("List not found ❌"); return; }
+      if (!targetListId) {
+        showToast("List not found", "error");
+        return;
+      }
+
+      // Hidden metadata stored in HTML comment — invisible to user in Trello
+      const meta = (v, txt) =>
+        `${txt}<!--mode:${mode}|listId:${mode === "list" ? listId : ""}-->`;
 
       const statConfig = {
-        assigned:     { name: "📌 Assigned to Me",    desc: (v) => `${v} card(s) are currently assigned to you across the workspace.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
-        dueThisWeek:  { name: "📅 Due This Week",     desc: (v) => `${v} card(s) are due within the next 7 days.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
-        overdue:      { name: "⚠️ Overdue Cards",      desc: (v) => `${v} card(s) have passed their due date and are not completed.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
-        unassigned:   { name: "👤 Unassigned Cards",  desc: (v) => `${v} card(s) have no member assigned to them.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
-        withLabel:    { name: "🏷️ Cards With Label",   desc: (v) => `${v} card(s) have at least one label applied.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
-        stale:        { name: "💤 Stale Cards",        desc: (v) => `${v} card(s) have had no activity in the last 14 days.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
-        createdToday: { name: "✨ Created Today",      desc: (v) => `${v} card(s) were created today on this board.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
-        cardsInList:  { name: "📋 Cards in List",     desc: (v) => `${v} card(s) are currently in the selected list.\nmode:${mode}${mode === "list" ? `\nlistId:${listId}` : ""}` },
+        assigned:     { name: "📌 Assigned to Me",   desc: (v) => meta(v, `${v} card(s) are currently assigned to you.`) },
+        dueThisWeek:  { name: "📅 Due This Week",    desc: (v) => meta(v, `${v} card(s) are due within the next 7 days.`) },
+        overdue:      { name: "⚠️ Overdue Cards",     desc: (v) => meta(v, `${v} card(s) have passed their due date.`) },
+        unassigned:   { name: "👤 Unassigned Cards", desc: (v) => meta(v, `${v} card(s) have no member assigned.`) },
+        withLabel:    { name: "🏷️ Cards With Label",  desc: (v) => meta(v, `${v} card(s) have at least one label.`) },
+        stale:        { name: "💤 Stale Cards",       desc: (v) => meta(v, `${v} card(s) have had no activity in 14+ days.`) },
+        createdToday: { name: "✨ Created Today",     desc: (v) => meta(v, `${v} card(s) were created today.`) },
+        cardsInList:  { name: "📋 Cards in List",    desc: (v) => meta(v, `${v} card(s) are in the selected list.`) },
       };
 
       for (const stat of selectedStats) {
         const config = statConfig[stat];
         await createCard(key, token, targetListId, config.name, config.desc(stats[stat]));
       }
-      alert("Cards added successfully 🚀");
+
+      showToast(`${selectedStats.length} card(s) added to "${trackingListName}" ✅`);
+      setSelectedStats([]);
     } catch (err) {
       console.error("Trello API Error:", err);
-      alert("Error creating cards");
+      showToast("Something went wrong. Please try again.", "error");
     }
   };
 
   return (
     <div className="popup">
+      {/* Toast notification */}
+      <Toast toast={toast} />
+
       <div className="header">
         <div className="header-left">
           <div className="trello-icon">T</div>
@@ -594,9 +569,9 @@ export default function App() {
 
       <div className="body">
         <Section title="MY WORK">
-          <StatCard value={stats.assigned}    label="Assigned to me across workspace"      tag="live" type="assigned"    onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.dueThisWeek} label={`Due this week on this ${context}`}             type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.overdue}     label={`Overdue cards on this ${context}`}  tag="hot"  type="overdue"     onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.assigned}    label="Assigned to me across workspace"     tag="live" type="assigned"    onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.dueThisWeek} label={`Due this week on this ${context}`}            type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.overdue}     label={`Overdue cards on this ${context}`} tag="hot"  type="overdue"     onClick={handleStatClick} selected={selectedStats} />
         </Section>
 
         <Section title="BOARD INSIGHTS">
@@ -630,8 +605,16 @@ export default function App() {
       </div>
 
       <div className="footer">
-        <span className="footer-text">Last updated: {lastUpdated}</span>
-        <button className="btn-refresh" onClick={fetchData}>↻ Refresh</button>
+        <div className="footer-tracking">
+          <span className="footer-tracking-icon">📌</span>
+          <span className="footer-tracking-text">
+            Tracking to: <strong>{trackingListName || "..."}</strong>
+          </span>
+        </div>
+        <div className="footer-right">
+          <span className="footer-text">Updated: {lastUpdated}</span>
+          <button className="btn-refresh" onClick={fetchData}>↻</button>
+        </div>
       </div>
     </div>
   );

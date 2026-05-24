@@ -684,3 +684,61 @@ body {
   color: #60b4ff;
   border: 1px solid #2a3a4a;
 }
+/* ─── TOAST ─── */
+.toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  animation: toastIn 0.2s ease;
+  white-space: nowrap;
+}
+.toast-success {
+  background: #0a3d0a;
+  border: 1px solid #4caf50;
+  color: #4caf50;
+}
+.toast-error {
+  background: #3d0a0a;
+  border: 1px solid #ff5252;
+  color: #ff5252;
+}
+.toast-icon { font-size: 14px; }
+.toast-msg  { font-size: 12px; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ─── FOOTER TRACKING INFO ─── */
+.footer {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.footer-tracking {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: #666;
+}
+.footer-tracking-icon { font-size: 11px; }
+.footer-tracking-text { color: #666; }
+.footer-tracking-text strong { color: #4ea1ff; font-weight: 600; }
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
