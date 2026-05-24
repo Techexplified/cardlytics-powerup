@@ -586,20 +586,27 @@ export default function App() {
       </div>
 
       <div className="body">
+        {mode === "list" && trackingListName && (
+          <div className="list-context-badge">
+            <span>📋</span>
+            <span>List: <strong>{trackingListName}</strong></span>
+          </div>
+        )}
+
         <Section title="MY WORK">
           <StatCard value={stats.assigned}    label="Assigned to me across workspace"     tag="live" type="assigned"    onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.dueThisWeek} label={`Due this week on this ${context}`}            type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.overdue}     label={`Overdue cards on this ${context}`} tag="hot"  type="overdue"     onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.dueThisWeek} label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}  type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.overdue}     label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} tag="hot" type="overdue" onClick={handleStatClick} selected={selectedStats} />
         </Section>
 
         <Section title="BOARD INSIGHTS">
-          <StatCard value={stats.unassigned} label={`Unassigned cards on this ${context}`} type="unassigned" onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.withLabel}  label={`With a label on this ${context}`}     type="withLabel"  onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.stale}      label={`Stale cards on this ${context}`}      type="stale"      onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.unassigned} label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="unassigned" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.withLabel}  label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="withLabel" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.stale}      label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="stale" onClick={handleStatClick} selected={selectedStats} />
         </Section>
 
         <Section title="ACTIVITY">
-          <StatCard value={stats.createdToday} label={`Created today on this ${context}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.createdToday} label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} />
 
           {mode === "board" && (
             <div
