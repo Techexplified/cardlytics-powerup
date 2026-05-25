@@ -555,15 +555,15 @@ export default function App() {
         const saved    = cardConfig[stat];
         const count    = stats[stat];
 
-        const cardName  = saved?.cardName
-          ? `${saved.cardName} — ${count}`
-          : `${defaults.name} — ${count}`;
+       const cardName = `${defaults.name} — ${count}`;
 
-        const cover     = saved?.cover || defaults.cover;
+const desc = saved?.cardName
+  ? `${saved.cardName}\n\n${count} card(s) tracked by Cardlytics.${metaTag}`
+  : `${count} card(s) tracked by Cardlytics.${metaTag}`;
 
-        const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
+const cover = saved?.cover || defaults.cover;
 
-        await createCard(key, token, targetListId, cardName, desc, cover, saved?.coverImage || null);
+await createCard(key, token, targetListId, cardName, desc, cover, saved?.coverImage || null);
       }
 
       showToast(`${selectedStats.length} card(s) added to "${trackingListName}" ✅`);
