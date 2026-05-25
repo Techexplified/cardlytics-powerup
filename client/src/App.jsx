@@ -66,7 +66,6 @@ function Toast({ toast }) {
 }
 
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
-// FIX 2: Inline layout — "Cardlytics" label + "View Details" button on same row
 function CardBackView() {
   function handleOpenCardlytics() {
     const t = window.TrelloPowerUp?.iframe?.();
@@ -85,10 +84,11 @@ function CardBackView() {
       };
       const statType = nameMap[card.name] || "all";
 
-      // Always scope to the list this tracker card lives in —
-      // the card is in e.g. "Later", so show data for "Later" only
-      const cardMode       = "list";
-      const resolvedListId = card.idList;
+      // Parse invisible markdown reference metadata: [_]: cardlytics:mode:list:listId:xxx
+      // Markdown reference links are never rendered by Trello — completely invisible to users
+      const metaMatch      = card.desc?.match(/\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/);
+      const cardMode       = metaMatch ? metaMatch[1] : "board";
+      const resolvedListId = metaMatch ? (metaMatch[2] || card.idList) : card.idList;
 
       t.board("id").then((board) => {
         t.modal({
@@ -267,7 +267,6 @@ function CardDetailsView() {
     return <span className={`cb-due ${cls}`}>{formatDate(due)}</span>;
   }
 
-  // FIX 1: Full-screen loader — no cd-root so no split panel border shows
   if (loading) {
     return (
       <div style={{
@@ -545,16 +544,22 @@ export default function App() {
         return;
       }
 
-      // FIX 3: Clean descriptions — no hidden metadata comments
+      // Encode mode/listId as an invisible markdown reference link.
+      // Markdown reference links ([label]: url) are never rendered by Trello's
+      // markdown engine — completely hidden from users but readable by the code.
+      const metaTag = mode === "list" && listId
+        ? `\n\n[_]: cardlytics:mode:list:listId:${listId}`
+        : `\n\n[_]: cardlytics:mode:board`;
+
       const statConfig = {
-        assigned:     { name: "📌 Assigned to Me",   desc: (v) => `${v} card(s) are currently assigned to you.` },
-        dueThisWeek:  { name: "📅 Due This Week",    desc: (v) => `${v} card(s) are due within the next 7 days.` },
-        overdue:      { name: "⚠️ Overdue Cards",     desc: (v) => `${v} card(s) have passed their due date.` },
-        unassigned:   { name: "👤 Unassigned Cards", desc: (v) => `${v} card(s) have no member assigned.` },
-        withLabel:    { name: "🏷️ Cards With Label",  desc: (v) => `${v} card(s) have at least one label.` },
-        stale:        { name: "💤 Stale Cards",       desc: (v) => `${v} card(s) have had no activity in 14+ days.` },
-        createdToday: { name: "✨ Created Today",     desc: (v) => `${v} card(s) were created today.` },
-        cardsInList:  { name: "📋 Cards in List",    desc: (v) => `${v} card(s) are in the selected list.` },
+        assigned:     { name: "📌 Assigned to Me",   desc: (v) => `${v} card(s) are currently assigned to you.${metaTag}` },
+        dueThisWeek:  { name: "📅 Due This Week",    desc: (v) => `${v} card(s) are due within the next 7 days.${metaTag}` },
+        overdue:      { name: "⚠️ Overdue Cards",     desc: (v) => `${v} card(s) have passed their due date.${metaTag}` },
+        unassigned:   { name: "👤 Unassigned Cards", desc: (v) => `${v} card(s) have no member assigned.${metaTag}` },
+        withLabel:    { name: "🏷️ Cards With Label",  desc: (v) => `${v} card(s) have at least one label.${metaTag}` },
+        stale:        { name: "💤 Stale Cards",       desc: (v) => `${v} card(s) have had no activity in 14+ days.${metaTag}` },
+        createdToday: { name: "✨ Created Today",     desc: (v) => `${v} card(s) were created today.${metaTag}` },
+        cardsInList:  { name: "📋 Cards in List",    desc: (v) => `${v} card(s) are in the selected list.${metaTag}` },
       };
 
       for (const stat of selectedStats) {
