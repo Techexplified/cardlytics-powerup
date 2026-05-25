@@ -31,18 +31,19 @@ function cardCreatedDate(cardId) {
   return new Date(ts);
 }
 
-// ─── CARDLYTICS TRACKER CARD PREFIXES ────────────────────────────────────────
-const TRACKED_CARD_PREFIXES = [
-  "📌 Assigned to Me",
-  "📅 Due This Week",
-  "⚠️ Overdue Cards",
-  "👤 Unassigned Cards",
-  "🏷️ Cards With Label",
-  "💤 Stale Cards",
-  "✨ Created Today",
-  "📋 Cards in List",
-];
-const isTrackerCard = (name) => TRACKED_CARD_PREFIXES.some(p => name.startsWith(p));
+const isTrackerCard = (name) => {
+  const lower = name.toLowerCase();
+  return [
+    "assigned to me",
+    "due this week",
+    "overdue cards",
+    "unassigned cards",
+    "cards with a label",
+    "stale cards",
+    "created today",
+    "cards in list",
+  ].some(p => lower.includes(p));
+};
 
 const STAT_LABELS = {
   assigned:     "Assigned to Me",
