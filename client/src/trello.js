@@ -111,9 +111,7 @@ export async function getBoardLists(key, token, boardId) {
 }
 
 // ── Create a Cardlytics tracker card ─────────────────────────────────────────
-// FIX: Trello's REST API requires cover color via JSON body (application/json),
-// NOT as query-param bracket notation. The bracket approach was silently ignored.
-export async function createCard(key, token, listId, name, desc, coverColor = "blue") {
+export async function createCard(key, token, listId, name, desc, coverColor = "blue", coverImageDataUrl = null) {
   // Step 1: create the card
   const createParams = new URLSearchParams({ key, token, idList: listId, name, desc, pos: "top" });
   const createRes = await fetch(`${BASE}/cards`, {
@@ -128,21 +126,60 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
   }
   const card = await createRes.json();
 
-  // Step 2: apply cover color via JSON body (the only reliable way)
-  const coverRes = await fetch(`${BASE}/cards/${card.id}?key=${key}&token=${token}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      cover: {
-        color: coverColor,   // e.g. "blue", "red", "yellow", "green", "purple", "orange", "sky", "black"
-        brightness: "dark",
-        size: "normal",
-      },
-    }),
-  });
-  if (!coverRes.ok) {
-    // Card was created — don't throw, just warn. Cover is cosmetic.
-    console.warn("Cover color apply failed:", await coverRes.text());
+  // Step 2a: if a custom image was provided, upload it as an attachment
+  if (coverImageDataUrl) {
+    try {
+      // Convert base64 data URL → Blob
+      const response = await fetch(coverImageDataUrl);
+      const blob = await response.blob();
+      const formData = new FormData();
+      formData.append("key", key);
+      formData.append("token", token);
+      formData.append("file", blob, "cover.jpg");
+      formData.append("setCover", "false");
+
+      const attachRes = await fetch(`${BASE}/cards/${card.id}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (attachRes.ok) {
+        const attachment = await attachRes.json();
+
+        // Step 2b: set that attachment as the card cover
+        await fetch(`${BASE}/cards/${card.id}?key=${key}&token=${token}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cover: {
+              idAttachment: attachment.id,
+              brightness: "dark",
+              size: "normal",
+            },
+          }),
+        });
+      } else {
+        console.warn("Attachment upload failed:", await attachRes.text());
+      }
+    } catch (err) {
+      console.warn("Cover image upload error:", err);
+    }
+  } else {
+    // Step 2b: apply cover color via JSON body
+    const coverRes = await fetch(`${BASE}/cards/${card.id}?key=${key}&token=${token}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cover: {
+          color: coverColor,
+          brightness: "dark",
+          size: "normal",
+        },
+      }),
+    });
+    if (!coverRes.ok) {
+      console.warn("Cover color apply failed:", await coverRes.text());
+    }
   }
 
   return card;

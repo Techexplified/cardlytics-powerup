@@ -560,7 +560,7 @@ export default function App() {
 
         const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
 
-        await createCard(key, token, targetListId, cardName, desc, cover);
+        await createCard(key, token, targetListId, cardName, desc, cover, saved?.coverImage || null);
       }
 
       showToast(`${selectedStats.length} card(s) added to "${trackingListName}" ✅`);
