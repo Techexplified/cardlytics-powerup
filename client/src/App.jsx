@@ -30,8 +30,9 @@ function cardCreatedDate(cardId) {
   return new Date(ts);
 }
 
-// ─── CARDLYTICS TRACKER CARD NAMES (excluded from stats) ─────────────────────
-const TRACKED_CARD_NAMES = [
+// ─── CARDLYTICS TRACKER CARD PREFIXES (excluded from stats) ──────────────────
+// Using prefix match so "📌 Assigned to Me — 4" still gets filtered out
+const TRACKED_CARD_PREFIXES = [
   "📌 Assigned to Me",
   "📅 Due This Week",
   "⚠️ Overdue Cards",
@@ -41,6 +42,7 @@ const TRACKED_CARD_NAMES = [
   "✨ Created Today",
   "📋 Cards in List",
 ];
+const isTrackerCard = (name) => TRACKED_CARD_PREFIXES.some(p => name.startsWith(p));
 
 const STAT_LABELS = {
   assigned:     "Assigned to Me",
@@ -72,17 +74,18 @@ function CardBackView() {
     if (!t) return;
 
     t.card("id", "idList", "name", "desc").then((card) => {
-      const nameMap = {
-        "📌 Assigned to Me":   "assigned",
-        "📅 Due This Week":    "dueThisWeek",
-        "⚠️ Overdue Cards":    "overdue",
-        "👤 Unassigned Cards": "unassigned",
-        "🏷️ Cards With Label": "withLabel",
-        "💤 Stale Cards":      "stale",
-        "✨ Created Today":    "createdToday",
-        "📋 Cards in List":    "cardsInList",
-      };
-      const statType = nameMap[card.name] || "all";
+      // Use startsWith so "📌 Assigned to Me — 4" still resolves correctly
+      const nameMap = [
+        { prefix: "📌 Assigned to Me",   type: "assigned"     },
+        { prefix: "📅 Due This Week",    type: "dueThisWeek"  },
+        { prefix: "⚠️ Overdue Cards",    type: "overdue"      },
+        { prefix: "👤 Unassigned Cards", type: "unassigned"   },
+        { prefix: "🏷️ Cards With Label", type: "withLabel"    },
+        { prefix: "💤 Stale Cards",      type: "stale"        },
+        { prefix: "✨ Created Today",    type: "createdToday" },
+        { prefix: "📋 Cards in List",   type: "cardsInList"  },
+      ];
+      const statType = nameMap.find(m => card.name.startsWith(m.prefix))?.type || "all";
 
       // Parse invisible markdown reference metadata: [_]: cardlytics:mode:list:listId:xxx
       // Markdown reference links are never rendered by Trello — completely invisible to users
@@ -162,7 +165,7 @@ function CardDetailsView() {
         const mid = await getMemberId(key, token);
         setMemberId(mid);
 
-        allCards = allCards.filter(c => !TRACKED_CARD_NAMES.includes(c.name));
+        allCards = allCards.filter(c => !isTrackerCard(c.name));
 
         const now         = new Date();
         const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -484,7 +487,7 @@ export default function App() {
         ? await getListCards(key, token, listId)
         : await getBoardCards(key, token, boardId);
 
-      const filteredForStats = cards.filter(c => !TRACKED_CARD_NAMES.includes(c.name));
+      const filteredForStats = cards.filter(c => !isTrackerCard(c.name));
 
       const memberId = await getMemberId(key, token);
       const computed = computeStats(filteredForStats, memberId);
@@ -517,7 +520,7 @@ export default function App() {
     const key   = import.meta.env.VITE_TRELLO_API_KEY;
     const token = import.meta.env.VITE_TRELLO_TOKEN;
     const cards = await getListCards(key, token, id);
-    setSelectedListCount(cards.filter(c => !TRACKED_CARD_NAMES.includes(c.name)).length);
+    setSelectedListCount(cards.filter(c => !isTrackerCard(c.name)).length);
   }
 
   useEffect(() => { fetchData(); }, []);
@@ -551,20 +554,24 @@ export default function App() {
         ? `\n\n[_]: cardlytics:mode:list:listId:${listId}`
         : `\n\n[_]: cardlytics:mode:board`;
 
+      // Cover colors per stat type — makes Cardlytics cards visually distinct
       const statConfig = {
-        assigned:     { name: "📌 Assigned to Me",   desc: (v) => `${v} card(s) are currently assigned to you.${metaTag}` },
-        dueThisWeek:  { name: "📅 Due This Week",    desc: (v) => `${v} card(s) are due within the next 7 days.${metaTag}` },
-        overdue:      { name: "⚠️ Overdue Cards",     desc: (v) => `${v} card(s) have passed their due date.${metaTag}` },
-        unassigned:   { name: "👤 Unassigned Cards", desc: (v) => `${v} card(s) have no member assigned.${metaTag}` },
-        withLabel:    { name: "🏷️ Cards With Label",  desc: (v) => `${v} card(s) have at least one label.${metaTag}` },
-        stale:        { name: "💤 Stale Cards",       desc: (v) => `${v} card(s) have had no activity in 14+ days.${metaTag}` },
-        createdToday: { name: "✨ Created Today",     desc: (v) => `${v} card(s) were created today.${metaTag}` },
-        cardsInList:  { name: "📋 Cards in List",    desc: (v) => `${v} card(s) are in the selected list.${metaTag}` },
+        assigned:     { name: "📌 Assigned to Me",   cover: "blue",   desc: (v) => `${v} card(s) are currently assigned to you.${metaTag}` },
+        dueThisWeek:  { name: "📅 Due This Week",    cover: "yellow", desc: (v) => `${v} card(s) are due within the next 7 days.${metaTag}` },
+        overdue:      { name: "⚠️ Overdue Cards",     cover: "red",    desc: (v) => `${v} card(s) have passed their due date.${metaTag}` },
+        unassigned:   { name: "👤 Unassigned Cards", cover: "purple", desc: (v) => `${v} card(s) have no member assigned.${metaTag}` },
+        withLabel:    { name: "🏷️ Cards With Label",  cover: "orange", desc: (v) => `${v} card(s) have at least one label.${metaTag}` },
+        stale:        { name: "💤 Stale Cards",       cover: "black",  desc: (v) => `${v} card(s) have had no activity in 14+ days.${metaTag}` },
+        createdToday: { name: "✨ Created Today",     cover: "green",  desc: (v) => `${v} card(s) were created today.${metaTag}` },
+        cardsInList:  { name: "📋 Cards in List",    cover: "sky",    desc: (v) => `${v} card(s) are in the selected list.${metaTag}` },
       };
 
       for (const stat of selectedStats) {
         const config = statConfig[stat];
-        await createCard(key, token, targetListId, config.name, config.desc(stats[stat]));
+        const count  = stats[stat];
+        // Append count to name so it's visible on the card face: "📌 Assigned to Me — 4"
+        const cardName = `${config.name} — ${count}`;
+        await createCard(key, token, targetListId, cardName, config.desc(count), config.cover);
       }
 
       showToast(`${selectedStats.length} card(s) added to "${trackingListName}" ✅`);
