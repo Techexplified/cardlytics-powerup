@@ -467,6 +467,28 @@ export default function App() {
   const [trackingListName, setTrackingListName]   = useState("");
   const [toast, setToast]                         = useState(null);
 
+  const DEFAULT_VISIBLE = {
+    assigned: true, dueThisWeek: true, overdue: true,
+    unassigned: true, withLabel: true, stale: true,
+    createdToday: true, cardsInList: true,
+  };
+
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [visibleStats, setVisibleStats]   = useState(() => {
+    try {
+      const saved = localStorage.getItem("cardlytics_visible");
+      return saved ? { ...DEFAULT_VISIBLE, ...JSON.parse(saved) } : DEFAULT_VISIBLE;
+    } catch { return DEFAULT_VISIBLE; }
+  });
+
+  function toggleVisible(type) {
+    setVisibleStats(prev => {
+      const next = { ...prev, [type]: !prev[type] };
+      localStorage.setItem("cardlytics_visible", JSON.stringify(next));
+      return next;
+    });
+  }
+
   function showToast(message, type = "success") {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -593,9 +615,43 @@ export default function App() {
         </div>
         <div className="header-actions">
           <button className="btn-customize" onClick={handleTrack}>Track</button>
-          <button className="btn-customize">Customize</button>
+          <button className="btn-customize" onClick={() => setShowCustomize(true)}>Customize</button>
         </div>
       </div>
+
+      {showCustomize && (
+        <div className="customize-overlay" onClick={() => setShowCustomize(false)}>
+          <div className="customize-modal" onClick={e => e.stopPropagation()}>
+            <div className="customize-header">
+              <span>Customize</span>
+              <button className="customize-close" onClick={() => setShowCustomize(false)}>✕</button>
+            </div>
+            <p className="customize-sub">Choose which stats to show</p>
+            {[
+              { type: "assigned",     label: "Assigned to Me",     emoji: "📌" },
+              { type: "dueThisWeek",  label: "Due This Week",      emoji: "📅" },
+              { type: "overdue",      label: "Overdue Cards",      emoji: "⚠️" },
+              { type: "unassigned",   label: "Unassigned Cards",   emoji: "👤" },
+              { type: "withLabel",    label: "Cards With Label",   emoji: "🏷️" },
+              { type: "stale",        label: "Stale Cards",        emoji: "💤" },
+              { type: "createdToday", label: "Created Today",      emoji: "✨" },
+              { type: "cardsInList",  label: "Cards in List",      emoji: "📋" },
+            ].map(({ type, label, emoji }) => (
+              <div key={type} className="customize-row" onClick={() => toggleVisible(type)}>
+                <span className="customize-emoji">{emoji}</span>
+                <span className="customize-label">{label}</span>
+                <div className={`customize-toggle ${visibleStats[type] ? "on" : "off"}`}>
+                  <div className="toggle-knob" />
+                </div>
+              </div>
+            ))}
+            <button className="customize-reset" onClick={() => {
+              setVisibleStats(DEFAULT_VISIBLE);
+              localStorage.removeItem("cardlytics_visible");
+            }}>Reset to default</button>
+          </div>
+        </div>
+      )}
 
       <div className="body">
         {mode === "list" && trackingListName && (
@@ -607,19 +663,19 @@ export default function App() {
         )}
 
         <Section title="MY WORK">
-          <StatCard value={stats.assigned}    label="Assigned to me across workspace"     tag="live" type="assigned"    onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.dueThisWeek} label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}  type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.overdue}     label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} tag="hot" type="overdue" onClick={handleStatClick} selected={selectedStats} />
+          {visibleStats.assigned    && <StatCard value={stats.assigned}    label="Assigned to me across workspace"     tag="live" type="assigned"    onClick={handleStatClick} selected={selectedStats} />}
+          {visibleStats.dueThisWeek && <StatCard value={stats.dueThisWeek} label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}  type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} />}
+          {visibleStats.overdue     && <StatCard value={stats.overdue}     label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} tag="hot" type="overdue" onClick={handleStatClick} selected={selectedStats} />}
         </Section>
 
         <Section title="BOARD INSIGHTS">
-          <StatCard value={stats.unassigned} label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="unassigned" onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.withLabel}  label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="withLabel" onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.stale}      label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="stale" onClick={handleStatClick} selected={selectedStats} />
+          {visibleStats.unassigned && <StatCard value={stats.unassigned} label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="unassigned" onClick={handleStatClick} selected={selectedStats} />}
+          {visibleStats.withLabel  && <StatCard value={stats.withLabel}  label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="withLabel" onClick={handleStatClick} selected={selectedStats} />}
+          {visibleStats.stale      && <StatCard value={stats.stale}      label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="stale" onClick={handleStatClick} selected={selectedStats} />}
         </Section>
 
         <Section title="ACTIVITY">
-          <StatCard value={stats.createdToday} label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} />
+          {visibleStats.createdToday && <StatCard value={stats.createdToday} label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} />}
 
           {mode === "board" && (
             <div

@@ -114,21 +114,21 @@ export async function getBoardLists(key, token, boardId) {
 // - pos=top so it appears at the top of the list
 // - cover color makes it visually distinct from regular cards
 export async function createCard(key, token, listId, name, desc, coverColor = "blue") {
-  const url = `${BASE}/cards?${buildAuth(key, token)}`;
-  const res = await fetch(url, {
+  // Use query params for cover — more reliable than JSON body with Trello API
+  const params = new URLSearchParams({
+    key, token,
+    idList: listId,
+    name,
+    desc,
+    pos: "top",
+    "cover[color]": coverColor,
+    "cover[brightness]": "dark",
+    "cover[size]": "normal",
+  });
+  const res = await fetch(`${BASE}/cards`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      idList: listId,
-      name,
-      desc,
-      pos: "top",
-      cover: {
-        color: coverColor,
-        brightness: "dark",
-        size: "normal",
-      },
-    }),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
   });
   if (!res.ok) {
     const errorText = await res.text();
