@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
-const COVER_COLORS = {
-  assigned:     "#0052cc",
-  dueThisWeek:  "#e6a817",
-  overdue:      "#c0392b",
-  unassigned:   "#7e57c2",
-  withLabel:    "#e67e22",
-  stale:        "#555555",
-  createdToday: "#1a7a4a",
-  cardsInList:  "#0288d1",
-};
+// ── Cover color palette (Trello-supported colors + display hex) ───────────────
+const COVER_COLORS = [
+  { id: "blue",   hex: "#0052cc", label: "Blue"   },
+  { id: "sky",    hex: "#29b6f6", label: "Sky"    },
+  { id: "green",  hex: "#1a7a4a", label: "Green"  },
+  { id: "yellow", hex: "#e6a817", label: "Yellow" },
+  { id: "orange", hex: "#e67e22", label: "Orange" },
+  { id: "red",    hex: "#c0392b", label: "Red"    },
+  { id: "purple", hex: "#7e57c2", label: "Purple" },
+  { id: "pink",   hex: "#e91e8c", label: "Pink"   },
+  { id: "black",  hex: "#374151", label: "Slate"  },
+];
 
 const STAT_EMOJIS = {
   assigned:     "📌",
@@ -20,6 +22,17 @@ const STAT_EMOJIS = {
   stale:        "💤",
   createdToday: "✨",
   cardsInList:  "📋",
+};
+
+const DEFAULT_COVER = {
+  assigned:     "blue",
+  dueThisWeek:  "yellow",
+  overdue:      "red",
+  unassigned:   "purple",
+  withLabel:    "orange",
+  stale:        "black",
+  createdToday: "green",
+  cardsInList:  "sky",
 };
 
 const DEFAULT_NAMES = {
@@ -44,7 +57,7 @@ const STAT_LIST = [
   { type: "cardsInList",  label: "Cards in List",      emoji: "📋" },
 ];
 
-// ── Step 1: pick which stat to configure ─────────────────────────────────────
+// ── Step 1: Stat picker ───────────────────────────────────────────────────────
 function StatPicker({ onSelect, onClose }) {
   return (
     <div className="customize-overlay" onClick={onClose}>
@@ -75,20 +88,156 @@ function StatPicker({ onSelect, onClose }) {
   );
 }
 
-// ── Step 2: card config form ──────────────────────────────────────────────────
-function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBack, onClose }) {
-  const [cardName, setCardName] = useState(DEFAULT_NAMES[statType] || "");
-  const [board,    setBoard]    = useState("any");
-  const [list,     setList]     = useState("any");
-  const [due,      setDue]      = useState("");
-  const [labels,   setLabels]   = useState("");
-  const [showMore, setShowMore] = useState(false);
+// ── Color Swatch Picker ───────────────────────────────────────────────────────
+function ColorSwatchPicker({ selected, onChange }) {
+  return (
+    <div style={{
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 8,
+      padding: "10px 0 4px",
+    }}>
+      {COVER_COLORS.map(({ id, hex, label }) => (
+        <button
+          key={id}
+          title={label}
+          onClick={() => onChange(id)}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: hex,
+            border: selected === id
+              ? "2px solid #fff"
+              : "2px solid transparent",
+            outline: selected === id ? `2px solid ${hex}` : "none",
+            cursor: "pointer",
+            padding: 0,
+            transition: "transform 0.1s",
+            transform: selected === id ? "scale(1.15)" : "scale(1)",
+            position: "relative",
+          }}
+        >
+          {selected === id && (
+            <span style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 700,
+              textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+            }}>✓</span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
 
-  const coverColor = COVER_COLORS[statType] || "#0052cc";
-  const emoji      = STAT_EMOJIS[statType]  || "📌";
+// ── Image Upload Preview ──────────────────────────────────────────────────────
+function ImageUpload({ imageUrl, onImageChange }) {
+  const fileRef = useRef();
+
+  function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => onImageChange(ev.target.result);
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={handleFile}
+      />
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <button
+          onClick={() => fileRef.current?.click()}
+          style={{
+            background: "#2e2e2e",
+            border: "1px solid #3a3a3a",
+            borderRadius: 6,
+            padding: "6px 12px",
+            color: "#ccc",
+            fontSize: 12,
+            fontFamily: "'DM Sans', sans-serif",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          🖼 {imageUrl ? "Change image" : "Upload image"}
+        </button>
+        {imageUrl && (
+          <button
+            onClick={() => onImageChange(null)}
+            style={{
+              background: "none",
+              border: "1px solid #3a3a3a",
+              borderRadius: 6,
+              padding: "6px 10px",
+              color: "#888",
+              fontSize: 12,
+              fontFamily: "'DM Sans', sans-serif",
+              cursor: "pointer",
+            }}
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      {imageUrl && (
+        <div style={{
+          width: "100%",
+          height: 48,
+          borderRadius: 6,
+          overflow: "hidden",
+          border: "1px solid #3a3a3a",
+        }}>
+          <img
+            src={imageUrl}
+            alt="Cover preview"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Card Config Modal ─────────────────────────────────────────────────────────
+function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBack, onClose }) {
+  const [cardName,   setCardName]   = useState(DEFAULT_NAMES[statType] || "");
+  const [coverColor, setCoverColor] = useState(DEFAULT_COVER[statType] || "blue");
+  const [coverImage, setCoverImage] = useState(null);
+  const [board,      setBoard]      = useState("any");
+  const [list,       setList]       = useState("any");
+  const [due,        setDue]        = useState("");
+  const [labels,     setLabels]     = useState("");
+  const [showMore,   setShowMore]   = useState(false);
+
+  const resolvedCoverHex = coverImage
+    ? null
+    : (COVER_COLORS.find(c => c.id === coverColor)?.hex || "#0052cc");
+
+  const emoji = STAT_EMOJIS[statType] || "📌";
+
+  // initials from full name
+  const initials = memberName
+    ? memberName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
+    : "ME";
 
   function handleSave() {
-    onSave(statType, { cardName, board, list, due, labels });
+    onSave(statType, { cardName, cover: coverColor, coverImage, board, list, due, labels });
   }
 
   return (
@@ -99,21 +248,23 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
           background: "#252525",
           border: "1px solid #3a3a3a",
           borderRadius: 12,
-          width: 520,
-          maxWidth: "92vw",
+          width: 540,
+          maxWidth: "94vw",
+          maxHeight: "90vh",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
-        {/* Header */}
+        {/* ── Header ── */}
         <div style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           padding: "13px 16px",
           borderBottom: "1px solid #333",
+          flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
@@ -131,8 +282,8 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
           <button className="customize-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* Body */}
-        <div style={{ display: "flex" }}>
+        {/* ── Body (scrollable) ── */}
+        <div style={{ display: "flex", overflow: "hidden", flex: 1, minHeight: 0 }}>
 
           {/* Left: card preview */}
           <div style={{
@@ -150,18 +301,30 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
               borderRadius: 8,
               overflow: "hidden",
             }}>
-              {/* Cover with stat number */}
+              {/* Cover */}
               <div style={{
-                background: coverColor,
+                background: coverImage ? "transparent" : resolvedCoverHex,
                 height: 78,
                 display: "flex",
                 alignItems: "flex-end",
                 padding: "8px 10px",
                 position: "relative",
+                overflow: "hidden",
               }}>
+                {coverImage && (
+                  <img
+                    src={coverImage}
+                    alt=""
+                    style={{
+                      position: "absolute", inset: 0,
+                      width: "100%", height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                )}
                 <div style={{
                   position: "absolute", inset: 0,
-                  background: "rgba(0,0,0,0.2)",
+                  background: "rgba(0,0,0,0.25)",
                 }} />
                 <div style={{ position: "relative", zIndex: 1 }}>
                   <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
@@ -173,12 +336,10 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
                   fontSize: 18, zIndex: 1,
                 }}>{emoji}</div>
               </div>
-              {/* Card name preview */}
+              {/* Card name */}
               <div style={{ padding: "8px 10px" }}>
                 <div style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "#ccc",
+                  fontSize: 11, fontWeight: 600, color: "#ccc",
                   lineHeight: 1.35,
                   display: "-webkit-box",
                   WebkitLineClamp: 2,
@@ -192,19 +353,17 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
             <div style={{ fontSize: 10, color: "#555", textAlign: "center" }}>Preview</div>
           </div>
 
-          {/* Right: form */}
-          <div style={{ flex: 1, padding: 14, display: "flex", flexDirection: "column", gap: 13 }}>
+          {/* Right: form (scrollable) */}
+          <div style={{ flex: 1, padding: 14, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
 
-            {/* Name field */}
+            {/* Name */}
             <div>
-              <div style={{
-                fontSize: 10, fontWeight: 700, color: "#666",
-                letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 5,
-              }}>Name</div>
+              <SectionLabel>Name</SectionLabel>
               <input
                 type="text"
                 value={cardName}
                 onChange={(e) => setCardName(e.target.value)}
+                placeholder={DEFAULT_NAMES[statType]}
                 style={{
                   width: "100%",
                   background: "#1e1e1e",
@@ -222,45 +381,48 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
               />
             </div>
 
-            <div style={{ borderTop: "1px solid #2e2e2e" }} />
+            <Divider />
 
-            {/* Appearance label (matches image 2) */}
-            <div style={{
-              fontSize: 10, fontWeight: 700, color: "#666",
-              letterSpacing: "0.08em", textTransform: "uppercase",
-            }}>Appearance</div>
-            <button
-              style={{
-                background: "#2e2e2e",
-                border: "1px solid #3a3a3a",
-                borderRadius: 6,
-                padding: "6px 12px",
-                color: "#ccc",
-                fontSize: 12,
-                fontFamily: "'DM Sans', sans-serif",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                alignSelf: "flex-start",
-                marginTop: -6,
-              }}
-            >
-              🖼 Change background
-            </button>
+            {/* Appearance: color swatches + optional image upload */}
+            <div>
+              <SectionLabel>Cover color</SectionLabel>
+              <ColorSwatchPicker
+                selected={coverImage ? null : coverColor}
+                onChange={(id) => { setCoverColor(id); setCoverImage(null); }}
+              />
+            </div>
 
-            <div style={{ borderTop: "1px solid #2e2e2e" }} />
+            <div>
+              <SectionLabel>Cover image <span style={{ color: "#555", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional — overrides color)</span></SectionLabel>
+              <ImageUpload imageUrl={coverImage} onImageChange={setCoverImage} />
+            </div>
 
-            {/* Filter rows */}
+            <Divider />
+
+            {/* Filters */}
+            <div>
+              <SectionLabel>Filters</SectionLabel>
+            </div>
+
             <FilterRow label="Board" icon="⊞">
-              <select value={board} onChange={(e) => setBoard(e.target.value)} className="list-dropdown" style={{ maxWidth: 160 }}>
+              <select
+                value={board}
+                onChange={(e) => setBoard(e.target.value)}
+                className="list-dropdown"
+                style={{ maxWidth: 160 }}
+              >
                 <option value="any">any</option>
                 <option value="this">this board</option>
               </select>
             </FilterRow>
 
             <FilterRow label="List" icon="☰">
-              <select value={list} onChange={(e) => setList(e.target.value)} className="list-dropdown" style={{ maxWidth: 160 }}>
+              <select
+                value={list}
+                onChange={(e) => setList(e.target.value)}
+                className="list-dropdown"
+                style={{ maxWidth: 160 }}
+              >
                 <option value="any">any</option>
                 {(lists || []).map((l) => (
                   <option key={l.id} value={l.id}>{l.name}</option>
@@ -268,36 +430,53 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
               </select>
             </FilterRow>
 
-            {/* Assigned — shows current member chip */}
+            {/* Assigned — full name, no truncation */}
             <FilterRow label="Assigned" icon="👤">
-              <div style={{ fontSize: 11, color: "#777", whiteSpace: "nowrap", marginRight: 6 }}>
-                includes any of
+              <div style={{
+                fontSize: 11, color: "#777",
+                whiteSpace: "nowrap", marginRight: 6, flexShrink: 0,
+              }}>
+                includes
               </div>
               <div style={{
-                display: "flex", alignItems: "center", gap: 6,
+                display: "flex", alignItems: "center", gap: 7,
                 background: "#1e1e1e", border: "1px solid #3a3a3a",
-                borderRadius: 6, padding: "4px 8px",
-                fontSize: 11, color: "#ccc", flex: 1,
+                borderRadius: 6, padding: "5px 9px",
+                fontSize: 12, color: "#ccc", flex: 1, minWidth: 0,
               }}>
                 <div style={{
-                  width: 18, height: 18, borderRadius: "50%",
-                  background: "#0052cc",
+                  width: 20, height: 20, borderRadius: "50%",
+                  background: "#0052cc", flexShrink: 0,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 8, fontWeight: 700, color: "#fff", flexShrink: 0,
+                  fontSize: 9, fontWeight: 700, color: "#fff",
                 }}>
-                  {(memberName || "Me").slice(0, 2).toUpperCase()}
+                  {initials}
                 </div>
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 10 }}>
-                  {memberName || "includes any of"}
+                {/* Full name — wraps instead of truncating */}
+                <span style={{
+                  flex: 1,
+                  fontSize: 11,
+                  color: "#d0d0d0",
+                  wordBreak: "break-word",
+                  lineHeight: 1.3,
+                }}>
+                  {memberName || "me"}
                 </span>
-                <span style={{ color: "#555", cursor: "pointer" }}>✕</span>
-                <span style={{ color: "#555", cursor: "pointer", fontSize: 9 }}>▾</span>
+                <span
+                  title="Remove"
+                  style={{ color: "#555", cursor: "pointer", flexShrink: 0, fontSize: 11 }}
+                >✕</span>
               </div>
             </FilterRow>
 
             <FilterRow label="Due" icon="🕐">
-              <select value={due} onChange={(e) => setDue(e.target.value)} className="list-dropdown" style={{ maxWidth: 160 }}>
-                <option value="">select</option>
+              <select
+                value={due}
+                onChange={(e) => setDue(e.target.value)}
+                className="list-dropdown"
+                style={{ maxWidth: 160 }}
+              >
+                <option value="">any</option>
                 <option value="overdue">overdue</option>
                 <option value="today">today</option>
                 <option value="week">this week</option>
@@ -307,9 +486,14 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
             </FilterRow>
 
             <FilterRow label="Labels" icon="🏷">
-              <select value={labels} onChange={(e) => setLabels(e.target.value)} className="list-dropdown" style={{ maxWidth: 160 }}>
-                <option value="">select</option>
-                <option value="any">any label</option>
+              <select
+                value={labels}
+                onChange={(e) => setLabels(e.target.value)}
+                className="list-dropdown"
+                style={{ maxWidth: 160 }}
+              >
+                <option value="">any</option>
+                <option value="any">has any label</option>
                 <option value="none">no label</option>
                 <option value="red">red</option>
                 <option value="orange">orange</option>
@@ -320,12 +504,11 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
               </select>
             </FilterRow>
 
-            {/* More filters (expandable) */}
             {showMore && (
               <>
                 <FilterRow label="Priority" icon="⚡">
                   <select className="list-dropdown" style={{ maxWidth: 160 }}>
-                    <option value="">select</option>
+                    <option value="">any</option>
                     <option>high</option>
                     <option>medium</option>
                     <option>low</option>
@@ -333,7 +516,7 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
                 </FilterRow>
                 <FilterRow label="Activity" icon="📊">
                   <select className="list-dropdown" style={{ maxWidth: 160 }}>
-                    <option value="">select</option>
+                    <option value="">any</option>
                     <option>stale (14+ days)</option>
                     <option>active today</option>
                   </select>
@@ -361,28 +544,26 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
               <span>{showMore ? "−" : "+"}</span>
               {showMore ? "Fewer filters" : "More filters"}
             </button>
+
           </div>
         </div>
 
-        {/* Footer */}
+        {/* ── Footer ── */}
         <div style={{
           display: "flex",
           justifyContent: "flex-end",
           gap: 10,
           padding: "12px 16px",
           borderTop: "1px solid #2e2e2e",
+          flexShrink: 0,
         }}>
           <button
             onClick={onClose}
             style={{
-              background: "none",
-              border: "1px solid #3a3a3a",
-              borderRadius: 6,
-              padding: "7px 18px",
-              color: "#aaa",
-              fontSize: 13,
-              fontFamily: "'DM Sans', sans-serif",
-              cursor: "pointer",
+              background: "none", border: "1px solid #3a3a3a",
+              borderRadius: 6, padding: "7px 18px",
+              color: "#aaa", fontSize: 13,
+              fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
             }}
           >
             Cancel
@@ -390,15 +571,10 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
           <button
             onClick={handleSave}
             style={{
-              background: "#0052cc",
-              border: "none",
-              borderRadius: 6,
-              padding: "7px 18px",
-              color: "#fff",
-              fontSize: 13,
-              fontWeight: 600,
-              fontFamily: "'DM Sans', sans-serif",
-              cursor: "pointer",
+              background: "#0052cc", border: "none",
+              borderRadius: 6, padding: "7px 18px",
+              color: "#fff", fontSize: 13, fontWeight: 600,
+              fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "#0065ff")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "#0052cc")}
@@ -411,7 +587,23 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
   );
 }
 
-// ── Shared filter row layout ──────────────────────────────────────────────────
+// ── Small helpers ─────────────────────────────────────────────────────────────
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontSize: 10, fontWeight: 700, color: "#666",
+      letterSpacing: "0.08em", textTransform: "uppercase",
+      marginBottom: 6,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function Divider() {
+  return <div style={{ borderTop: "1px solid #2e2e2e" }} />;
+}
+
 function FilterRow({ label, icon, children }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -430,7 +622,7 @@ function FilterRow({ label, icon, children }) {
   );
 }
 
-// ── Main export: two-step flow (picker → config) ──────────────────────────────
+// ── Main export ───────────────────────────────────────────────────────────────
 export function CustomizeFlow({
   show,
   lists,
