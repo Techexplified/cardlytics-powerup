@@ -103,7 +103,7 @@ function CardBackView() {
 )?.type || "all";
       const metaMatch      = card.desc?.match(/\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/);
       const cardMode       = metaMatch ? metaMatch[1] : "board";
-      const resolvedListId = metaMatch ? (metaMatch[2] || card.idList) : card.idList;
+     const resolvedListId = metaMatch ? (metaMatch[2] || card.idList) : null;
       t.board("id").then((board) => {
         t.modal({
           title: "Cardlytics",
