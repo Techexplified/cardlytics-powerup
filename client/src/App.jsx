@@ -31,7 +31,7 @@ function cardCreatedDate(cardId) {
   return new Date(ts);
 }
 
-// ─── CARDLYTICS TRACKER CARD PREFIXES (excluded from stats) ──────────────────
+// ─── CARDLYTICS TRACKER CARD PREFIXES ────────────────────────────────────────
 const TRACKED_CARD_PREFIXES = [
   "📌 Assigned to Me",
   "📅 Due This Week",
@@ -56,6 +56,20 @@ const STAT_LABELS = {
   all:          "All Cards",
 };
 
+// ─── Default stat config (cover colors + card names) ─────────────────────────
+// These are the baseline values. If the user customizes via the modal,
+// their saved config (cardConfig state) overrides name and cover.
+const DEFAULT_STAT_CONFIG = {
+  assigned:     { name: "📌 Assigned to Me",   cover: "blue"   },
+  dueThisWeek:  { name: "📅 Due This Week",    cover: "yellow" },
+  overdue:      { name: "⚠️ Overdue Cards",    cover: "red"    },
+  unassigned:   { name: "👤 Unassigned Cards", cover: "purple" },
+  withLabel:    { name: "🏷️ Cards With Label",  cover: "orange" },
+  stale:        { name: "💤 Stale Cards",       cover: "black"  },
+  createdToday: { name: "✨ Created Today",     cover: "green"  },
+  cardsInList:  { name: "📋 Cards in List",    cover: "sky"    },
+};
+
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function Toast({ toast }) {
   if (!toast) return null;
@@ -72,7 +86,6 @@ function CardBackView() {
   function handleOpenCardlytics() {
     const t = window.TrelloPowerUp?.iframe?.();
     if (!t) return;
-
     t.card("id", "idList", "name", "desc").then((card) => {
       const nameMap = [
         { prefix: "📌 Assigned to Me",   type: "assigned"     },
@@ -85,11 +98,9 @@ function CardBackView() {
         { prefix: "📋 Cards in List",   type: "cardsInList"  },
       ];
       const statType = nameMap.find(m => card.name.startsWith(m.prefix))?.type || "all";
-
       const metaMatch      = card.desc?.match(/\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/);
       const cardMode       = metaMatch ? metaMatch[1] : "board";
       const resolvedListId = metaMatch ? (metaMatch[2] || card.idList) : card.idList;
-
       t.board("id").then((board) => {
         t.modal({
           title: "Cardlytics",
@@ -101,10 +112,7 @@ function CardBackView() {
   }
 
   return (
-    <div
-      className="cb-root"
-      style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}
-    >
+    <div className="cb-root" style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}>
       <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>Cardlytics</span>
       <button
         className="cb-btn-primary"
@@ -132,7 +140,6 @@ function CardDetailsView() {
   const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
   const [fullStats, setFullStats]     = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0 });
   const [memberMap, setMemberMap]     = useState({});
-  const [memberId, setMemberId]       = useState(null);
   const [loading, setLoading]         = useState(true);
   const [activeTab, setActiveTab]     = useState("table");
   const [search, setSearch]           = useState("");
@@ -147,7 +154,6 @@ function CardDetailsView() {
       setLoading(true);
       try {
         const isListScoped = mode === "list" || statType === "cardsInList";
-
         let allCards;
         if (isListScoped && listId) {
           allCards = await getListCards(key, token, listId);
@@ -160,8 +166,6 @@ function CardDetailsView() {
         }
 
         const mid = await getMemberId(key, token);
-        setMemberId(mid);
-
         allCards = allCards.filter(c => !isTrackerCard(c.name));
 
         const now         = new Date();
@@ -192,23 +196,17 @@ function CardDetailsView() {
         setFullStats(computed);
 
         if (listId) {
-          const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`);
+          const listRes = await fetch(`${BASE_URL}/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`);
           if (listRes.ok) {
             const listData = await listRes.json();
             setListName(listData.name);
             const resolvedBoardId = boardId || listData.idBoard;
-            const boardRes = await fetch(`https://api.trello.com/1/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`);
-            if (boardRes.ok) {
-              const boardData = await boardRes.json();
-              setBoardName(boardData.name);
-            }
+            const boardRes = await fetch(`${BASE_URL}/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`);
+            if (boardRes.ok) setBoardName((await boardRes.json()).name);
           }
         } else if (boardId) {
-          const boardRes = await fetch(`https://api.trello.com/1/boards/${boardId}?key=${key}&token=${token}&fields=name`);
-          if (boardRes.ok) {
-            const boardData = await boardRes.json();
-            setBoardName(boardData.name);
-          }
+          const boardRes = await fetch(`${BASE_URL}/boards/${boardId}?key=${key}&token=${token}&fields=name`);
+          if (boardRes.ok) setBoardName((await boardRes.json()).name);
         }
 
         const resolvedBoardId = boardId || "p8fosANE";
@@ -219,12 +217,10 @@ function CardDetailsView() {
 
         const allMemberIds = [...new Set(filteredCards.flatMap((c) => c.idMembers || []))];
         const details = {};
-        await Promise.all(
-          allMemberIds.map(async (id) => {
-            const m = await getMemberDetails(key, token, id);
-            if (m) details[id] = m;
-          })
-        );
+        await Promise.all(allMemberIds.map(async (id) => {
+          const m = await getMemberDetails(key, token, id);
+          if (m) details[id] = m;
+        }));
         setMemberMap(details);
       } catch (err) {
         console.error(err);
@@ -269,13 +265,7 @@ function CardDetailsView() {
 
   if (loading) {
     return (
-      <div style={{
-        width: "100%", height: "100%",
-        background: "#1a1a1a",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "'DM Sans', sans-serif",
-        gap: 10, color: "#666", fontSize: 13,
-      }}>
+      <div style={{ width: "100%", height: "100%", background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', sans-serif", gap: 10, color: "#666", fontSize: 13 }}>
         <div className="cb-spinner" />
         <span>Loading...</span>
       </div>
@@ -283,7 +273,6 @@ function CardDetailsView() {
   }
 
   const isListScoped = mode === "list" || statType === "cardsInList";
-
   const leftStats = [
     { value: detailStats.total,      label: "In this view",              accent: "#4caf50" },
     { value: fullStats.assigned,     label: "Assigned to me",            accent: "#4ea1ff" },
@@ -440,12 +429,14 @@ function CardDetailsView() {
   );
 }
 
+const BASE_URL = "https://api.trello.com/1";
+
 // ─── MAIN APP ────────────────────────────────────────────────────────────────
 export default function App() {
-  const params  = new URLSearchParams(window.location.search);
-  const mode    = params.get("mode");
-  const view    = params.get("view");
-  const listId  = params.get("listId");
+  const params = new URLSearchParams(window.location.search);
+  const mode   = params.get("mode");
+  const view   = params.get("view");
+  const listId = params.get("listId");
 
   if (view === "card")         return <CardBackView />;
   if (view === "card-details") return <CardDetailsView />;
@@ -464,9 +455,12 @@ export default function App() {
   const [toast, setToast]                         = useState(null);
   const [memberFullName, setMemberFullName]       = useState("");
 
-  // ── Customize state ──
-  const [showCustomize, setShowCustomize]   = useState(false);
-  const [customizeStat, setCustomizeStat]   = useState(null);
+  // ── Customize state ──────────────────────────────────────────────────────
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [customizeStat, setCustomizeStat] = useState(null);
+  // cardConfig stores per-stat overrides saved from the Customize modal
+  // shape: { [statType]: { cardName: string, cover: string, ... } }
+  const [cardConfig, setCardConfig]       = useState({});
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -489,16 +483,16 @@ export default function App() {
         : await getBoardCards(key, token, boardId);
 
       const filteredForStats = cards.filter(c => !isTrackerCard(c.name));
-
       const memberId = await getMemberId(key, token);
 
-      // Fetch member full name for Customize modal
-      const memberDetails = await getMemberDetails(key, token, memberId);
-      setMemberFullName(memberDetails?.fullName || "");
+      // Fetch member full name for Customize modal avatar
+      if (memberId) {
+        const memberDetails = await getMemberDetails(key, token, memberId);
+        setMemberFullName(memberDetails?.fullName || "");
+      }
 
       const computed = computeStats(filteredForStats, memberId);
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
-
       setStats(computed);
       setLastUpdated(new Date().toLocaleTimeString());
 
@@ -506,11 +500,8 @@ export default function App() {
       setLists(boardLists);
 
       if (mode === "list" && listId) {
-        const listRes = await fetch(`https://api.trello.com/1/lists/${listId}?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${import.meta.env.VITE_TRELLO_TOKEN}&fields=name`);
-        if (listRes.ok) {
-          const listData = await listRes.json();
-          setTrackingListName(listData.name);
-        }
+        const listRes = await fetch(`${BASE_URL}/lists/${listId}?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${import.meta.env.VITE_TRELLO_TOKEN}&fields=name`);
+        if (listRes.ok) setTrackingListName((await listRes.json()).name);
       } else {
         if (boardLists.length > 0) setTrackingListName(boardLists[0].name);
       }
@@ -531,6 +522,7 @@ export default function App() {
 
   useEffect(() => { fetchData(); }, []);
 
+  // ── TRACK ────────────────────────────────────────────────────────────────
   const handleTrack = async () => {
     if (selectedStats.length === 0) {
       showToast("Please select at least one stat to track", "error");
@@ -548,31 +540,27 @@ export default function App() {
         const boardLists = await getBoardLists(key, token, boardId);
         targetListId = boardLists[0]?.id;
       }
-      if (!targetListId) {
-        showToast("List not found", "error");
-        return;
-      }
+      if (!targetListId) { showToast("List not found", "error"); return; }
 
       const metaTag = mode === "list" && listId
         ? `\n\n[_]: cardlytics:mode:list:listId:${listId}`
         : `\n\n[_]: cardlytics:mode:board`;
 
-      const statConfig = {
-        assigned:     { name: "📌 Assigned to Me",   cover: "blue",   desc: (v) => `${v} card(s) are currently assigned to you.${metaTag}` },
-        dueThisWeek:  { name: "📅 Due This Week",    cover: "yellow", desc: (v) => `${v} card(s) are due within the next 7 days.${metaTag}` },
-        overdue:      { name: "⚠️ Overdue Cards",     cover: "red",    desc: (v) => `${v} card(s) have passed their due date.${metaTag}` },
-        unassigned:   { name: "👤 Unassigned Cards", cover: "purple", desc: (v) => `${v} card(s) have no member assigned.${metaTag}` },
-        withLabel:    { name: "🏷️ Cards With Label",  cover: "orange", desc: (v) => `${v} card(s) have at least one label.${metaTag}` },
-        stale:        { name: "💤 Stale Cards",       cover: "black",  desc: (v) => `${v} card(s) have had no activity in 14+ days.${metaTag}` },
-        createdToday: { name: "✨ Created Today",     cover: "green",  desc: (v) => `${v} card(s) were created today.${metaTag}` },
-        cardsInList:  { name: "📋 Cards in List",    cover: "sky",    desc: (v) => `${v} card(s) are in the selected list.${metaTag}` },
-      };
-
       for (const stat of selectedStats) {
-        const config = statConfig[stat];
-        const count  = stats[stat];
-        const cardName = `${config.name} — ${count}`;
-        await createCard(key, token, targetListId, cardName, config.desc(count), config.cover);
+        const defaults = DEFAULT_STAT_CONFIG[stat];
+        // Use customized name/cover if the user saved one via the Customize modal
+        const saved    = cardConfig[stat];
+        const count    = stats[stat];
+
+        const cardName  = saved?.cardName
+          ? `${saved.cardName} — ${count}`
+          : `${defaults.name} — ${count}`;
+
+        const cover     = saved?.cover || defaults.cover;
+
+        const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
+
+        await createCard(key, token, targetListId, cardName, desc, cover);
       }
 
       showToast(`${selectedStats.length} card(s) added to "${trackingListName}" ✅`);
@@ -587,7 +575,7 @@ export default function App() {
     <div className="popup">
       <Toast toast={toast} />
 
-      {/* ── New Customize modal (replaces old toggle modal) ── */}
+      {/* ── Customize modal (two-step: stat picker → card config) ── */}
       <CustomizeFlow
         show={showCustomize}
         lists={lists}
@@ -596,6 +584,8 @@ export default function App() {
         customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
         onSave={(type, cfg) => {
+          // Persist the user's config so handleTrack can use it
+          setCardConfig(prev => ({ ...prev, [type]: cfg }));
           setShowCustomize(false);
           setCustomizeStat(null);
           showToast(`"${cfg.cardName}" configured ✅`);
@@ -627,19 +617,19 @@ export default function App() {
         )}
 
         <Section title="MY WORK">
-          {stats.assigned    !== undefined && <StatCard value={stats.assigned}    label="Assigned to me across workspace"     tag="live" type="assigned"    onClick={handleStatClick} selected={selectedStats} />}
-          {stats.dueThisWeek !== undefined && <StatCard value={stats.dueThisWeek} label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}  type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} />}
-          {stats.overdue     !== undefined && <StatCard value={stats.overdue}     label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} tag="hot" type="overdue" onClick={handleStatClick} selected={selectedStats} />}
+          <StatCard value={stats.assigned}    label="Assigned to me across workspace"     tag="live" type="assigned"    onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.assigned} />
+          <StatCard value={stats.dueThisWeek} label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}  type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.dueThisWeek} />
+          <StatCard value={stats.overdue}     label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} tag="hot" type="overdue" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.overdue} />
         </Section>
 
         <Section title="BOARD INSIGHTS">
-          {stats.unassigned !== undefined && <StatCard value={stats.unassigned} label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="unassigned" onClick={handleStatClick} selected={selectedStats} />}
-          {stats.withLabel  !== undefined && <StatCard value={stats.withLabel}  label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="withLabel" onClick={handleStatClick} selected={selectedStats} />}
-          {stats.stale      !== undefined && <StatCard value={stats.stale}      label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="stale" onClick={handleStatClick} selected={selectedStats} />}
+          <StatCard value={stats.unassigned} label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="unassigned" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.unassigned} />
+          <StatCard value={stats.withLabel}  label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="withLabel" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.withLabel} />
+          <StatCard value={stats.stale}      label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="stale" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.stale} />
         </Section>
 
         <Section title="ACTIVITY">
-          {stats.createdToday !== undefined && <StatCard value={stats.createdToday} label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} />}
+          <StatCard value={stats.createdToday} label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.createdToday} />
 
           {mode === "board" && (
             <div
@@ -665,7 +655,7 @@ export default function App() {
           )}
 
           {mode === "list" && (
-            <StatCard value={stats.cardsInList} label="Cards in this list" type="cardsInList" onClick={handleStatClick} selected={selectedStats} />
+            <StatCard value={stats.cardsInList} label="Cards in this list" type="cardsInList" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.cardsInList} />
           )}
 
           <div className="add-filter-card">+ Add filter</div>
@@ -697,11 +687,19 @@ function Section({ title, children }) {
   );
 }
 
-function StatCard({ value, label, tag, type, onClick, selected }) {
+// Small dot in top-left when a card has been customized via the modal
+function StatCard({ value, label, tag, type, onClick, selected, configured }) {
   return (
     <div className={`card ${selected.includes(type) ? "selected" : ""}`} onClick={() => onClick(type)}>
       {tag === "live" && <span className="tag live">Live</span>}
       {tag === "hot"  && <span className="tag hot">Hot</span>}
+      {configured && (
+        <span style={{
+          position: "absolute", top: 6, left: 6,
+          width: 6, height: 6, borderRadius: "50%",
+          background: "#4ea1ff",
+        }} title="Customized" />
+      )}
       <div className="card-value">{value}</div>
       <div className="card-label">{label}</div>
     </div>

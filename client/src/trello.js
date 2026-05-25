@@ -110,30 +110,40 @@ export async function getBoardLists(key, token, boardId) {
   return res.json();
 }
 
-// ➕ Create a Cardlytics tracker card
-// - pos=top so it appears at the top of the list
-// - cover color makes it visually distinct from regular cards
+// ── Create a Cardlytics tracker card ─────────────────────────────────────────
+// FIX: Trello's REST API requires cover color via JSON body (application/json),
+// NOT as query-param bracket notation. The bracket approach was silently ignored.
 export async function createCard(key, token, listId, name, desc, coverColor = "blue") {
-  // Use query params for cover — more reliable than JSON body with Trello API
-  const params = new URLSearchParams({
-    key, token,
-    idList: listId,
-    name,
-    desc,
-    pos: "top",
-    "cover[color]": coverColor,
-    "cover[brightness]": "dark",
-    "cover[size]": "normal",
-  });
-  const res = await fetch(`${BASE}/cards`, {
+  // Step 1: create the card
+  const createParams = new URLSearchParams({ key, token, idList: listId, name, desc, pos: "top" });
+  const createRes = await fetch(`${BASE}/cards`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: params.toString(),
+    body: createParams.toString(),
   });
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error("Trello API Error:", errorText);
+  if (!createRes.ok) {
+    const err = await createRes.text();
+    console.error("Trello createCard error:", err);
     throw new Error("Failed to create card");
   }
-  return res.json();
+  const card = await createRes.json();
+
+  // Step 2: apply cover color via JSON body (the only reliable way)
+  const coverRes = await fetch(`${BASE}/cards/${card.id}?key=${key}&token=${token}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      cover: {
+        color: coverColor,   // e.g. "blue", "red", "yellow", "green", "purple", "orange", "sky", "black"
+        brightness: "dark",
+        size: "normal",
+      },
+    }),
+  });
+  if (!coverRes.ok) {
+    // Card was created — don't throw, just warn. Cover is cosmetic.
+    console.warn("Cover color apply failed:", await coverRes.text());
+  }
+
+  return card;
 }
