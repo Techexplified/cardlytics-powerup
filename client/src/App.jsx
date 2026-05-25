@@ -97,7 +97,9 @@ function CardBackView() {
         { prefix: "✨ Created Today",    type: "createdToday" },
         { prefix: "📋 Cards in List",   type: "cardsInList"  },
       ];
-      const statType = nameMap.find(m => card.name.startsWith(m.prefix))?.type || "all";
+      const statType = nameMap.find(m => 
+  card.name.toLowerCase().startsWith(m.prefix.toLowerCase())
+)?.type || "all";
       const metaMatch      = card.desc?.match(/\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/);
       const cardMode       = metaMatch ? metaMatch[1] : "board";
       const resolvedListId = metaMatch ? (metaMatch[2] || card.idList) : card.idList;
@@ -185,14 +187,14 @@ function CardDetailsView() {
           all:          () => true,
         };
 
-        const fn = filterMap[statType] || (() => true);
-        const filteredCards = allCards.filter(fn);
+       const fn = filterMap[statType] || (() => true);
+const filteredCards = allCards.filter(c => !isTrackerCard(c.name)).filter(fn);
 
         setCards(filteredCards);
         setDetailStats(computeDetailStats(filteredCards));
 
-        const computed = computeStats(allCards, mid);
-        computed.cardsInList = isListScoped ? allCards.length : 0;
+      const computed = computeStats(allCards.filter(c => !isTrackerCard(c.name)), mid);
+        computed.cardsInList = isListScoped ? allCards.filter(c => !isTrackerCard(c.name)).length : 0;
         setFullStats(computed);
 
         if (listId) {
