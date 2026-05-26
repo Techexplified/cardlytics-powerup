@@ -692,6 +692,7 @@ export default function App() {
   const [trackingListName, setTrackingListName] = useState("");
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
+  const [boardId, setBoardId] = useState(null);
 
   // ── Customize state ──────────────────────────────────────────────────────
   const [showCustomize, setShowCustomize] = useState(false);
@@ -714,12 +715,33 @@ export default function App() {
     try {
       const key = import.meta.env.VITE_TRELLO_API_KEY;
       const token = import.meta.env.VITE_TRELLO_TOKEN;
-      const boardId = "p8fosANE";
+
+      // Resolve the board ID dynamically from the Power-Up context.
+      // Falls back to the URL param (listId → look up its board), then
+      // the hardcoded value only as a last resort during local dev.
+      let resolvedBoardId = boardId;
+      if (!resolvedBoardId) {
+        try {
+          const t = window.TrelloPowerUp?.iframe?.();
+          if (t) {
+            const b = await t.board("id");
+            resolvedBoardId = b.id;
+          }
+        } catch (_) {}
+      }
+      if (!resolvedBoardId && listId) {
+        const listRes = await fetch(
+          `${BASE_URL}/lists/${listId}?key=${key}&token=${token}&fields=idBoard`,
+        );
+        if (listRes.ok) resolvedBoardId = (await listRes.json()).idBoard;
+      }
+      if (!resolvedBoardId) resolvedBoardId = "p8fosANE"; // local dev fallback
+      setBoardId(resolvedBoardId);
 
       const cards =
         mode === "list" && listId
           ? await getListCards(key, token, listId)
-          : await getBoardCards(key, token, boardId);
+          : await getBoardCards(key, token, resolvedBoardId);
 
       const filteredForStats = cards.filter((c) => !isTrackerCard(c.name));
       const memberId = await getMemberId(key, token);
@@ -735,16 +757,19 @@ export default function App() {
       setStats(computed);
       setLastUpdated(new Date().toLocaleTimeString());
 
-      const boardLists = await getBoardLists(key, token, boardId);
+      const boardLists = await getBoardLists(key, token, resolvedBoardId);
       setLists(boardLists);
 
       if (mode === "list" && listId) {
         const listRes = await fetch(
-          `${BASE_URL}/lists/${listId}?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${import.meta.env.VITE_TRELLO_TOKEN}&fields=name`,
+          `${BASE_URL}/lists/${listId}?key=${key}&token=${token}&fields=name`,
         );
         if (listRes.ok) setTrackingListName((await listRes.json()).name);
       } else {
-        if (boardLists.length > 0) setTrackingListName(boardLists[0].name);
+        // In board mode, default tracking destination is the "Cardlytics" list
+        // (auto-created later on Track); show its name if it already exists.
+        const cardlyticsList = boardLists.find((l) => l.name === "Cardlytics");
+        setTrackingListName(cardlyticsList ? "Cardlytics" : "Cardlytics (auto-created)");
       }
     } catch (err) {
       console.error(err);
@@ -777,16 +802,19 @@ export default function App() {
     try {
       const key = import.meta.env.VITE_TRELLO_API_KEY;
       const token = import.meta.env.VITE_TRELLO_TOKEN;
-      const boardId = "p8fosANE";
+      // Use the board ID resolved at load time (from Power-Up context).
+      const resolvedBoardId = boardId || "p8fosANE";
 
       let targetListId;
       if (mode === "list" && listId) {
+        // List mode: add cards directly to the current list
         targetListId = listId;
       } else {
-        const boardLists = await getBoardLists(key, token, boardId);
+        // Board mode: find or auto-create the "Cardlytics" list on this board
+        const boardLists = await getBoardLists(key, token, resolvedBoardId);
         let cardlyticsList = boardLists.find((l) => l.name === "Cardlytics");
         if (!cardlyticsList) {
-          cardlyticsList = await createList(key, token, boardId, "Cardlytics");
+          cardlyticsList = await createList(key, token, resolvedBoardId, "Cardlytics");
         }
         targetListId = cardlyticsList.id;
         setTrackingListName("Cardlytics");
