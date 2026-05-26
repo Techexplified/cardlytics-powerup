@@ -809,13 +809,24 @@ export default function App() {
       } else {
         targetListId = await getOrCreateCardlyticsList();
 
-        const boardLists = await getBoardLists(key, token, boardId);
-        const currentList = boardLists.find((l) => l.id === targetListId);
+       let targetListId;
 
-        if (currentList) {
-          setTrackingListName(currentList.name);
-        }
-      }
+if (mode === "list" && listId) {
+  targetListId = listId;
+
+  const boardLists = await getBoardLists(key, token, boardId);
+  const currentList = boardLists.find((l) => l.id === listId);
+
+  if (currentList) {
+    setTrackingListName(currentList.name);
+  }
+
+} else {
+  targetListId = await getOrCreateCardlyticsList();
+
+  // ✅ ADD THIS LINE HERE
+  setTrackingListName("Cardlytics");
+}
 
       if (!targetListId) {
         showToast("List not found", "error");
