@@ -802,14 +802,7 @@ export default function App() {
       const token = import.meta.env.VITE_TRELLO_TOKEN;
       const boardId = "p8fosANE";
 
-      let targetListId;
-
-      if (mode === "list" && listId) {
-        targetListId = listId;
-      } else {
-        targetListId = await getOrCreateCardlyticsList();
-
-       let targetListId;
+     let targetListId;
 
 if (mode === "list" && listId) {
   targetListId = listId;
@@ -824,7 +817,7 @@ if (mode === "list" && listId) {
 } else {
   targetListId = await getOrCreateCardlyticsList();
 
-  // ✅ ADD THIS LINE HERE
+  // ✅ ONLY THIS LINE HERE
   setTrackingListName("Cardlytics");
 }
 
