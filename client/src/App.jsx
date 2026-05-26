@@ -712,7 +712,7 @@ export default function App() {
   const [lists, setLists] = useState([]);
   const [selectedListId, setSelectedListId] = useState("");
   const [selectedListCount, setSelectedListCount] = useState(null);
- const [trackingListName, setTrackingListName] = useState("Cardlytics");
+const [trackingListName, setTrackingListName] = useState("Cardlytics");
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
 
