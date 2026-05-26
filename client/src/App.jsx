@@ -667,7 +667,10 @@ export default function App() {
   async function getOrCreateCardlyticsList() {
     const key = import.meta.env.VITE_TRELLO_API_KEY;
     const token = import.meta.env.VITE_TRELLO_TOKEN;
-    const boardId = "p8fosANE";
+    
+     const t = window.TrelloPowerUp?.iframe();
+  const board = await t.board("id");
+  const boardId = board.id;
 
     const lists = await getBoardLists(key, token, boardId);
 
