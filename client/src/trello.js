@@ -185,3 +185,27 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
   return card;
 }
 
+export async function createList(key, token, boardId, listName = "Cardlytics") {
+  const res = await fetch(
+    `${BASE}/lists?key=${key}&token=${token}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        name: listName,
+        idBoard: boardId,
+        pos: "top",
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("Create list error:", err);
+    throw new Error("Failed to create list");
+  }
+
+  return res.json();
+}
