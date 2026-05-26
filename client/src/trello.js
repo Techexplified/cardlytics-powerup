@@ -184,3 +184,13 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
 
   return card;
 }
+
+// ➕ Create a new list on a board
+export async function createList(key, token, boardId, name) {
+  const res = await fetch(
+    `${BASE}/lists?${buildAuth(key, token)}&idBoard=${boardId}&name=${encodeURIComponent(name)}`,
+    { method: "POST" }
+  );
+  if (!res.ok) throw new Error("Failed to create list");
+  return res.json();
+}

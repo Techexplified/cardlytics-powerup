@@ -1,22 +1,47 @@
 import { useState, useEffect } from "react";
-import { getBoardCards, computeStats, computeDetailStats, getMemberId, getMemberDetails, getListCards, getBoardLists, createCard } from "./trello";
+import {
+  getBoardCards,
+  computeStats,
+  computeDetailStats,
+  getMemberId,
+  getMemberDetails,
+  getListCards,
+  getBoardLists,
+  createCard,
+  createList,
+} from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import "./index.css";
 
 // ─── TRELLO LABEL COLOR MAP ───────────────────────────────────────────────────
 const LABEL_COLORS = {
-  red: "#ff5252", orange: "#ff9800", yellow: "#f9c74f",
-  green: "#4caf50", blue: "#4ea1ff", purple: "#ab47bc",
-  pink: "#f06292", sky: "#29b6f6", lime: "#a3e635",
-  black: "#555", null: "#888", none: "#888",
+  red: "#ff5252",
+  orange: "#ff9800",
+  yellow: "#f9c74f",
+  green: "#4caf50",
+  blue: "#4ea1ff",
+  purple: "#ab47bc",
+  pink: "#f06292",
+  sky: "#29b6f6",
+  lime: "#a3e635",
+  black: "#555",
+  null: "#888",
+  none: "#888",
 };
 
 const MEMBER_AVATAR_COLORS = [
-  "#e85d2e","#2e7de8","#7e4de8","#e84e8a","#2ec4b6","#e8a62e","#4caf50"
+  "#e85d2e",
+  "#2e7de8",
+  "#7e4de8",
+  "#e84e8a",
+  "#2ec4b6",
+  "#e8a62e",
+  "#4caf50",
 ];
 function memberColor(id) {
   let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < id.length; i++)
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
   return MEMBER_AVATAR_COLORS[Math.abs(hash) % MEMBER_AVATAR_COLORS.length];
 }
 
@@ -42,33 +67,33 @@ const isTrackerCard = (name) => {
     "stale cards",
     "created today",
     "cards in list",
-  ].some(p => lower.includes(p));
+  ].some((p) => lower.includes(p));
 };
 
 const STAT_LABELS = {
-  assigned:     "Assigned to Me",
-  dueThisWeek:  "Due This Week",
-  overdue:      "Overdue Cards",
-  unassigned:   "Unassigned Cards",
-  withLabel:    "Cards With Label",
-  stale:        "Stale Cards",
+  assigned: "Assigned to Me",
+  dueThisWeek: "Due This Week",
+  overdue: "Overdue Cards",
+  unassigned: "Unassigned Cards",
+  withLabel: "Cards With Label",
+  stale: "Stale Cards",
   createdToday: "Created Today",
-  cardsInList:  "Cards in List",
-  all:          "All Cards",
+  cardsInList: "Cards in List",
+  all: "All Cards",
 };
 
 // ─── Default stat config (cover colors + card names) ─────────────────────────
 // These are the baseline values. If the user customizes via the modal,
 // their saved config (cardConfig state) overrides name and cover.
 const DEFAULT_STAT_CONFIG = {
-  assigned:     { name: "📌 Assigned to Me",   cover: "blue"   },
-  dueThisWeek:  { name: "📅 Due This Week",    cover: "yellow" },
-  overdue:      { name: "⚠️ Overdue Cards",    cover: "red"    },
-  unassigned:   { name: "👤 Unassigned Cards", cover: "purple" },
-  withLabel:    { name: "🏷️ Cards With Label",  cover: "orange" },
-  stale:        { name: "💤 Stale Cards",       cover: "black"  },
-  createdToday: { name: "✨ Created Today",     cover: "green"  },
-  cardsInList:  { name: "📋 Cards in List",    cover: "sky"    },
+  assigned: { name: "📌 Assigned to Me", cover: "blue" },
+  dueThisWeek: { name: "📅 Due This Week", cover: "yellow" },
+  overdue: { name: "⚠️ Overdue Cards", cover: "red" },
+  unassigned: { name: "👤 Unassigned Cards", cover: "purple" },
+  withLabel: { name: "🏷️ Cards With Label", cover: "orange" },
+  stale: { name: "💤 Stale Cards", cover: "black" },
+  createdToday: { name: "✨ Created Today", cover: "green" },
+  cardsInList: { name: "📋 Cards in List", cover: "sky" },
 };
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────
@@ -76,7 +101,9 @@ function Toast({ toast }) {
   if (!toast) return null;
   return (
     <div className={`toast toast-${toast.type}`}>
-      <span className="toast-icon">{toast.type === "success" ? "✅" : "❌"}</span>
+      <span className="toast-icon">
+        {toast.type === "success" ? "✅" : "❌"}
+      </span>
       <span className="toast-msg">{toast.message}</span>
     </div>
   );
@@ -89,21 +116,24 @@ function CardBackView() {
     if (!t) return;
     t.card("id", "idList", "name", "desc").then((card) => {
       const nameMap = [
-        { prefix: "📌 Assigned to Me",   type: "assigned"     },
-        { prefix: "📅 Due This Week",    type: "dueThisWeek"  },
-        { prefix: "⚠️ Overdue Cards",    type: "overdue"      },
-        { prefix: "👤 Unassigned Cards", type: "unassigned"   },
-        { prefix: "🏷️ Cards With Label", type: "withLabel"    },
-        { prefix: "💤 Stale Cards",      type: "stale"        },
-        { prefix: "✨ Created Today",    type: "createdToday" },
-        { prefix: "📋 Cards in List",   type: "cardsInList"  },
+        { prefix: "📌 Assigned to Me", type: "assigned" },
+        { prefix: "📅 Due This Week", type: "dueThisWeek" },
+        { prefix: "⚠️ Overdue Cards", type: "overdue" },
+        { prefix: "👤 Unassigned Cards", type: "unassigned" },
+        { prefix: "🏷️ Cards With Label", type: "withLabel" },
+        { prefix: "💤 Stale Cards", type: "stale" },
+        { prefix: "✨ Created Today", type: "createdToday" },
+        { prefix: "📋 Cards in List", type: "cardsInList" },
       ];
-      const statType = nameMap.find(m => 
-  card.name.toLowerCase().startsWith(m.prefix.toLowerCase())
-)?.type || "all";
-      const metaMatch      = card.desc?.match(/\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/);
-      const cardMode       = metaMatch ? metaMatch[1] : "board";
-     const resolvedListId = metaMatch ? (metaMatch[2] || card.idList) : null;
+      const statType =
+        nameMap.find((m) =>
+          card.name.toLowerCase().startsWith(m.prefix.toLowerCase()),
+        )?.type || "all";
+      const metaMatch = card.desc?.match(
+        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
+      );
+      const cardMode = metaMatch ? metaMatch[1] : "board";
+      const resolvedListId = metaMatch ? metaMatch[2] || card.idList : null;
       t.board("id").then((board) => {
         t.modal({
           title: "Cardlytics",
@@ -115,8 +145,13 @@ function CardBackView() {
   }
 
   return (
-    <div className="cb-root" style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-      <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>Cardlytics</span>
+    <div
+      className="cb-root"
+      style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}
+    >
+      <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>
+        Cardlytics
+      </span>
       <button
         className="cb-btn-primary"
         style={{ width: "auto", padding: "7px 16px", flexShrink: 0 }}
@@ -130,26 +165,39 @@ function CardBackView() {
 
 // ─── CARD DETAILS VIEW ────────────────────────────────────────────────────────
 function CardDetailsView() {
-  const params   = new URLSearchParams(window.location.search);
-  const listId   = params.get("listId");
-  const boardId  = params.get("boardId");
+  const params = new URLSearchParams(window.location.search);
+  const listId = params.get("listId");
+  const boardId = params.get("boardId");
   const statType = params.get("statType") || "all";
-  const mode     = params.get("mode") || "board";
+  const mode = params.get("mode") || "board";
 
-  const [cards, setCards]             = useState([]);
-  const [listName, setListName]       = useState("List");
-  const [boardName, setBoardName]     = useState("Board");
-  const [listMap, setListMap]         = useState({});
-  const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
-  const [fullStats, setFullStats]     = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0 });
-  const [memberMap, setMemberMap]     = useState({});
-  const [loading, setLoading]         = useState(true);
-  const [activeTab, setActiveTab]     = useState("table");
-  const [search, setSearch]           = useState("");
-  const [sortCol, setSortCol]         = useState("name");
-  const [sortAsc, setSortAsc]         = useState(true);
+  const [cards, setCards] = useState([]);
+  const [listName, setListName] = useState("List");
+  const [boardName, setBoardName] = useState("Board");
+  const [listMap, setListMap] = useState({});
+  const [detailStats, setDetailStats] = useState({
+    labelCounts: {},
+    dueThisWeek: 0,
+    withLabel: 0,
+    total: 0,
+  });
+  const [fullStats, setFullStats] = useState({
+    assigned: 0,
+    dueThisWeek: 0,
+    overdue: 0,
+    unassigned: 0,
+    withLabel: 0,
+    stale: 0,
+    createdToday: 0,
+  });
+  const [memberMap, setMemberMap] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("table");
+  const [search, setSearch] = useState("");
+  const [sortCol, setSortCol] = useState("name");
+  const [sortAsc, setSortAsc] = useState(true);
 
-  const key   = import.meta.env.VITE_TRELLO_API_KEY;
+  const key = import.meta.env.VITE_TRELLO_API_KEY;
   const token = import.meta.env.VITE_TRELLO_TOKEN;
 
   useEffect(() => {
@@ -169,61 +217,81 @@ function CardDetailsView() {
         }
 
         const mid = await getMemberId(key, token);
-        allCards = allCards.filter(c => !isTrackerCard(c.name));
+        allCards = allCards.filter((c) => !isTrackerCard(c.name));
 
-        const now         = new Date();
+        const now = new Date();
         const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         const fourteenAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-        const todayStart  = new Date(now); todayStart.setHours(0, 0, 0, 0);
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
 
         const filterMap = {
-          assigned:     (c) => c.idMembers?.includes(mid),
-          dueThisWeek:  (c) => c.due && new Date(c.due) >= now && new Date(c.due) <= weekFromNow,
-          overdue:      (c) => c.due && new Date(c.due) < now && !c.dueComplete,
-          unassigned:   (c) => !c.idMembers || c.idMembers.length === 0,
-          withLabel:    (c) => c.labels?.length > 0,
-          stale:        (c) => c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
+          assigned: (c) => c.idMembers?.includes(mid),
+          dueThisWeek: (c) =>
+            c.due && new Date(c.due) >= now && new Date(c.due) <= weekFromNow,
+          overdue: (c) => c.due && new Date(c.due) < now && !c.dueComplete,
+          unassigned: (c) => !c.idMembers || c.idMembers.length === 0,
+          withLabel: (c) => c.labels?.length > 0,
+          stale: (c) =>
+            c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
           createdToday: (c) => cardCreatedDate(c.id) >= todayStart,
-          cardsInList:  () => true,
-          all:          () => true,
+          cardsInList: () => true,
+          all: () => true,
         };
 
-       const fn = filterMap[statType] || (() => true);
-const filteredCards = allCards.filter(c => !isTrackerCard(c.name)).filter(fn);
+        const fn = filterMap[statType] || (() => true);
+        const filteredCards = allCards
+          .filter((c) => !isTrackerCard(c.name))
+          .filter(fn);
 
         setCards(filteredCards);
         setDetailStats(computeDetailStats(filteredCards));
 
-      const computed = computeStats(allCards.filter(c => !isTrackerCard(c.name)), mid);
-        computed.cardsInList = isListScoped ? allCards.filter(c => !isTrackerCard(c.name)).length : 0;
+        const computed = computeStats(
+          allCards.filter((c) => !isTrackerCard(c.name)),
+          mid,
+        );
+        computed.cardsInList = isListScoped
+          ? allCards.filter((c) => !isTrackerCard(c.name)).length
+          : 0;
         setFullStats(computed);
 
         if (listId) {
-          const listRes = await fetch(`${BASE_URL}/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`);
+          const listRes = await fetch(
+            `${BASE_URL}/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`,
+          );
           if (listRes.ok) {
             const listData = await listRes.json();
             setListName(listData.name);
             const resolvedBoardId = boardId || listData.idBoard;
-            const boardRes = await fetch(`${BASE_URL}/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`);
+            const boardRes = await fetch(
+              `${BASE_URL}/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`,
+            );
             if (boardRes.ok) setBoardName((await boardRes.json()).name);
           }
         } else if (boardId) {
-          const boardRes = await fetch(`${BASE_URL}/boards/${boardId}?key=${key}&token=${token}&fields=name`);
+          const boardRes = await fetch(
+            `${BASE_URL}/boards/${boardId}?key=${key}&token=${token}&fields=name`,
+          );
           if (boardRes.ok) setBoardName((await boardRes.json()).name);
         }
 
         const resolvedBoardId = boardId || "p8fosANE";
         const boardLists = await getBoardLists(key, token, resolvedBoardId);
         const lmap = {};
-        boardLists.forEach(l => lmap[l.id] = l.name);
+        boardLists.forEach((l) => (lmap[l.id] = l.name));
         setListMap(lmap);
 
-        const allMemberIds = [...new Set(filteredCards.flatMap((c) => c.idMembers || []))];
+        const allMemberIds = [
+          ...new Set(filteredCards.flatMap((c) => c.idMembers || [])),
+        ];
         const details = {};
-        await Promise.all(allMemberIds.map(async (id) => {
-          const m = await getMemberDetails(key, token, id);
-          if (m) details[id] = m;
-        }));
+        await Promise.all(
+          allMemberIds.map(async (id) => {
+            const m = await getMemberDetails(key, token, id);
+            if (m) details[id] = m;
+          }),
+        );
         setMemberMap(details);
       } catch (err) {
         console.error(err);
@@ -238,11 +306,22 @@ const filteredCards = allCards.filter(c => !isTrackerCard(c.name)).filter(fn);
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       let va, vb;
-      if (sortCol === "name")          { va = a.name; vb = b.name; }
-      else if (sortCol === "due")      { va = a.due || ""; vb = b.due || ""; }
-      else if (sortCol === "created")  { va = cardCreatedDate(a.id).getTime(); vb = cardCreatedDate(b.id).getTime(); }
-      else if (sortCol === "modified") { va = a.dateLastActivity || ""; vb = b.dateLastActivity || ""; }
-      else { va = ""; vb = ""; }
+      if (sortCol === "name") {
+        va = a.name;
+        vb = b.name;
+      } else if (sortCol === "due") {
+        va = a.due || "";
+        vb = b.due || "";
+      } else if (sortCol === "created") {
+        va = cardCreatedDate(a.id).getTime();
+        vb = cardCreatedDate(b.id).getTime();
+      } else if (sortCol === "modified") {
+        va = a.dateLastActivity || "";
+        vb = b.dateLastActivity || "";
+      } else {
+        va = "";
+        vb = "";
+      }
       if (va < vb) return sortAsc ? -1 : 1;
       if (va > vb) return sortAsc ? 1 : -1;
       return 0;
@@ -250,25 +329,46 @@ const filteredCards = allCards.filter(c => !isTrackerCard(c.name)).filter(fn);
 
   function handleSort(col) {
     if (sortCol === col) setSortAsc((s) => !s);
-    else { setSortCol(col); setSortAsc(true); }
+    else {
+      setSortCol(col);
+      setSortAsc(true);
+    }
   }
 
   function SortArrow({ col }) {
-    if (sortCol !== col) return <span style={{ color: "#444", marginLeft: 3 }}>↕</span>;
-    return <span style={{ color: "#4ea1ff", marginLeft: 3 }}>{sortAsc ? "↑" : "↓"}</span>;
+    if (sortCol !== col)
+      return <span style={{ color: "#444", marginLeft: 3 }}>↕</span>;
+    return (
+      <span style={{ color: "#4ea1ff", marginLeft: 3 }}>
+        {sortAsc ? "↑" : "↓"}
+      </span>
+    );
   }
 
   function DueChip({ due, dueComplete }) {
     if (!due) return <span style={{ color: "#555" }}>—</span>;
     const now = new Date();
-    const d   = new Date(due);
+    const d = new Date(due);
     const cls = dueComplete ? "done" : d < now ? "overdue" : "upcoming";
     return <span className={`cb-due ${cls}`}>{formatDate(due)}</span>;
   }
 
   if (loading) {
     return (
-      <div style={{ width: "100%", height: "100%", background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', sans-serif", gap: 10, color: "#666", fontSize: 13 }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          background: "#1a1a1a",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "'DM Sans', sans-serif",
+          gap: 10,
+          color: "#666",
+          fontSize: 13,
+        }}
+      >
         <div className="cb-spinner" />
         <span>Loading...</span>
       </div>
@@ -277,43 +377,82 @@ const filteredCards = allCards.filter(c => !isTrackerCard(c.name)).filter(fn);
 
   const isListScoped = mode === "list" || statType === "cardsInList";
   const leftStats = [
-    { value: detailStats.total,      label: "In this view",              accent: "#4caf50" },
-    { value: fullStats.assigned,     label: "Assigned to me",            accent: "#4ea1ff" },
-    { value: fullStats.dueThisWeek,  label: "Due this week",             accent: "#f9c74f" },
-    { value: fullStats.overdue,      label: "Overdue cards",             accent: "#ff5252" },
-    { value: fullStats.unassigned,   label: "Unassigned cards",          accent: "#ab47bc" },
-    { value: fullStats.withLabel,    label: "Cards with a label",        accent: "#ff9800" },
-    { value: fullStats.stale,        label: "Stale (14+ days inactive)", accent: "#888"    },
-    { value: fullStats.createdToday, label: "Created today",             accent: "#2ec4b6" },
+    { value: detailStats.total, label: "In this view", accent: "#4caf50" },
+    { value: fullStats.assigned, label: "Assigned to me", accent: "#4ea1ff" },
+    { value: fullStats.dueThisWeek, label: "Due this week", accent: "#f9c74f" },
+    { value: fullStats.overdue, label: "Overdue cards", accent: "#ff5252" },
+    {
+      value: fullStats.unassigned,
+      label: "Unassigned cards",
+      accent: "#ab47bc",
+    },
+    {
+      value: fullStats.withLabel,
+      label: "Cards with a label",
+      accent: "#ff9800",
+    },
+    {
+      value: fullStats.stale,
+      label: "Stale (14+ days inactive)",
+      accent: "#888",
+    },
+    {
+      value: fullStats.createdToday,
+      label: "Created today",
+      accent: "#2ec4b6",
+    },
   ];
 
   return (
     <div className="cd-root">
       <div className="cd-left">
-        <div className="cd-list-label">{isListScoped ? listName : boardName}</div>
+        <div className="cd-list-label">
+          {isListScoped ? listName : boardName}
+        </div>
         {leftStats.map((s, i) => (
-          <div key={i} className="cd-stat-card" style={{ borderLeft: `3px solid ${s.accent}` }}>
-            <div className="cd-stat-num" style={{ color: s.value > 0 ? s.accent : "#666" }}>{s.value}</div>
+          <div
+            key={i}
+            className="cd-stat-card"
+            style={{ borderLeft: `3px solid ${s.accent}` }}
+          >
+            <div
+              className="cd-stat-num"
+              style={{ color: s.value > 0 ? s.accent : "#666" }}
+            >
+              {s.value}
+            </div>
             <div className="cd-stat-lbl">{s.label}</div>
           </div>
         ))}
-        <div className="add-filter-card" style={{ marginTop: 4 }}>+ Add filter</div>
+        <div className="add-filter-card" style={{ marginTop: 4 }}>
+          + Add filter
+        </div>
       </div>
 
       <div className="cd-right">
         <div className="cd-banner">
           <div className="cd-banner-count">{detailStats.total}</div>
           <div>
-            <div className="cd-banner-title">{STAT_LABELS[statType] || "Cards"}</div>
-            <div className="cd-banner-sub">{isListScoped ? `In list: ${listName}` : `Board: ${boardName}`}</div>
+            <div className="cd-banner-title">
+              {STAT_LABELS[statType] || "Cards"}
+            </div>
+            <div className="cd-banner-sub">
+              {isListScoped ? `In list: ${listName}` : `Board: ${boardName}`}
+            </div>
           </div>
         </div>
 
         <div className="cd-tabs">
           {["table", "metrics", "history", "alerts"].map((tab) => (
-            <div key={tab} className={`cd-tab ${activeTab === tab ? "active" : ""}`} onClick={() => setActiveTab(tab)}>
+            <div
+              key={tab}
+              className={`cd-tab ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              {tab === "table" && <span className="cd-tab-count">{detailStats.total}</span>}
+              {tab === "table" && (
+                <span className="cd-tab-count">{detailStats.total}</span>
+              )}
             </div>
           ))}
         </div>
@@ -338,17 +477,28 @@ const filteredCards = allCards.filter(c => !isTrackerCard(c.name)).filter(fn);
           </div>
         </div>
 
-        <div className="cd-toolbar" style={{ borderTop: "none", paddingTop: 6 }}>
+        <div
+          className="cd-toolbar"
+          style={{ borderTop: "none", paddingTop: 6 }}
+        >
           <div className="cd-search">
             <span style={{ color: "#555", fontSize: 13 }}>🔍</span>
-            <input type="text" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} className="cd-search-input" />
+            <input
+              type="text"
+              placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="cd-search-input"
+            />
           </div>
           <button className="cd-action-btn">Columns</button>
           <button className="cd-action-btn">Export</button>
         </div>
 
         <div className="cd-created-by">
-          <div className="cd-mini-avatar" style={{ background: "#e85d2e" }}>SR</div>
+          <div className="cd-mini-avatar" style={{ background: "#e85d2e" }}>
+            SR
+          </div>
           <span>Created by</span>
           <span className="cd-created-name">Cardlytics</span>
         </div>
@@ -358,27 +508,62 @@ const filteredCards = allCards.filter(c => !isTrackerCard(c.name)).filter(fn);
             <table className="cd-table">
               <thead>
                 <tr>
-                  <th onClick={() => handleSort("name")}>Name <SortArrow col="name" /></th>
+                  <th onClick={() => handleSort("name")}>
+                    Name <SortArrow col="name" />
+                  </th>
                   <th>Assigned</th>
                   <th>Board</th>
                   <th>Done</th>
-                  <th onClick={() => handleSort("created")}>Created <SortArrow col="created" /></th>
-                  <th onClick={() => handleSort("due")}>Due <SortArrow col="due" /></th>
-                  <th onClick={() => handleSort("modified")}>Last Modified <SortArrow col="modified" /></th>
+                  <th onClick={() => handleSort("created")}>
+                    Created <SortArrow col="created" />
+                  </th>
+                  <th onClick={() => handleSort("due")}>
+                    Due <SortArrow col="due" />
+                  </th>
+                  <th onClick={() => handleSort("modified")}>
+                    Last Modified <SortArrow col="modified" />
+                  </th>
                   <th>List</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} style={{ textAlign: "center", color: "#555", padding: "20px" }}>No cards found</td></tr>
+                  <tr>
+                    <td
+                      colSpan={8}
+                      style={{
+                        textAlign: "center",
+                        color: "#555",
+                        padding: "20px",
+                      }}
+                    >
+                      No cards found
+                    </td>
+                  </tr>
                 )}
                 {filtered.map((card) => (
                   <tr key={card.id}>
                     <td className="td-name">
                       {card.labels?.length > 0 && (
-                        <span style={{ display: "inline-flex", gap: 3, marginRight: 6 }}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            gap: 3,
+                            marginRight: 6,
+                          }}
+                        >
                           {card.labels.map((lbl, i) => (
-                            <span key={i} style={{ width: 10, height: 10, borderRadius: 2, background: LABEL_COLORS[lbl.color] || "#888", display: "inline-block", verticalAlign: "middle" }} />
+                            <span
+                              key={i}
+                              style={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: 2,
+                                background: LABEL_COLORS[lbl.color] || "#888",
+                                display: "inline-block",
+                                verticalAlign: "middle",
+                              }}
+                            />
                           ))}
                         </span>
                       )}
@@ -390,24 +575,57 @@ const filteredCards = allCards.filter(c => !isTrackerCard(c.name)).filter(fn);
                           {card.idMembers.map((mid) => {
                             const m = memberMap[mid];
                             return (
-                              <div key={mid} className="cd-mini-avatar" style={{ background: memberColor(mid) }}>
+                              <div
+                                key={mid}
+                                className="cd-mini-avatar"
+                                style={{ background: memberColor(mid) }}
+                              >
                                 {m?.initials || mid.slice(0, 2).toUpperCase()}
                               </div>
                             );
                           })}
                         </div>
-                      ) : <span style={{ color: "#555" }}>—</span>}
+                      ) : (
+                        <span style={{ color: "#555" }}>—</span>
+                      )}
                     </td>
                     <td className="td-board">● {boardName}</td>
                     <td>
-                      <span style={{ width: 14, height: 14, border: "1px solid #444", borderRadius: 3, display: "inline-flex", alignItems: "center", justifyContent: "center", background: card.dueComplete ? "#0a3d0a" : "transparent" }}>
-                        {card.dueComplete && <span style={{ color: "#4caf50", fontSize: 10 }}>✓</span>}
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          border: "1px solid #444",
+                          borderRadius: 3,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: card.dueComplete
+                            ? "#0a3d0a"
+                            : "transparent",
+                        }}
+                      >
+                        {card.dueComplete && (
+                          <span style={{ color: "#4caf50", fontSize: 10 }}>
+                            ✓
+                          </span>
+                        )}
                       </span>
                     </td>
-                    <td className="td-date">{formatDate(cardCreatedDate(card.id).toISOString())}</td>
-                    <td><DueChip due={card.due} dueComplete={card.dueComplete} /></td>
-                    <td className="td-date">{formatDate(card.dateLastActivity)}</td>
-                    <td><span className="td-list-tag">{listMap[card.idList] || listName}</span></td>
+                    <td className="td-date">
+                      {formatDate(cardCreatedDate(card.id).toISOString())}
+                    </td>
+                    <td>
+                      <DueChip due={card.due} dueComplete={card.dueComplete} />
+                    </td>
+                    <td className="td-date">
+                      {formatDate(card.dateLastActivity)}
+                    </td>
+                    <td>
+                      <span className="td-list-tag">
+                        {listMap[card.idList] || listName}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -416,8 +634,18 @@ const filteredCards = allCards.filter(c => !isTrackerCard(c.name)).filter(fn);
         )}
 
         {activeTab !== "table" && (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#555", fontSize: 13 }}>
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} — coming soon
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#555",
+              fontSize: 13,
+            }}
+          >
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} — coming
+            soon
           </div>
         )}
 
@@ -437,33 +665,40 @@ const BASE_URL = "https://api.trello.com/1";
 // ─── MAIN APP ────────────────────────────────────────────────────────────────
 export default function App() {
   const params = new URLSearchParams(window.location.search);
-  const mode   = params.get("mode");
-  const view   = params.get("view");
+  const mode = params.get("mode");
+  const view = params.get("view");
   const listId = params.get("listId");
 
-  if (view === "card")         return <CardBackView />;
+  if (view === "card") return <CardBackView />;
   if (view === "card-details") return <CardDetailsView />;
 
   const [stats, setStats] = useState({
-    assigned: 0, dueThisWeek: 0, overdue: 0,
-    unassigned: 0, withLabel: 0, stale: 0,
-    createdToday: 0, cardsInList: 0,
+    assigned: 0,
+    dueThisWeek: 0,
+    overdue: 0,
+    unassigned: 0,
+    withLabel: 0,
+    stale: 0,
+    createdToday: 0,
+    cardsInList: 0,
   });
-  const [selectedStats, setSelectedStats]         = useState([]);
-  const [lastUpdated, setLastUpdated]             = useState(new Date().toLocaleTimeString());
-  const [lists, setLists]                         = useState([]);
-  const [selectedListId, setSelectedListId]       = useState("");
+  const [selectedStats, setSelectedStats] = useState([]);
+  const [lastUpdated, setLastUpdated] = useState(
+    new Date().toLocaleTimeString(),
+  );
+  const [lists, setLists] = useState([]);
+  const [selectedListId, setSelectedListId] = useState("");
   const [selectedListCount, setSelectedListCount] = useState(null);
-  const [trackingListName, setTrackingListName]   = useState("");
-  const [toast, setToast]                         = useState(null);
-  const [memberFullName, setMemberFullName]       = useState("");
+  const [trackingListName, setTrackingListName] = useState("");
+  const [toast, setToast] = useState(null);
+  const [memberFullName, setMemberFullName] = useState("");
 
   // ── Customize state ──────────────────────────────────────────────────────
   const [showCustomize, setShowCustomize] = useState(false);
   const [customizeStat, setCustomizeStat] = useState(null);
   // cardConfig stores per-stat overrides saved from the Customize modal
   // shape: { [statType]: { cardName: string, cover: string, ... } }
-  const [cardConfig, setCardConfig]       = useState({});
+  const [cardConfig, setCardConfig] = useState({});
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -472,20 +707,21 @@ export default function App() {
 
   const handleStatClick = (type) =>
     setSelectedStats((prev) =>
-      prev.includes(type) ? prev.filter((i) => i !== type) : [...prev, type]
+      prev.includes(type) ? prev.filter((i) => i !== type) : [...prev, type],
     );
 
   async function fetchData() {
     try {
-      const key     = import.meta.env.VITE_TRELLO_API_KEY;
-      const token   = import.meta.env.VITE_TRELLO_TOKEN;
+      const key = import.meta.env.VITE_TRELLO_API_KEY;
+      const token = import.meta.env.VITE_TRELLO_TOKEN;
       const boardId = "p8fosANE";
 
-      const cards = mode === "list" && listId
-        ? await getListCards(key, token, listId)
-        : await getBoardCards(key, token, boardId);
+      const cards =
+        mode === "list" && listId
+          ? await getListCards(key, token, listId)
+          : await getBoardCards(key, token, boardId);
 
-      const filteredForStats = cards.filter(c => !isTrackerCard(c.name));
+      const filteredForStats = cards.filter((c) => !isTrackerCard(c.name));
       const memberId = await getMemberId(key, token);
 
       // Fetch member full name for Customize modal avatar
@@ -503,7 +739,9 @@ export default function App() {
       setLists(boardLists);
 
       if (mode === "list" && listId) {
-        const listRes = await fetch(`${BASE_URL}/lists/${listId}?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${import.meta.env.VITE_TRELLO_TOKEN}&fields=name`);
+        const listRes = await fetch(
+          `${BASE_URL}/lists/${listId}?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${import.meta.env.VITE_TRELLO_TOKEN}&fields=name`,
+        );
         if (listRes.ok) setTrackingListName((await listRes.json()).name);
       } else {
         if (boardLists.length > 0) setTrackingListName(boardLists[0].name);
@@ -516,14 +754,19 @@ export default function App() {
   async function handleListChange(e) {
     const id = e.target.value;
     setSelectedListId(id);
-    if (!id) { setSelectedListCount(null); return; }
-    const key   = import.meta.env.VITE_TRELLO_API_KEY;
+    if (!id) {
+      setSelectedListCount(null);
+      return;
+    }
+    const key = import.meta.env.VITE_TRELLO_API_KEY;
     const token = import.meta.env.VITE_TRELLO_TOKEN;
     const cards = await getListCards(key, token, id);
-    setSelectedListCount(cards.filter(c => !isTrackerCard(c.name)).length);
+    setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // ── TRACK ────────────────────────────────────────────────────────────────
   const handleTrack = async () => {
@@ -532,8 +775,8 @@ export default function App() {
       return;
     }
     try {
-      const key     = import.meta.env.VITE_TRELLO_API_KEY;
-      const token   = import.meta.env.VITE_TRELLO_TOKEN;
+      const key = import.meta.env.VITE_TRELLO_API_KEY;
+      const token = import.meta.env.VITE_TRELLO_TOKEN;
       const boardId = "p8fosANE";
 
       let targetListId;
@@ -541,32 +784,51 @@ export default function App() {
         targetListId = listId;
       } else {
         const boardLists = await getBoardLists(key, token, boardId);
-        targetListId = boardLists[0]?.id;
+        let cardlyticsList = boardLists.find((l) => l.name === "Cardlytics");
+        if (!cardlyticsList) {
+          cardlyticsList = await createList(key, token, boardId, "Cardlytics");
+        }
+        targetListId = cardlyticsList.id;
+        setTrackingListName("Cardlytics");
       }
-      if (!targetListId) { showToast("List not found", "error"); return; }
+      if (!targetListId) {
+        showToast("List not found", "error");
+        return;
+      }
 
-      const metaTag = mode === "list" && listId
-        ? `\n\n[_]: cardlytics:mode:list:listId:${listId}`
-        : `\n\n[_]: cardlytics:mode:board`;
+      const metaTag =
+        mode === "list" && listId
+          ? `\n\n[_]: cardlytics:mode:list:listId:${listId}`
+          : `\n\n[_]: cardlytics:mode:board`;
 
       for (const stat of selectedStats) {
         const defaults = DEFAULT_STAT_CONFIG[stat];
         // Use customized name/cover if the user saved one via the Customize modal
-        const saved    = cardConfig[stat];
-        const count    = stats[stat];
+        const saved = cardConfig[stat];
+        const count = stats[stat];
 
-       const cardName = `${defaults.name} — ${count}`;
+        const cardName = `${defaults.name} — ${count}`;
 
-const desc = saved?.cardName
-  ? `${saved.cardName}\n\n${count} card(s) tracked by Cardlytics.${metaTag}`
-  : `${count} card(s) tracked by Cardlytics.${metaTag}`;
+        const desc = saved?.cardName
+          ? `${saved.cardName}\n\n${count} card(s) tracked by Cardlytics.${metaTag}`
+          : `${count} card(s) tracked by Cardlytics.${metaTag}`;
 
-const cover = saved?.cover || defaults.cover;
+        const cover = saved?.cover || defaults.cover;
 
-await createCard(key, token, targetListId, cardName, desc, cover, saved?.coverImage || null);
+        await createCard(
+          key,
+          token,
+          targetListId,
+          cardName,
+          desc,
+          cover,
+          saved?.coverImage || null,
+        );
       }
 
-      showToast(`${selectedStats.length} card(s) added to "${trackingListName}" ✅`);
+      showToast(
+        `${selectedStats.length} card(s) added to "${trackingListName}" ✅`,
+      );
       setSelectedStats([]);
     } catch (err) {
       console.error("Trello API Error:", err);
@@ -588,7 +850,7 @@ await createCard(key, token, targetListId, cardName, desc, cover, saved?.coverIm
         setCustomizeStat={setCustomizeStat}
         onSave={(type, cfg) => {
           // Persist the user's config so handleTrack can use it
-          setCardConfig(prev => ({ ...prev, [type]: cfg }));
+          setCardConfig((prev) => ({ ...prev, [type]: cfg }));
           setShowCustomize(false);
           setCustomizeStat(null);
           showToast(`"${cfg.cardName}" configured ✅`);
@@ -605,8 +867,15 @@ await createCard(key, token, targetListId, cardName, desc, cover, saved?.coverIm
           <h3>Cardlytics — Track</h3>
         </div>
         <div className="header-actions">
-          <button className="btn-customize" onClick={handleTrack}>Track</button>
-          <button className="btn-customize" onClick={() => setShowCustomize(true)}>Customize</button>
+          <button className="btn-customize" onClick={handleTrack}>
+            Track
+          </button>
+          <button
+            className="btn-customize"
+            onClick={() => setShowCustomize(true)}
+          >
+            Customize
+          </button>
         </div>
       </div>
 
@@ -620,27 +889,82 @@ await createCard(key, token, targetListId, cardName, desc, cover, saved?.coverIm
         )}
 
         <Section title="MY WORK">
-          <StatCard value={stats.assigned}    label="Assigned to me across workspace"     tag="live" type="assigned"    onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.assigned} />
-          <StatCard value={stats.dueThisWeek} label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}  type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.dueThisWeek} />
-          <StatCard value={stats.overdue}     label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} tag="hot" type="overdue" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.overdue} />
+          <StatCard
+            value={stats.assigned}
+            label="Assigned to me across workspace"
+            tag="live"
+            type="assigned"
+            onClick={handleStatClick}
+            selected={selectedStats}
+            configured={!!cardConfig.assigned}
+          />
+          <StatCard
+            value={stats.dueThisWeek}
+            label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            type="dueThisWeek"
+            onClick={handleStatClick}
+            selected={selectedStats}
+            configured={!!cardConfig.dueThisWeek}
+          />
+          <StatCard
+            value={stats.overdue}
+            label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            tag="hot"
+            type="overdue"
+            onClick={handleStatClick}
+            selected={selectedStats}
+            configured={!!cardConfig.overdue}
+          />
         </Section>
 
         <Section title="BOARD INSIGHTS">
-          <StatCard value={stats.unassigned} label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="unassigned" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.unassigned} />
-          <StatCard value={stats.withLabel}  label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="withLabel" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.withLabel} />
-          <StatCard value={stats.stale}      label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="stale" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.stale} />
+          <StatCard
+            value={stats.unassigned}
+            label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            type="unassigned"
+            onClick={handleStatClick}
+            selected={selectedStats}
+            configured={!!cardConfig.unassigned}
+          />
+          <StatCard
+            value={stats.withLabel}
+            label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            type="withLabel"
+            onClick={handleStatClick}
+            selected={selectedStats}
+            configured={!!cardConfig.withLabel}
+          />
+          <StatCard
+            value={stats.stale}
+            label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            type="stale"
+            onClick={handleStatClick}
+            selected={selectedStats}
+            configured={!!cardConfig.stale}
+          />
         </Section>
 
         <Section title="ACTIVITY">
-          <StatCard value={stats.createdToday} label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.createdToday} />
+          <StatCard
+            value={stats.createdToday}
+            label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            type="createdToday"
+            onClick={handleStatClick}
+            selected={selectedStats}
+            configured={!!cardConfig.createdToday}
+          />
 
           {mode === "board" && (
             <div
               className={`card list-picker ${selectedListId && selectedStats.includes("cardsInList") ? "selected" : ""}`}
-              onClick={() => { if (selectedListId) handleStatClick("cardsInList"); }}
+              onClick={() => {
+                if (selectedListId) handleStatClick("cardsInList");
+              }}
             >
               <div className="list-picker-top">
-                {selectedListCount !== null && <div className="card-value">{selectedListCount}</div>}
+                {selectedListCount !== null && (
+                  <div className="card-value">{selectedListCount}</div>
+                )}
                 <select
                   className="list-dropdown"
                   value={selectedListId}
@@ -648,17 +972,30 @@ await createCard(key, token, targetListId, cardName, desc, cover, saved?.coverIm
                   onClick={(e) => e.stopPropagation()}
                 >
                   <option value="">Select a list</option>
-                  {lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  {lists.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="card-label">
-                {selectedListId ? "Click to select · Cards in list" : "Select a list first"}
+                {selectedListId
+                  ? "Click to select · Cards in list"
+                  : "Select a list first"}
               </div>
             </div>
           )}
 
           {mode === "list" && (
-            <StatCard value={stats.cardsInList} label="Cards in this list" type="cardsInList" onClick={handleStatClick} selected={selectedStats} configured={!!cardConfig.cardsInList} />
+            <StatCard
+              value={stats.cardsInList}
+              label="Cards in this list"
+              type="cardsInList"
+              onClick={handleStatClick}
+              selected={selectedStats}
+              configured={!!cardConfig.cardsInList}
+            />
           )}
 
           <div className="add-filter-card">+ Add filter</div>
@@ -674,7 +1011,9 @@ await createCard(key, token, targetListId, cardName, desc, cover, saved?.coverIm
         </div>
         <div className="footer-right">
           <span className="footer-text">Updated: {lastUpdated}</span>
-          <button className="btn-refresh" onClick={fetchData}>↻</button>
+          <button className="btn-refresh" onClick={fetchData}>
+            ↻
+          </button>
         </div>
       </div>
     </div>
@@ -693,15 +1032,25 @@ function Section({ title, children }) {
 // Small dot in top-left when a card has been customized via the modal
 function StatCard({ value, label, tag, type, onClick, selected, configured }) {
   return (
-    <div className={`card ${selected.includes(type) ? "selected" : ""}`} onClick={() => onClick(type)}>
+    <div
+      className={`card ${selected.includes(type) ? "selected" : ""}`}
+      onClick={() => onClick(type)}
+    >
       {tag === "live" && <span className="tag live">Live</span>}
-      {tag === "hot"  && <span className="tag hot">Hot</span>}
+      {tag === "hot" && <span className="tag hot">Hot</span>}
       {configured && (
-        <span style={{
-          position: "absolute", top: 6, left: 6,
-          width: 6, height: 6, borderRadius: "50%",
-          background: "#4ea1ff",
-        }} title="Customized" />
+        <span
+          style={{
+            position: "absolute",
+            top: 6,
+            left: 6,
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: "#4ea1ff",
+          }}
+          title="Customized"
+        />
       )}
       <div className="card-value">{value}</div>
       <div className="card-label">{label}</div>
