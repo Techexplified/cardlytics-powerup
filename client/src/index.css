@@ -104,36 +104,25 @@ body {
   background: #252525;
   border: 1px solid #2e2e2e;
   border-radius: 10px;
+  padding: 14px;
   position: relative;
   transition: 0.15s;
   cursor: pointer;
-
-  height: 90px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;  /* ⭐ THIS centers everything */
-
-  text-align: center;
 }
 .card:hover {
   border-color: #555;
   transform: translateY(-1px);
 }
 .card-value {
-  font-size: 32px;   /* 🔥 bigger number */
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
-  margin: 0;         /* remove spacing */
-  line-height: 1;
+  margin-bottom: 4px;
 }
 .card-label {
-  font-size: 10px;
-  color: #aaa;
-  margin-top: 6px;
-  line-height: 1.2;
-  text-align: center;
+  font-size: 11px;
+  color: #888;
+  line-height: 1.3;
 }
 
 /* ─── TAGS ─── */
