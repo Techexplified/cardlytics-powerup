@@ -1088,6 +1088,8 @@ export default function App() {
       color: selectedStats.length > 0 ? "#fff" : undefined,
       cursor: selectedStats.length === 0 ? "not-allowed" : "pointer",
       opacity: selectedStats.length === 0 ? 0.5 : 1,
+      padding: "7px 24px",
+      fontSize: "13px",
     }}
   >
     Track
