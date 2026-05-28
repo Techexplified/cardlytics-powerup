@@ -944,9 +944,7 @@ export default function App() {
           <h3>Cardlytics — Track</h3>
         </div>
         <div className="header-actions">
-          <button className="btn-customize" onClick={handleTrack}>
-            Track
-          </button>
+        
           <button
             className="btn-customize"
             onClick={() => setShowCustomize(true)}
@@ -1078,6 +1076,24 @@ export default function App() {
           <div className="add-filter-card">+ Add filter</div>
         </Section>
       </div>
+
+       <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 12px" }}>
+  <button
+    className="btn-customize"
+    onClick={handleTrack}
+    disabled={selectedStats.length === 0}
+    style={{
+      background: selectedStats.length > 0 ? "#1d4ed8" : undefined,
+      borderColor: selectedStats.length > 0 ? "#3B82F6" : undefined,
+      color: selectedStats.length > 0 ? "#fff" : undefined,
+      cursor: selectedStats.length === 0 ? "not-allowed" : "pointer",
+      opacity: selectedStats.length === 0 ? 0.5 : 1,
+    }}
+  >
+    Track
+  </button>
+</div>
+
 
       <div className="footer">
         <div className="footer-tracking">
