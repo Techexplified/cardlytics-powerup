@@ -8,7 +8,7 @@ import {
   getListCards,
   getBoardLists,
   createCard,
-  createList, // ✅ add this
+  createList, // ✅ add thisexport
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import "./index.css";
@@ -403,6 +403,41 @@ function CardDetailsView() {
     },
   ];
 
+  function handleExport() {
+  if (!filtered || filtered.length === 0) {
+    alert("No data to export");
+    return;
+  }
+
+  const rows = filtered.map((card) => ({
+    Name: card.name,
+    Assigned: card.idMembers?.length || 0,
+    Board: boardName,
+    Done: card.dueComplete ? "Yes" : "No",
+    Created: formatDate(cardCreatedDate(card.id)),
+    Due: card.due ? formatDate(card.due) : "",
+    "Last Modified": formatDate(card.dateLastActivity),
+    List: listMap[card.idList] || "",
+  }));
+
+  const headers = Object.keys(rows[0]);
+
+  const csv =
+    headers.join(",") +
+    "\n" +
+    rows.map((row) => headers.map((h) => `"${row[h]}"`).join(",")).join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `cardlytics_export_${Date.now()}.csv`;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
   return (
     <div className="cd-root">
       <div className="cd-left">
@@ -492,7 +527,9 @@ function CardDetailsView() {
             />
           </div>
           <button className="cd-action-btn">Columns</button>
-          <button className="cd-action-btn">Export</button>
+          <button className="cd-action-btn" onClick={handleExport}>
+            Export
+          </button>
         </div>
 
         <div className="cd-created-by">
@@ -1044,23 +1081,23 @@ export default function App() {
             gap: "6px",
           }}
         >
-         <button
-  onClick={handleTrack}
-  disabled={selectedStats.length === 0}
-  style={{
-    padding: "8px 18px",
-    borderRadius: "6px",
-    border: "none",
-    fontWeight: "600",
-    cursor: selectedStats.length === 0 ? "not-allowed" : "pointer",
-    background: selectedStats.length === 0 ? "#444" : "#0052cc",
-    color: "#fff",
-  }}
->
-  {selectedStats.length === 0
-    ? "Select cards"
-    : `Track (${selectedStats.length})`}
-</button>
+          <button
+            onClick={handleTrack}
+            disabled={selectedStats.length === 0}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "6px",
+              border: "none",
+              fontWeight: "600",
+              cursor: selectedStats.length === 0 ? "not-allowed" : "pointer",
+              background: selectedStats.length === 0 ? "#444" : "#0052cc",
+              color: "#fff",
+            }}
+          >
+            {selectedStats.length === 0
+              ? "Select cards"
+              : `Track (${selectedStats.length})`}
+          </button>
 
           <span className="footer-text">Updated: {lastUpdated}</span>
 
