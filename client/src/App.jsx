@@ -1044,23 +1044,23 @@ export default function App() {
             gap: "6px",
           }}
         >
-          <button
-            onClick={handleTrack}
-            disabled={selectedStats.length === 0}
-            style={{
-              padding: "8px 18px",
-              borderRadius: "6px",
-              border: "none",
-              fontWeight: "600",
-              cursor: selectedStats.length === 0 ? "not-allowed" : "pointer",
-              background: selectedStats.length === 0 ? "#444" : "#0052cc",
-              color: "#fff",
-            }}
-          >
-            {selectedStats.length === 0
-              ? "Select cards"
-              : `Track (${selectedStats.length})`}
-          </button>
+         <button
+  onClick={handleTrack}
+  disabled={selectedStats.length === 0}
+  style={{
+    padding: "8px 18px",
+    borderRadius: "6px",
+    border: "none",
+    fontWeight: "600",
+    cursor: selectedStats.length === 0 ? "not-allowed" : "pointer",
+    background: selectedStats.length === 0 ? "#444" : "#0052cc",
+    color: "#fff",
+  }}
+>
+  {selectedStats.length === 0
+    ? "Select cards"
+    : `Track (${selectedStats.length})`}
+</button>
 
           <span className="footer-text">Updated: {lastUpdated}</span>
 
