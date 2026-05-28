@@ -194,3 +194,46 @@ export async function createList(key, token, boardId, name) {
   if (!res.ok) throw new Error("Failed to create list");
   return res.json();
 }
+
+export async function updateCard(key, token, cardId, updates) {
+  const params = new URLSearchParams({ key, token, ...updates });
+  const res = await fetch(`https://api.trello.com/1/cards/${cardId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params,
+  });
+  if (!res.ok) throw new Error("Failed to update card");
+  return res.json();
+}
+
+export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
+  const blob = await (await fetch(coverImageDataUrl)).blob();
+
+  const form = new FormData();
+  form.append("file", blob, "cover.jpg");
+  form.append("key", key);
+  form.append("token", token);
+  form.append("setCover", "false"); // ✅ important
+
+  const attachRes = await fetch(`${BASE}/cards/${cardId}/attachments`, {
+    method: "POST",
+    body: form,
+  });
+
+  if (!attachRes.ok) throw new Error("Failed to upload cover");
+
+  const attachment = await attachRes.json();
+
+  // ✅ THIS STEP WAS MISSING
+  await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      cover: {
+        idAttachment: attachment.id,
+        brightness: "dark",
+        size: "full",
+      },
+    }),
+  });
+}
