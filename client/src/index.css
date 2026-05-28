@@ -740,40 +740,9 @@ body {
 .footer-tracking-text strong { color: #4ea1ff; font-weight: 600; }
 .footer-right {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  margin-left: auto;
-}
-.footer-updated-row {
-  display: flex;
   align-items: center;
   gap: 8px;
-}
-
-/* ─── TRACK BUTTON (footer) ─── */
-.btn-track-footer {
-  padding: 5px 16px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: 'DM Sans', sans-serif;
-  border: none;
-  transition: background 0.2s, color 0.2s;
-}
-.btn-track-footer.disabled {
-  background: #2a2a2a;
-  color: #555;
-  cursor: not-allowed;
-  border: 1px solid #333;
-}
-.btn-track-footer.enabled {
-  background: #0052cc;
-  color: #fff;
-  cursor: pointer;
-}
-.btn-track-footer.enabled:hover {
-  background: #0065ff;
+  margin-left: auto;
 }
 
 /* ─── LIST CONTEXT BADGE ─── */

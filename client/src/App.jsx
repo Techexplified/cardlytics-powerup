@@ -667,10 +667,10 @@ export default function App() {
   async function getOrCreateCardlyticsList() {
     const key = import.meta.env.VITE_TRELLO_API_KEY;
     const token = import.meta.env.VITE_TRELLO_TOKEN;
-    
-     const t = window.TrelloPowerUp?.iframe();
-  const board = await t.board("id");
-  const boardId = board.id;
+
+    const t = window.TrelloPowerUp?.iframe();
+    const board = await t.board("id");
+    const boardId = board.id;
 
     const lists = await getBoardLists(key, token, boardId);
 
@@ -712,7 +712,7 @@ export default function App() {
   const [lists, setLists] = useState([]);
   const [selectedListId, setSelectedListId] = useState("");
   const [selectedListCount, setSelectedListCount] = useState(null);
-const [trackingListName, setTrackingListName] = useState("Cardlytics");
+  const [trackingListName, setTrackingListName] = useState("Cardlytics");
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
 
@@ -802,24 +802,23 @@ const [trackingListName, setTrackingListName] = useState("Cardlytics");
       const token = import.meta.env.VITE_TRELLO_TOKEN;
       const boardId = "p8fosANE";
 
-     let targetListId;
+      let targetListId;
 
-if (mode === "list" && listId) {
-  targetListId = listId;
+      if (mode === "list" && listId) {
+        targetListId = listId;
 
-  const boardLists = await getBoardLists(key, token, boardId);
-  const currentList = boardLists.find((l) => l.id === listId);
+        const boardLists = await getBoardLists(key, token, boardId);
+        const currentList = boardLists.find((l) => l.id === listId);
 
-  if (currentList) {
-    setTrackingListName(currentList.name);
-  }
+        if (currentList) {
+          setTrackingListName(currentList.name);
+        }
+      } else {
+        targetListId = await getOrCreateCardlyticsList();
 
-} else {
-  targetListId = await getOrCreateCardlyticsList();
-
-  // ✅ ONLY THIS LINE HERE
-  setTrackingListName("Cardlytics");
-}
+        // ✅ ONLY THIS LINE HERE
+        setTrackingListName("Cardlytics");
+      }
 
       if (!targetListId) {
         showToast("List not found", "error");
@@ -897,9 +896,6 @@ if (mode === "list" && listId) {
           <h3>Cardlytics — Track</h3>
         </div>
         <div className="header-actions">
-          <button className="btn-customize" onClick={handleTrack}>
-            Track
-          </button>
           <button
             className="btn-customize"
             onClick={() => setShowCustomize(true)}
@@ -1039,8 +1035,35 @@ if (mode === "list" && listId) {
             Tracking to: <strong>{trackingListName || "..."}</strong>
           </span>
         </div>
-        <div className="footer-right">
+        <div
+          className="footer-right"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: "6px",
+          }}
+        >
+          <button
+            onClick={handleTrack}
+            disabled={selectedStats.length === 0}
+            style={{
+              padding: "8px 18px",
+              borderRadius: "6px",
+              border: "none",
+              fontWeight: "600",
+              cursor: selectedStats.length === 0 ? "not-allowed" : "pointer",
+              background: selectedStats.length === 0 ? "#444" : "#0052cc",
+              color: "#fff",
+            }}
+          >
+            {selectedStats.length === 0
+              ? "Select cards"
+              : `Track (${selectedStats.length})`}
+          </button>
+
           <span className="footer-text">Updated: {lastUpdated}</span>
+
           <button className="btn-refresh" onClick={fetchData}>
             ↻
           </button>
