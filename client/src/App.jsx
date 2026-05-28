@@ -839,8 +839,13 @@ export default function App() {
   }, []);
 
   // ── TRACK ────────────────────────────────────────────────────────────────
-  const handleTrack = async () => {
-    if (selectedStats.length === 0) {
+  // statsOverride and configOverride let onSave call this directly with fresh
+  // values, bypassing the stale-closure problem with React state.
+  const handleTrack = async (statsOverride, configOverride) => {
+    const statsToTrack = statsOverride ?? selectedStats;
+    const configToUse  = configOverride ?? cardConfig;
+
+    if (statsToTrack.length === 0) {
       showToast("Please select at least one stat to track", "error");
       return;
     }
@@ -871,9 +876,9 @@ export default function App() {
           ? `\n\n[_]: cardlytics:mode:list:listId:${listId}`
           : `\n\n[_]: cardlytics:mode:board`;
 
-      for (const stat of selectedStats) {
+      for (const stat of statsToTrack) {
         const defaults = DEFAULT_STAT_CONFIG[stat];
-        const saved = cardConfig[stat];
+        const saved = configToUse[stat];
         const count = stats[stat];
 
         // Card name has NO count — the count is shown as a big number on the cover image
@@ -904,7 +909,7 @@ export default function App() {
       }
 
       showToast(
-        `${selectedStats.length} card(s) added to "${trackingListName}" ✅`,
+        `${statsToTrack.length} card(s) added to "${trackingListName}" ✅`,
       );
       setSelectedStats([]);
     } catch (err) {
@@ -925,12 +930,15 @@ export default function App() {
         memberName={memberFullName}
         customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
-        onSave={(type, cfg) => {
-          // Persist the user's config so handleTrack can use it
-          setCardConfig((prev) => ({ ...prev, [type]: cfg }));
+        onSave={async (type, cfg) => {
+          // Build the new config synchronously so handleTrack gets fresh values
+          // (setState is async — can't rely on cardConfig being updated yet)
+          const newConfig = { ...cardConfig, [type]: cfg };
+          setCardConfig(newConfig);
           setShowCustomize(false);
           setCustomizeStat(null);
-          showToast(`"${cfg.cardName}" configured ✅`);
+          // Track immediately — no need to go back and click Track
+          await handleTrack([type], newConfig);
         }}
         onClose={() => {
           setShowCustomize(false);
