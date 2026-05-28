@@ -688,7 +688,7 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
       ctx.fillRect(0, 0, W, H);
 
       const numStr = String(count);
-      const fontSize = numStr.length > 3 ? 140 : numStr.length > 2 ? 160 : 200;
+      const fontSize = numStr.length > 3 ? 60 : numStr.length > 2 ? 70 : 80;
       ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
       ctx.fillStyle = "rgba(255,255,255,0.95)";
       ctx.textAlign = "center";
