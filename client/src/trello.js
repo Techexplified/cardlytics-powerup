@@ -154,7 +154,7 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
             cover: {
               idAttachment: attachment.id,
               brightness: "dark",
-              size: "normal",
+              size: "full",
             },
           }),
         });
@@ -173,7 +173,7 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
         cover: {
           color: coverColor,
           brightness: "dark",
-          size: "normal",
+          size: "full",
         },
       }),
     });
@@ -185,27 +185,12 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
   return card;
 }
 
-export async function createList(key, token, boardId, listName = "Cardlytics") {
+// ➕ Create a new list on a board
+export async function createList(key, token, boardId, name) {
   const res = await fetch(
-    `${BASE}/lists?key=${key}&token=${token}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        name: listName,
-        idBoard: boardId,
-        pos: "top",
-      }),
-    }
+    `${BASE}/lists?${buildAuth(key, token)}&idBoard=${boardId}&name=${encodeURIComponent(name)}`,
+    { method: "POST" }
   );
-
-  if (!res.ok) {
-    const err = await res.text();
-    console.error("Create list error:", err);
-    throw new Error("Failed to create list");
-  }
-
+  if (!res.ok) throw new Error("Failed to create list");
   return res.json();
 }
