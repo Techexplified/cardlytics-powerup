@@ -674,7 +674,7 @@ const COVER_BG_COLORS = {
   sky:    "#0277bd",
 };
 
-function generateStatCoverImage(count, colorName) {
+function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
   return new Promise((resolve) => {
     const W = 800, H = 320;
     const canvas = document.createElement("canvas");
@@ -682,31 +682,53 @@ function generateStatCoverImage(count, colorName) {
     canvas.height = H;
     const ctx = canvas.getContext("2d");
 
-    // Background
-    const bg = COVER_BG_COLORS[colorName] || "#1565c0";
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
+    function drawNumber() {
+      // Dark scrim so the number is readable over any background
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.fillRect(0, 0, W, H);
 
-    // Subtle gradient overlay
-    const grad = ctx.createLinearGradient(0, 0, W, H);
-    grad.addColorStop(0, "rgba(255,255,255,0.07)");
-    grad.addColorStop(1, "rgba(0,0,0,0.25)");
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+      const numStr = String(count);
+      const fontSize = numStr.length > 3 ? 140 : numStr.length > 2 ? 160 : 200;
+      ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = 28;
+      ctx.fillText(numStr, W / 2, H / 2);
 
-    // Big number — centered
-    const numStr = String(count);
-    const fontSize = numStr.length > 3 ? 140 : numStr.length > 2 ? 160 : 200;
-    ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    // Subtle shadow
-    ctx.shadowColor = "rgba(0,0,0,0.4)";
-    ctx.shadowBlur = 24;
-    ctx.fillText(numStr, W / 2, H / 2);
+      resolve(canvas.toDataURL("image/jpeg", 0.92));
+    }
 
-    resolve(canvas.toDataURL("image/jpeg", 0.92));
+    if (bgImageDataUrl) {
+      // Draw user's custom image as background, then overlay the number
+      const img = new Image();
+      img.onload = () => {
+        // Cover-fit: fill canvas, center crop
+        const scale = Math.max(W / img.width, H / img.height);
+        const sw = img.width * scale, sh = img.height * scale;
+        ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
+        drawNumber();
+      };
+      img.onerror = () => {
+        // Fallback to color background if image fails
+        ctx.fillStyle = COVER_BG_COLORS[colorName] || "#1565c0";
+        ctx.fillRect(0, 0, W, H);
+        drawNumber();
+      };
+      img.src = bgImageDataUrl;
+    } else {
+      // Solid color background + subtle gradient
+      const bg = COVER_BG_COLORS[colorName] || "#1565c0";
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+      const grad = ctx.createLinearGradient(0, 0, W, H);
+      grad.addColorStop(0, "rgba(255,255,255,0.07)");
+      grad.addColorStop(1, "rgba(0,0,0,0.25)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+      drawNumber();
+    }
   });
 }
 
@@ -861,11 +883,14 @@ export default function App() {
 
         const cover = saved?.cover || defaults.cover;
 
-        // If the user uploaded a custom cover image, use that; otherwise generate
-        // a cover image with the big count number drawn on the color background.
-        const coverImageDataUrl = saved?.coverImage
-          ? saved.coverImage
-          : await generateStatCoverImage(count, cover);
+        // Always generate a cover image with the big count number.
+        // If the user uploaded a custom image, use it as the background and
+        // draw the number on top of it.
+        const coverImageDataUrl = await generateStatCoverImage(
+          count,
+          cover,
+          saved?.coverImage || null,
+        );
 
         await createCard(
           key,
