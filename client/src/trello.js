@@ -207,7 +207,7 @@ export async function updateCard(key, token, cardId, updates) {
 }
 
 export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
-  // Convert base64 → blob
+  // Convert base64 to blob
   const blob = await (await fetch(coverImageDataUrl)).blob();
 
   const form = new FormData();
@@ -215,7 +215,7 @@ export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
   form.append("key", key);
   form.append("token", token);
 
-  // Step 1: Upload attachment
+  // STEP 1: upload attachment
   const attachRes = await fetch(
     `https://api.trello.com/1/cards/${cardId}/attachments`,
     {
@@ -224,12 +224,10 @@ export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
     }
   );
 
-  if (!attachRes.ok) throw new Error("Failed to upload cover");
-
   const attachment = await attachRes.json();
 
-  // Step 2: SET it as cover (THIS WAS MISSING ❗)
-  const coverRes = await fetch(
+  // STEP 2: SET IT AS COVER (THIS IS THE KEY 🔥)
+  await fetch(
     `https://api.trello.com/1/cards/${cardId}?key=${key}&token=${token}`,
     {
       method: "PUT",
@@ -245,8 +243,4 @@ export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
       }),
     }
   );
-
-  if (!coverRes.ok) throw new Error("Failed to set cover");
-
-  return coverRes.json();
 }

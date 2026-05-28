@@ -858,7 +858,7 @@ try {
 
       // Skip if same count
       const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1] ?? "-1");
-      if (oldCount === newCount) continue;
+      
 
       // Update description
       const metaTag =
