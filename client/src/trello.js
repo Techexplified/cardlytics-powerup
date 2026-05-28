@@ -135,7 +135,7 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
       const formData = new FormData();
       formData.append("key", key);
       formData.append("token", token);
-      form.append("file", blob, `cover-${Date.now()}.jpg`);
+      formData.append("file", blob, "cover.jpg");
       formData.append("setCover", "false");
 
       const attachRes = await fetch(`${BASE}/cards/${card.id}/attachments`, {
