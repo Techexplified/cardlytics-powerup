@@ -1088,7 +1088,7 @@ export default function App() {
        <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 12px" }}>
   <button
     className="btn-customize"
-    onClick={handleTrack}
+    onClick={() => handleTrack()}
     disabled={selectedStats.length === 0}
     style={{
       background: selectedStats.length > 0 ? "#1d4ed8" : undefined,
