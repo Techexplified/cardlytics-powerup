@@ -979,7 +979,6 @@ export default function App() {
             type="assigned"
             onClick={handleStatClick}
             selected={selectedStats}
-            configured={!!cardConfig.assigned}
           />
           <StatCard
             value={stats.dueThisWeek}
@@ -987,7 +986,6 @@ export default function App() {
             type="dueThisWeek"
             onClick={handleStatClick}
             selected={selectedStats}
-            configured={!!cardConfig.dueThisWeek}
           />
           <StatCard
             value={stats.overdue}
@@ -996,7 +994,6 @@ export default function App() {
             type="overdue"
             onClick={handleStatClick}
             selected={selectedStats}
-            configured={!!cardConfig.overdue}
           />
         </Section>
 
@@ -1007,7 +1004,6 @@ export default function App() {
             type="unassigned"
             onClick={handleStatClick}
             selected={selectedStats}
-            configured={!!cardConfig.unassigned}
           />
           <StatCard
             value={stats.withLabel}
@@ -1015,7 +1011,6 @@ export default function App() {
             type="withLabel"
             onClick={handleStatClick}
             selected={selectedStats}
-            configured={!!cardConfig.withLabel}
           />
           <StatCard
             value={stats.stale}
@@ -1023,7 +1018,6 @@ export default function App() {
             type="stale"
             onClick={handleStatClick}
             selected={selectedStats}
-            configured={!!cardConfig.stale}
           />
         </Section>
 
@@ -1034,7 +1028,6 @@ export default function App() {
             type="createdToday"
             onClick={handleStatClick}
             selected={selectedStats}
-            configured={!!cardConfig.createdToday}
           />
 
           {mode === "board" && (
@@ -1077,7 +1070,6 @@ export default function App() {
               type="cardsInList"
               onClick={handleStatClick}
               selected={selectedStats}
-              configured={!!cardConfig.cardsInList}
             />
           )}
 
@@ -1132,8 +1124,8 @@ function Section({ title, children }) {
   );
 }
 
-// Small dot in top-left when a card has been customized via the modal
-function StatCard({ value, label, tag, type, onClick, selected, configured }) {
+
+function StatCard({ value, label, tag, type, onClick, selected }) {
   return (
     <div
       className={`card ${selected.includes(type) ? "selected" : ""}`}
@@ -1141,20 +1133,6 @@ function StatCard({ value, label, tag, type, onClick, selected, configured }) {
     >
       {tag === "live" && <span className="tag live">Live</span>}
       {tag === "hot" && <span className="tag hot">Hot</span>}
-      {configured && (
-        <span
-          style={{
-            position: "absolute",
-            top: 6,
-            left: 6,
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: "#4ea1ff",
-          }}
-          title="Customized"
-        />
-      )}
       <div className="card-value">{value}</div>
       <div className="card-label">{label}</div>
     </div>
