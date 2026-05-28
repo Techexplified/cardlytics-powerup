@@ -135,7 +135,7 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
       const formData = new FormData();
       formData.append("key", key);
       formData.append("token", token);
-      form.append("file", blob, `cover-${Date.now()}.jpg`);
+      formData.append("file", blob, "cover.jpg");
       formData.append("setCover", "false");
 
       const attachRes = await fetch(`${BASE}/cards/${card.id}/attachments`, {
@@ -207,13 +207,15 @@ export async function updateCard(key, token, cardId, updates) {
 }
 
 export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
+  // Convert base64 to blob
   const blob = await (await fetch(coverImageDataUrl)).blob();
 
   const form = new FormData();
-  form.append("file", blob, `cover-${Date.now()}.jpg`); // 🔥 IMPORTANT
+  form.append("file", blob, "cover.jpg");
   form.append("key", key);
   form.append("token", token);
 
+  // STEP 1: upload attachment
   const attachRes = await fetch(
     `https://api.trello.com/1/cards/${cardId}/attachments`,
     {
@@ -224,6 +226,7 @@ export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
 
   const attachment = await attachRes.json();
 
+  // STEP 2: SET IT AS COVER (THIS IS THE KEY 🔥)
   await fetch(
     `https://api.trello.com/1/cards/${cardId}?key=${key}&token=${token}`,
     {
