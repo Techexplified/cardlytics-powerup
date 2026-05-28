@@ -858,6 +858,24 @@ try {
 
       // Skip if same count
       const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1] ?? "-1");
+
+      if (oldCount === newCount) {
+  console.log("Skipping desc update, but forcing cover refresh");
+} else {
+  // update description
+  const metaTag =
+    card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
+
+  await updateCard(key, token, card.id, {
+    desc: `${newCount} card(s) tracked by Cardlytics.${
+      metaTag ? `\n\n${metaTag}` : ""
+    }`,
+  });
+}
+
+// 🔥 ALWAYS update cover (important)
+const newCover = await generateStatCoverImage(newCount, "blue");
+await updateCardCover(key, token, card.id, newCover);
       
 
       // Update description
