@@ -1,15 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  getBoardCards,
-  computeStats,
-  computeDetailStats,
-  getMemberId,
-  getMemberDetails,
-  getListCards,
-  getBoardLists,
-  createCard,
-  resolveTargetList,
-} from "./trello";
+import { getBoardCards, computeStats, computeDetailStats, getMemberId, getMemberDetails, getListCards, getBoardLists, createCard, createList } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import "./index.css";
 
