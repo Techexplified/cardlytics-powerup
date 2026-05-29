@@ -191,10 +191,10 @@ function handleOpenDetails() {
     ];
 
     // Try prefix match first, then fall back to "all"
-    const statType =
-      nameMap.find((m) =>
-        card.name.toLowerCase().startsWith(m.prefix.toLowerCase())
-      )?.type || "all";
+    // const statType =
+    //   nameMap.find((m) =>
+    //     card.name.toLowerCase().startsWith(m.prefix.toLowerCase())
+    //   )?.type || "all";
 
     const metaMatch = card.desc?.match(
   /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?(?::statType:(\w+))?/,
