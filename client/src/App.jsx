@@ -872,7 +872,14 @@ export default function App() {
           ? await getListCards(key, token, listId)
           : await getBoardCards(key, token, boardId);
 
-      const filteredForStats = cards.filter((c) => !isTrackerCard(c.name));
+      const allLists = await getBoardLists(key, token, boardId);
+      const cardlyticsListIds = allLists
+        .filter((l) => l.name.toLowerCase() === "cardlytics")
+        .map((l) => l.id);
+
+      const filteredForStats = cards.filter(
+        (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
+      );
       const memberId = await getMemberId(key, token);
 
       // Fetch member full name for Customize modal avatar
