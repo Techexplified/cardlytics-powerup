@@ -140,14 +140,21 @@ function CardBackView() {
   const t = window.TrelloPowerUp?.iframe?.();
   const [isTracker, setIsTracker] = useState(false);
 
-  useEffect(() => {
+ useEffect(() => {
   if (!t) return;
   t.card("name", "idList").then((card) => {
-    const matchesPrefix = TRACKER_PREFIXES.some(p =>
-      card.name.toLowerCase().startsWith(p.toLowerCase())
-    );
-    const matchesKeyword = isTrackerCard(card.name);
-    setIsTracker(matchesPrefix || matchesKeyword);
+    t.board("lists").then((board) => {
+      const cardlyticsListIds = board.lists
+        .filter(l => l.name.toLowerCase() === "cardlytics")
+        .map(l => l.id);
+      
+      const matchesPrefix = TRACKER_PREFIXES.some(p =>
+        card.name.toLowerCase().startsWith(p.toLowerCase())
+      );
+      const isInCardlyticsList = cardlyticsListIds.includes(card.idList);
+      
+      setIsTracker(matchesPrefix || isInCardlyticsList);
+    });
   });
 }, []);
 
