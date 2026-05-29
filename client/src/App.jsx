@@ -58,16 +58,17 @@ function cardCreatedDate(cardId) {
 
 const isTrackerCard = (name) => {
   const lower = name.toLowerCase();
-  return [
-    "assigned to me",
-    "due this week",
-    "overdue cards",
-    "unassigned cards",
-    "cards with a label",
-    "stale cards",
-    "created today",
-    "cards in list",
-  ].some((p) => lower.includes(p));
+  const PREFIXES = [
+    "📌 assigned to me",
+    "📅 due this week",
+    "⚠️ overdue cards",
+    "👤 unassigned cards",
+    "🏷️ cards with label",
+    "💤 stale cards",
+    "✨ created today",
+    "📋 cards in list",
+  ];
+  return PREFIXES.some((p) => lower.startsWith(p.toLowerCase()));
 };
 
 const STAT_LABELS = {
@@ -269,7 +270,7 @@ function CardDetailsView() {
         }
 
         const mid = await getMemberId(key, token);
-        allCards = allCards.filter((c) => !isTrackerCard(c.name));
+        allCards = allCards.filter((c) => !isTrackerCard(c.name) && c.name.toLowerCase() !== "cardlytics");
 
         const now = new Date();
         const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
