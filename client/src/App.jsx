@@ -176,42 +176,37 @@ function CardBackView() {
   });
 }, []);
 
-function handleOpenDetails() {
-  if (!t) return;
-  t.card("id", "idList", "name", "desc").then((card) => {
-    const nameMap = [
-      { prefix: "📌 Assigned to Me", type: "assigned" },
-      { prefix: "📅 Due This Week", type: "dueThisWeek" },
-      { prefix: "⚠️ Overdue Cards", type: "overdue" },
-      { prefix: "👤 Unassigned Cards", type: "unassigned" },
-      { prefix: "🏷️ Cards With Label", type: "withLabel" },
-      { prefix: "💤 Stale Cards", type: "stale" },
-      { prefix: "✨ Created Today", type: "createdToday" },
-      { prefix: "📋 Cards in List", type: "cardsInList" },
-    ];
-
- 
-
-    const metaMatch = card.desc?.match(
-  /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?(?::statType:(\w+))?/,
-);
-const cardMode = metaMatch?.[1] || "board";
-const resolvedListId = metaMatch?.[2] || card.idList;
-const statType = metaMatch?.[3]
-  || nameMap.find((m) =>
-      card.name.toLowerCase().startsWith(m.prefix.toLowerCase())
-    )?.type
-  || "all";
-
-t.board("id").then((board) => {
-  t.modal({
-    title: "Cardlytics",
-    url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
-    fullscreen: true,
-  });
-});
-  });
-}
+  function handleOpenDetails() {
+    if (!t) return;
+    t.card("id", "idList", "name", "desc").then((card) => {
+      const nameMap = [
+        { prefix: "📌 Assigned to Me", type: "assigned" },
+        { prefix: "📅 Due This Week", type: "dueThisWeek" },
+        { prefix: "⚠️ Overdue Cards", type: "overdue" },
+        { prefix: "👤 Unassigned Cards", type: "unassigned" },
+        { prefix: "🏷️ Cards With Label", type: "withLabel" },
+        { prefix: "💤 Stale Cards", type: "stale" },
+        { prefix: "✨ Created Today", type: "createdToday" },
+        { prefix: "📋 Cards in List", type: "cardsInList" },
+      ];
+      const statType =
+        nameMap.find((m) =>
+          card.name.toLowerCase().startsWith(m.prefix.toLowerCase()),
+        )?.type || "all";
+      const metaMatch = card.desc?.match(
+        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
+      );
+      const cardMode = metaMatch ? metaMatch[1] : "board";
+      const resolvedListId = metaMatch ? metaMatch[2] || card.idList : null;
+      t.board("id").then((board) => {
+        t.modal({
+          title: "Cardlytics",
+          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
+          fullscreen: true,
+        });
+      });
+    });
+  }
 
   function handleStartTracking() {
     if (!t) return;
@@ -1072,9 +1067,9 @@ export default function App() {
       }
 
       const metaTag =
-  mode === "list" && listId
-    ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
-    : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
+        mode === "list" && listId
+          ? `\n\n[_]: cardlytics:mode:list:listId:${listId}`
+          : `\n\n[_]: cardlytics:mode:board`;
 
       for (const stat of statsToTrack) {
         const defaults = DEFAULT_STAT_CONFIG[stat];
