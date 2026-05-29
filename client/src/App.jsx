@@ -664,19 +664,20 @@ const BASE_URL = "https://api.trello.com/1";
 
 // ── Generate a cover image with the big number overlaid ──────────────────────
 const COVER_BG_COLORS = {
-  blue:   "#1565c0",
+  blue: "#1565c0",
   yellow: "#f57f17",
-  red:    "#b71c1c",
+  red: "#b71c1c",
   purple: "#6a1b9a",
   orange: "#e65100",
-  green:  "#1b5e20",
-  black:  "#212121",
-  sky:    "#0277bd",
+  green: "#1b5e20",
+  black: "#212121",
+  sky: "#0277bd",
 };
 
 function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
   return new Promise((resolve) => {
-    const W = 800, H = 320;
+    const W = 800,
+      H = 320;
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
@@ -706,7 +707,8 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
       img.onload = () => {
         // Cover-fit: fill canvas, center crop
         const scale = Math.max(W / img.width, H / img.height);
-        const sw = img.width * scale, sh = img.height * scale;
+        const sw = img.width * scale,
+          sh = img.height * scale;
         ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
         drawNumber();
       };
@@ -804,80 +806,83 @@ export default function App() {
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
       setStats(computed);
 
-         // ── Auto-sync tracker cards ─────────────────────────────
-try {
-  const allLists = await getBoardLists(key, token, boardId);
-  const cardlyticsList = allLists.find((l) => l.name === "Cardlytics");
+      // ── Auto-sync tracker cards ─────────────────────────────
+      try {
+        const allLists = await getBoardLists(key, token, boardId);
+        const cardlyticsList = allLists.find((l) => l.name === "Cardlytics");
 
-  if (cardlyticsList) {
-    const trackerCards = (await getListCards(key, token, cardlyticsList.id))
-      .filter((c) => isTrackerCard(c.name));
+        if (cardlyticsList) {
+          const trackerCards = (
+            await getListCards(key, token, cardlyticsList.id)
+          ).filter((c) => isTrackerCard(c.name));
 
-    const nameToType = {
-      "assigned to me": "assigned",
-      "due this week": "dueThisWeek",
-      "overdue cards": "overdue",
-      "unassigned cards": "unassigned",
-      "cards with a label": "withLabel",
-      "stale cards": "stale",
-      "created today": "createdToday",
-      "cards in list": "cardsInList",
-    };
+          const nameToType = {
+            "assigned to me": "assigned",
+            "due this week": "dueThisWeek",
+            "overdue cards": "overdue",
+            "unassigned cards": "unassigned",
+            "cards with a label": "withLabel",
+            "stale cards": "stale",
+            "created today": "createdToday",
+            "cards in list": "cardsInList",
+          };
 
-    
-    for (const card of trackerCards) {
-      const lower = card.name.toLowerCase();
-      const matchedKey = Object.keys(nameToType).find((k) =>
-        lower.includes(k)
-      );
-      if (!matchedKey) continue;
+          for (const card of trackerCards) {
+            const lower = card.name.toLowerCase();
+            const matchedKey = Object.keys(nameToType).find((k) =>
+              lower.includes(k),
+            );
+            if (!matchedKey) continue;
 
-      const type = nameToType[matchedKey];
+            const type = nameToType[matchedKey];
 
-      // 🔥 Detect board/list mode from meta
-      const metaMatch = card.desc?.match(
-        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/
-      );
+            // 🔥 Detect board/list mode from meta
+            const metaMatch = card.desc?.match(
+              /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
+            );
 
-      const cardMode = metaMatch ? metaMatch[1] : "board";
-      const cardListId = metaMatch ? metaMatch[2] : null;
+            const cardMode = metaMatch ? metaMatch[1] : "board";
+            const cardListId = metaMatch ? metaMatch[2] : null;
 
-      let newCount = 0;
+            let newCount = 0;
 
-      // ✅ Handle LIST vs BOARD correctly
-      if (cardMode === "list" && cardListId) {
-        const listCards = await getListCards(key, token, cardListId);
-        const listStats = computeStats(
-          listCards.filter((c) => !isTrackerCard(c.name)),
-          memberId
-        );
-        newCount = listStats[type] ?? 0;
-      } else {
-        newCount = computed[type] ?? 0;
+            // ✅ Handle LIST vs BOARD correctly
+            if (cardMode === "list" && cardListId) {
+              const listCards = await getListCards(key, token, cardListId);
+              const listStats = computeStats(
+                listCards.filter((c) => !isTrackerCard(c.name)),
+                memberId,
+              );
+              newCount = listStats[type] ?? 0;
+            } else {
+              newCount = computed[type] ?? 0;
+            }
+
+            // Skip if same count
+            const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1] ?? "-1");
+
+            // Update description
+            const metaTag =
+              card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
+
+            const defaults = DEFAULT_STAT_CONFIG[type];
+            const newCardName = `${defaults.name} — ${newCount}`;
+
+            await updateCard(key, token, card.id, {
+              name: newCardName,
+              desc: `${newCount} card(s) tracked by Cardlytics.${metaTag ? `\n\n${metaTag}` : ""}`,
+            });
+
+            // 🔥 Generate NEW image with updated count
+            const statColor = DEFAULT_STAT_CONFIG[type]?.cover || "blue";
+            const newCover = await generateStatCoverImage(newCount, statColor);
+
+            await updateCardCover(key, token, card.id, newCover);
+          }
+        }
+      } catch (err) {
+        console.warn("Sync failed:", err);
       }
-
-      // Skip if same count
-      const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1] ?? "-1");
-      
-      
-
-      // Update description
-      const metaTag =
-        card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
-
-      await updateCard(key, token, card.id, {
-        desc: `${newCount} card(s) tracked by Cardlytics.${metaTag ? `\n\n${metaTag}` : ""}`,
-      });
-
-      // 🔥 Generate NEW image with updated count
-      const newCover = await generateStatCoverImage(newCount, "blue");
-
-      await updateCardCover(key, token, card.id, newCover);
-    }
-  }
-} catch (err) {
-  console.warn("Sync failed:", err);
-}
 
       setLastUpdated(new Date().toLocaleTimeString());
 
@@ -919,7 +924,7 @@ try {
   // values, bypassing the stale-closure problem with React state.
   const handleTrack = async (statsOverride, configOverride) => {
     const statsToTrack = statsOverride ?? selectedStats;
-    const configToUse  = configOverride ?? cardConfig;
+    const configToUse = configOverride ?? cardConfig;
 
     if (statsToTrack.length === 0) {
       showToast("Please select at least one stat to track", "error");
@@ -1028,7 +1033,6 @@ try {
           <h3>Cardlytics — Track</h3>
         </div>
         <div className="header-actions">
-        
           <button
             className="btn-customize"
             onClick={() => setShowCustomize(true)}
@@ -1153,25 +1157,30 @@ try {
         </Section>
       </div>
 
-       <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 12px" }}>
-  <button
-    className="btn-customize"
-    onClick={() => handleTrack()}
-    disabled={selectedStats.length === 0}
-    style={{
-      background: selectedStats.length > 0 ? "#1d4ed8" : undefined,
-      borderColor: selectedStats.length > 0 ? "#3B82F6" : undefined,
-      color: selectedStats.length > 0 ? "#fff" : undefined,
-      cursor: selectedStats.length === 0 ? "not-allowed" : "pointer",
-      opacity: selectedStats.length === 0 ? 0.5 : 1,
-      padding: "7px 24px",
-      fontSize: "13px",
-    }}
-  >
-    Track
-  </button>
-</div>
-
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          padding: "8px 12px",
+        }}
+      >
+        <button
+          className="btn-customize"
+          onClick={() => handleTrack()}
+          disabled={selectedStats.length === 0}
+          style={{
+            background: selectedStats.length > 0 ? "#1d4ed8" : undefined,
+            borderColor: selectedStats.length > 0 ? "#3B82F6" : undefined,
+            color: selectedStats.length > 0 ? "#fff" : undefined,
+            cursor: selectedStats.length === 0 ? "not-allowed" : "pointer",
+            opacity: selectedStats.length === 0 ? 0.5 : 1,
+            padding: "7px 24px",
+            fontSize: "13px",
+          }}
+        >
+          Track
+        </button>
+      </div>
 
       <div className="footer">
         <div className="footer-tracking">
@@ -1199,7 +1208,6 @@ function Section({ title, children }) {
     </div>
   );
 }
-
 
 function StatCard({ value, label, tag, type, onClick, selected }) {
   return (
