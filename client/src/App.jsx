@@ -179,23 +179,17 @@ function CardBackView() {
   function handleOpenDetails() {
     if (!t) return;
     t.card("id", "idList", "name", "desc").then((card) => {
-      const nameMap = [
-        { prefix: "📌 Assigned to Me", type: "assigned" },
-        { prefix: "📅 Due This Week", type: "dueThisWeek" },
-        { prefix: "⚠️ Overdue Cards", type: "overdue" },
-        { prefix: "👤 Unassigned Cards", type: "unassigned" },
-        { prefix: "🏷️ Cards With Label", type: "withLabel" },
-        { prefix: "💤 Stale Cards", type: "stale" },
-        { prefix: "✨ Created Today", type: "createdToday" },
-        { prefix: "📋 Cards in List", type: "cardsInList" },
-      ];
-      const statType =
-        nameMap.find((m) =>
-          card.name.toLowerCase().startsWith(m.prefix.toLowerCase()),
-        )?.type || "all";
+    
+     
       const metaMatch = card.desc?.match(
-        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
+        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-0-9]+))?/,
       );
+
+      const statMatch = card.desc?.match(
+  /\[_\]: cardlytics:statType:(\w+)/
+);
+
+const statType = statMatch ? statMatch[1] : "all";
       const cardMode = metaMatch ? metaMatch[1] : "board";
       const resolvedListId = metaMatch ? metaMatch[2] || card.idList : null;
       t.board("id").then((board) => {
@@ -1079,7 +1073,7 @@ export default function App() {
         // Card name has NO count — the count is shown as a big number on the cover image
         const cardName = saved?.cardName || defaults.name;
 
-        const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
+      const desc = `${count} card(s) tracked by Cardlytics.${metaTag}\n[_]: cardlytics:statType:${stat}`;
 
         const cover = saved?.cover || defaults.cover;
 
