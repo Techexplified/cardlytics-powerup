@@ -335,12 +335,14 @@ function CardDetailsView() {
         setDetailStats(computeDetailStats(filteredCards));
 
         const computed = computeStats(
-          allCards.filter((c) => !isTrackerCard(c)),
+          allCards.filter(
+  (c) => !isTrackerCardDisplay(c.name)
+),
           mid,
         );
         computed.cardsInList = isListScoped
-          ? allCards.filter((c) => !isTrackerCard(c.name)).length
-          : 0;
+  ? allCards.filter((c) => !isTrackerCardDisplay(c.name)).length
+  : 0;
         setFullStats(computed);
 
         if (listId) {
