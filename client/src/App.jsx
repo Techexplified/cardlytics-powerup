@@ -176,37 +176,52 @@ function CardBackView() {
   });
 }, []);
 
-  function handleOpenDetails() {
-    if (!t) return;
-    t.card("id", "idList", "name", "desc").then((card) => {
+ function handleOpenDetails() {
+  if (!t) return;
+  t.card("id", "idList", "name", "desc").then((card) => {
+    // First try to get everything from meta tag
+    const statMatch = card.desc?.match(/\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/);
+    
+    let statType = "all";
+    let cardMode = "board";
+    let resolvedListId = card.idList;
+
+    if (statMatch) {
+      cardMode = statMatch[1];
+      resolvedListId = statMatch[2] || card.idList;
+      statType = statMatch[3];
+    } else {
+      // Fallback for old cards that don't have statType in meta
       const nameMap = [
         { prefix: "📌 Assigned to Me", type: "assigned" },
         { prefix: "📅 Due This Week", type: "dueThisWeek" },
-        { prefix: "⚠️ Overdue Cards", type: "overdue" },
+        { prefix: "⚠ Overdue Cards", type: "overdue" },
         { prefix: "👤 Unassigned Cards", type: "unassigned" },
-        { prefix: "🏷️ Cards With Label", type: "withLabel" },
+        { prefix: "🏷 Cards With Label", type: "withLabel" },
         { prefix: "💤 Stale Cards", type: "stale" },
         { prefix: "✨ Created Today", type: "createdToday" },
         { prefix: "📋 Cards in List", type: "cardsInList" },
       ];
-      const statType =
-        nameMap.find((m) =>
-          card.name.toLowerCase().startsWith(m.prefix.toLowerCase()),
-        )?.type || "all";
+      statType = nameMap.find((m) =>
+        card.name.toLowerCase().startsWith(m.prefix.toLowerCase()),
+      )?.type || "all";
+      
       const metaMatch = card.desc?.match(
         /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
       );
-      const cardMode = metaMatch ? metaMatch[1] : "board";
-      const resolvedListId = metaMatch ? metaMatch[2] || card.idList : null;
-      t.board("id").then((board) => {
-        t.modal({
-          title: "Cardlytics",
-          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
-          fullscreen: true,
-        });
+      cardMode = metaMatch? metaMatch[1] : "board";
+      resolvedListId = metaMatch? metaMatch[2] || card.idList : card.idList;
+    }
+
+    t.board("id").then((board) => {
+      t.modal({
+        title: "Cardlytics",
+        url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
+        fullscreen: true,
       });
     });
-  }
+  });
+}
 
   function handleStartTracking() {
     if (!t) return;
@@ -927,69 +942,58 @@ export default function App() {
             await getListCards(key, token, cardlyticsList.id)
           ).filter((c) => isTrackerCard(c.name));
 
-          const nameToType = {
-            "assigned to me": "assigned",
-            "due this week": "dueThisWeek",
-            "overdue cards": "overdue",
-            "unassigned cards": "unassigned",
-            "cards with a label": "withLabel",
-            "stale cards": "stale",
-            "created today": "createdToday",
-            "cards in list": "cardsInList",
-          };
-
           for (const card of trackerCards) {
-            const lower = card.name.toLowerCase();
-            const matchedKey = Object.keys(nameToType).find((k) =>
-              lower.includes(k),
-            );
-            if (!matchedKey) continue;
+  // Get statType directly from the meta tag instead of parsing the name
+  const statMatch = card.desc?.match(/statType:(\w+)/);
+  if (!statMatch) continue; // Skip old cards that don't have the new meta format
+  
+  const type = statMatch[1]; // This will be "overdue", "assigned", etc.
 
-            const type = nameToType[matchedKey];
+  // 🔥 Detect board/list mode from meta
+  const metaMatch = card.desc?.match(
+    /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
+  );
 
-            // 🔥 Detect board/list mode from meta
-            const metaMatch = card.desc?.match(
-              /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
-            );
+  const cardMode = metaMatch? metaMatch[1] : "board";
+  const cardListId = metaMatch? metaMatch[2] : null;
 
-            const cardMode = metaMatch ? metaMatch[1] : "board";
-            const cardListId = metaMatch ? metaMatch[2] : null;
+  let newCount = 0;
 
-            let newCount = 0;
+  // ✅ Handle LIST vs BOARD correctly
+  if (cardMode === "list" && cardListId) {
+    const listCards = await getListCards(key, token, cardListId);
+    const listStats = computeStats(
+      listCards.filter((c) =>!isTrackerCard(c.name)),
+      memberId,
+    );
+    newCount = listStats[type]?? 0;
+  } else {
+    newCount = computed[type]?? 0;
+  }
 
-            // ✅ Handle LIST vs BOARD correctly
-            if (cardMode === "list" && cardListId) {
-              const listCards = await getListCards(key, token, cardListId);
-              const listStats = computeStats(
-                listCards.filter((c) => !isTrackerCard(c.name)),
-                memberId,
-              );
-              newCount = listStats[type] ?? 0;
-            } else {
-              newCount = computed[type] ?? 0;
-            }
+  // Skip if same count
+  const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1]?? "-1");
+  if (oldCount === newCount) continue;
 
-            // Skip if same count
-            const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1] ?? "-1");
-            if (oldCount === newCount) continue; // skip entirely if count unchanged
+  // Update description
+  const metaTag =
+    card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
 
-            // Update description
-            const metaTag =
-              card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
+  const defaults = DEFAULT_STAT_CONFIG[type];
+  const newCardName = `${defaults.name} — ${newCount}`;
 
-            const defaults = DEFAULT_STAT_CONFIG[type];
-            const newCardName = `${defaults.name} — ${newCount}`;
+  await updateCard(key, token, card.id, {
+    name: newCardName,
+    desc: `${newCount} card(s) tracked by Cardlytics.${metaTag? `\n\n${metaTag}` : ""}`,
+  });
 
-            await updateCard(key, token, card.id, {
-              name: newCardName,
-              desc: `${newCount} card(s) tracked by Cardlytics.${metaTag ? `\n\n${metaTag}` : ""}`,
-            });
+  // 🔥 Generate NEW image with updated count
+  const statColor = DEFAULT_STAT_CONFIG[type]?.cover || "blue";
+  const newCover = await generateStatCoverImage(newCount, statColor);
+  await updateCardCover(key, token, card.id, newCover);
+}
 
-            // 🔥 Generate NEW image with updated count
-            const statColor = DEFAULT_STAT_CONFIG[type]?.cover || "blue";
-            const newCover = await generateStatCoverImage(newCount, statColor);
-            await updateCardCover(key, token, card.id, newCover);
-          }
+       
         }
       } catch (err) {
         console.warn("Sync failed:", err);
@@ -1066,10 +1070,10 @@ export default function App() {
         return;
       }
 
-      const metaTag =
-        mode === "list" && listId
-          ? `\n\n[_]: cardlytics:mode:list:listId:${listId}`
-          : `\n\n[_]: cardlytics:mode:board`;
+     const metaTag =
+  mode === "list" && listId
+   ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
+    : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
 
       for (const stat of statsToTrack) {
         const defaults = DEFAULT_STAT_CONFIG[stat];
