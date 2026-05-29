@@ -1,5 +1,15 @@
 import { useState, useEffect } from "react";
-import { getBoardCards, computeStats, computeDetailStats, getMemberId, getMemberDetails, getListCards, getBoardLists, createCard, createList } from "./trello";
+import {
+  getBoardCards,
+  computeStats,
+  computeDetailStats,
+  getMemberId,
+  getMemberDetails,
+  getListCards,
+  getBoardLists,
+  createCard,
+  createList,
+} from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import "./index.css";
 
@@ -159,17 +169,17 @@ function CardBackView() {
   }
 
   function handleStartTracking() {
-  if (!t) return;
-  t.board("id").then((board) => {
-    t.modal({
-      title: "Cardlytics",
-      url: `./index.html?boardId=${board.id}`,
-      fullscreen: false,
-      width: 740,
-      height: 600,
+    if (!t) return;
+    t.board("id").then((board) => {
+      t.modal({
+        title: "Cardlytics",
+        url: `./index.html?boardId=${board.id}`,
+        fullscreen: false,
+        width: 740,
+        height: 600,
+      });
     });
-  });
-}
+  }
 
   return (
     <div
@@ -1110,6 +1120,23 @@ export default function App() {
           <h3>Cardlytics — Track</h3>
         </div>
         <div className="header-actions">
+          <button
+            className="btn-customize"
+            onClick={() => {
+              const t = window.TrelloPowerUp?.iframe?.();
+              if (t) {
+                t.board("id").then((board) => {
+                  t.modal({
+                    title: "Cardlytics",
+                    url: `./index.html?view=card-details&boardId=${board.id}&statType=all&mode=board`,
+                    fullscreen: true,
+                  });
+                });
+              }
+            }}
+          >
+            All Cards
+          </button>
           <button
             className="btn-customize"
             onClick={() => setShowCustomize(true)}
