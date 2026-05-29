@@ -990,6 +990,33 @@ export default function App() {
         );
       }
 
+      // ── Auto-register webhook once per board ─────────────────────────
+try {
+  const t = window.TrelloPowerUp?.iframe();
+  if (t) {
+    const alreadyRegistered = await t.get('board', 'shared', 'webhookRegistered');
+    if (!alreadyRegistered) {
+      const whRes = await fetch("https://api.trello.com/1/webhooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key,
+          token,
+          callbackURL: "https://cardlytics-powerup.vercel.app/api/webhook",
+          idModel: boardId,
+          description: "Cardlytics auto-sync"
+        })
+      });
+      if (whRes.ok) {
+        await t.set('board', 'shared', 'webhookRegistered', true);
+        console.log("✅ Webhook registered");
+      }
+    }
+  }
+} catch (err) {
+  console.warn("Webhook registration skipped:", err);
+}
+
       showToast(
         `${statsToTrack.length} card(s) added to "${trackingListName}" ✅`,
       );

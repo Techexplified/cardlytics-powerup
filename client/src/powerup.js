@@ -2,7 +2,6 @@
 
 window.TrelloPowerUp.initialize({
 
-  // 🟦 BOARD BUTTON (Top bar)
   'board-buttons': function (t) {
     return [{
       text: 'Cardlytics',
@@ -21,7 +20,6 @@ window.TrelloPowerUp.initialize({
     }];
   },
 
-  // 🟩 LIST ACTION (3 dots menu)
   'list-actions': function (t) {
     return [{
       text: 'Cardlytics',
@@ -38,7 +36,6 @@ window.TrelloPowerUp.initialize({
     }];
   },
 
-  // 🟥 CARD BACK SECTION — opens fullscreen details modal
   'card-back-section': function (t) {
     return {
       title: 'Cardlytics',
@@ -51,4 +48,4 @@ window.TrelloPowerUp.initialize({
     };
   }
 
-})
+});
