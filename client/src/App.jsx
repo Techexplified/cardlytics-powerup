@@ -348,6 +348,7 @@ function CardDetailsView() {
         };
 
         const fn = filterMap[statType] || (() => true);
+        console.log("statType:", statType); 
         const filteredCards = allCards
           .filter(fn);
 
