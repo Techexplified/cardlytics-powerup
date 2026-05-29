@@ -182,7 +182,7 @@ function CardBackView() {
     
      
       const metaMatch = card.desc?.match(
-        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-0-9]+))?/,
+        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-z0-9]+))?/,
       );
 
       const statMatch = card.desc?.match(
