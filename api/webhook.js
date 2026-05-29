@@ -1,10 +1,50 @@
+import { createCanvas } from "@napi-rs/canvas";
+
 export default async function handler(req, res) {
   if (req.method === "HEAD") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).end();
 
-  const key = process.env.VITE_TRELLO_API_KEY;
-  const token = process.env.VITE_TRELLO_TOKEN;
+  const key = process.env.TRELLO_API_KEY;
+  const token = process.env.TRELLO_TOKEN;
   const BASE = "https://api.trello.com/1";
+
+  const COVER_COLORS = {
+    assigned: "#1565c0",
+    dueThisWeek: "#f57f17",
+    overdue: "#b71c1c",
+    unassigned: "#6a1b9a",
+    withLabel: "#e65100",
+    stale: "#212121",
+    createdToday: "#1b5e20",
+    cardsInList: "#0277bd",
+  };
+
+  function generateImage(count, colorHex) {
+    const W = 800, H = 320;
+    const canvas = createCanvas(W, H);
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = colorHex;
+    ctx.fillRect(0, 0, W, H);
+
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, "rgba(255,255,255,0.07)");
+    grad.addColorStop(1, "rgba(0,0,0,0.25)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    const numStr = String(count);
+    const fontSize = numStr.length > 3 ? 90 : numStr.length > 2 ? 110 : 130;
+    ctx.font = `900 ${fontSize}px sans-serif`;
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    ctx.shadowBlur = 28;
+    ctx.fillText(numStr, W / 2, H / 2);
+
+    return canvas.toBuffer("image/jpeg");
+  }
 
   try {
     const body = req.body;
@@ -89,6 +129,7 @@ export default async function handler(req, res) {
 
       const metaTag = card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
 
+      // Update name and desc
       await fetch(`${BASE}/cards/${card.id}?key=${key}&token=${token}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -97,6 +138,29 @@ export default async function handler(req, res) {
           desc: `${newCount} card(s) tracked by Cardlytics.${metaTag ? `\n\n${metaTag}` : ""}`,
         }),
       });
+
+      // Generate and upload new cover image
+      const imgBuffer = generateImage(newCount, COVER_COLORS[type] || "#1565c0");
+      const formData = new FormData();
+      formData.append("key", key);
+      formData.append("token", token);
+      formData.append("file", new Blob([imgBuffer], { type: "image/jpeg" }), "cover.jpg");
+
+      const attachRes = await fetch(`${BASE}/cards/${card.id}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (attachRes.ok) {
+        const attachment = await attachRes.json();
+        await fetch(`${BASE}/cards/${card.id}?key=${key}&token=${token}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cover: { idAttachment: attachment.id, brightness: "dark", size: "full" }
+          }),
+        });
+      }
     }
 
     res.status(200).json({ ok: true });
