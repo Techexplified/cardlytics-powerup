@@ -888,7 +888,7 @@ export default function App() {
         .map((l) => l.id);
 
       const filteredForStats = cards.filter(
-        (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
+        (c) =>!isTrackerCard(c) &&!cardlyticsListIds.includes(c.idList),
       );
       const memberId = await getMemberId(key, token);
 
@@ -910,7 +910,7 @@ export default function App() {
         if (cardlyticsList) {
           const trackerCards = (
             await getListCards(key, token, cardlyticsList.id)
-          ).filter((c) => isTrackerCard(c.name));
+          ).filter((c) => isTrackerCard(c));;
 
           const nameToType = {
             "assigned to me": "assigned",
@@ -1011,7 +1011,7 @@ export default function App() {
     const key = import.meta.env.VITE_TRELLO_API_KEY;
     const token = import.meta.env.VITE_TRELLO_TOKEN;
     const cards = await getListCards(key, token, id);
-    setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
+    setSelectedListCount(cards.filter((c) => !isTrackerCard(c)).length);
   }
 
   useEffect(() => {
