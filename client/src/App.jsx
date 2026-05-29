@@ -9,6 +9,8 @@ import {
   getBoardLists,
   createCard,
   createList,
+  updateCard,
+  updateCardCover,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import "./index.css";
@@ -915,9 +917,11 @@ export default function App() {
     setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+ useEffect(() => {
+  fetchData();
+  const interval = setInterval(fetchData, 30000); // auto-refresh every 30s
+  return () => clearInterval(interval);
+}, []);
 
   // ── TRACK ────────────────────────────────────────────────────────────────
   // statsOverride and configOverride let onSave call this directly with fresh
