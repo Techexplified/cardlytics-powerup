@@ -221,11 +221,7 @@ for (const att of existingAttachments) {
       const formData = new FormData();
       formData.append("key", key);
       formData.append("token", token);
-      formData.append(
-        "file",
-        new Blob([imgBuffer], { type: "image/jpeg" }),
-        "cover.jpg",
-      );
+    formData.append("file", new Blob([imgBuffer], { type: "image/jpeg" }), `cover-${Date.now()}.jpg`);
 
       const attachRes = await fetch(`${BASE}/cards/${card.id}/attachments`, {
         method: "POST",
