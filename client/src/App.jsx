@@ -284,8 +284,20 @@ function CardDetailsView() {
         }
 
         const mid = await getMemberId(key, token);
-        allCards = allCards.filter((c) => !isTrackerCardDisplay(c.name));
+        const allBoardLists = await getBoardLists(
+          key,
+          token,
+          boardId || "p8fosANE",
+        );
+        const cardlyticsListIds = allBoardLists
+          .filter((l) => l.name.toLowerCase() === "cardlytics")
+          .map((l) => l.id);
 
+        allCards = allCards.filter(
+          (c) =>
+            !isTrackerCardDisplay(c.name) &&
+            !cardlyticsListIds.includes(c.idList),
+        );
         const now = new Date();
         const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         const fourteenAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
@@ -1136,22 +1148,22 @@ export default function App() {
         </div>
         <div className="header-actions">
           <button
-  className="btn-customize"
-  onClick={() => {
-    const t = window.TrelloPowerUp?.iframe?.();
-    if (t) {
-      t.board("id").then((board) => {
-        t.modal({
-          title: "Cardlytics — All Cards",
-          url: `./index.html?view=card-details&boardId=${board.id}&statType=all&mode=board`,
-          fullscreen: true,
-        });
-      });
-    }
-  }}
->
-  All Cards
-</button>
+            className="btn-customize"
+            onClick={() => {
+              const t = window.TrelloPowerUp?.iframe?.();
+              if (t) {
+                t.board("id").then((board) => {
+                  t.modal({
+                    title: "Cardlytics — All Cards",
+                    url: `./index.html?view=card-details&boardId=${board.id}&statType=all&mode=board`,
+                    fullscreen: true,
+                  });
+                });
+              }
+            }}
+          >
+            All Cards
+          </button>
           <button
             className="btn-customize"
             onClick={() => setShowCustomize(true)}
