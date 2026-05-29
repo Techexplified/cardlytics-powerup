@@ -141,15 +141,15 @@ function CardBackView() {
   const [isTracker, setIsTracker] = useState(false);
 
   useEffect(() => {
-    if (!t) return;
-    t.card("name").then((card) => {
-      setIsTracker(
-        TRACKER_PREFIXES.some((p) =>
-          card.name.toLowerCase().startsWith(p.toLowerCase()),
-        ),
-      );
-    });
-  }, []);
+  if (!t) return;
+  t.card("name", "idList").then((card) => {
+    const matchesPrefix = TRACKER_PREFIXES.some(p =>
+      card.name.toLowerCase().startsWith(p.toLowerCase())
+    );
+    const matchesKeyword = isTrackerCard(card.name);
+    setIsTracker(matchesPrefix || matchesKeyword);
+  });
+}, []);
 
   function handleOpenDetails() {
     if (!t) return;
