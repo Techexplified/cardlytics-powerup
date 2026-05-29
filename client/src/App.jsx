@@ -141,87 +141,90 @@ function CardBackView() {
   const [isTracker, setIsTracker] = useState(false);
 
   useEffect(() => {
-  if (!t) return;
-  t.card("name", "idList", "desc").then((card) => {
-    // 1. Check prefix match (emoji tracker cards)
-    const matchesPrefix = TRACKER_PREFIXES.some((p) =>
-      card.name.toLowerCase().startsWith(p.toLowerCase())
-    );
-
-    // 2. Check description for Cardlytics meta tag (covers ALL tracker cards
-    //    including custom-named ones like "Assigned to me on all Workspace boards")
-    const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
-
-    if (matchesPrefix || hasMetaTag) {
-      setIsTracker(true);
-      return;
-    }
-
-    // 3. Fallback: check if card lives in a list named "Cardlytics"
-    t.board("id").then((board) => {
-      const key = import.meta.env.VITE_TRELLO_API_KEY;
-      const token = import.meta.env.VITE_TRELLO_TOKEN;
-      fetch(
-        `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`
-      )
-        .then((r) => r.json())
-        .then((lists) => {
-          const cardlyticsListIds = lists
-            .filter((l) => l.name.toLowerCase() === "cardlytics")
-            .map((l) => l.id);
-          setIsTracker(cardlyticsListIds.includes(card.idList));
-        })
-        .catch(() => setIsTracker(false));
-    });
-  });
-}, []);
-
- function handleOpenDetails() {
-  if (!t) return;
-  t.card("id", "idList", "name", "desc").then((card) => {
-    // First try to get everything from meta tag
-    const statMatch = card.desc?.match(/\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/);
-    
-    let statType = "all";
-    let cardMode = "board";
-    let resolvedListId = card.idList;
-
-    if (statMatch) {
-      cardMode = statMatch[1];
-      resolvedListId = statMatch[2] || card.idList;
-      statType = statMatch[3];
-    } else {
-      // Fallback for old cards that don't have statType in meta
-      const nameMap = [
-        { prefix: "📌 Assigned to Me", type: "assigned" },
-        { prefix: "📅 Due This Week", type: "dueThisWeek" },
-        { prefix: "⚠ Overdue Cards", type: "overdue" },
-        { prefix: "👤 Unassigned Cards", type: "unassigned" },
-        { prefix: "🏷 Cards With Label", type: "withLabel" },
-        { prefix: "💤 Stale Cards", type: "stale" },
-        { prefix: "✨ Created Today", type: "createdToday" },
-        { prefix: "📋 Cards in List", type: "cardsInList" },
-      ];
-      statType = nameMap.find((m) =>
-        card.name.toLowerCase().startsWith(m.prefix.toLowerCase()),
-      )?.type || "all";
-      
-      const metaMatch = card.desc?.match(
-        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
+    if (!t) return;
+    t.card("name", "idList", "desc").then((card) => {
+      // 1. Check prefix match (emoji tracker cards)
+      const matchesPrefix = TRACKER_PREFIXES.some((p) =>
+        card.name.toLowerCase().startsWith(p.toLowerCase()),
       );
-      cardMode = metaMatch? metaMatch[1] : "board";
-      resolvedListId = metaMatch? metaMatch[2] || card.idList : card.idList;
-    }
 
-    t.board("id").then((board) => {
-      t.modal({
-        title: "Cardlytics",
-        url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
-        fullscreen: true,
+      // 2. Check description for Cardlytics meta tag (covers ALL tracker cards
+      //    including custom-named ones like "Assigned to me on all Workspace boards")
+      const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
+
+      if (matchesPrefix || hasMetaTag) {
+        setIsTracker(true);
+        return;
+      }
+
+      // 3. Fallback: check if card lives in a list named "Cardlytics"
+      t.board("id").then((board) => {
+        const key = import.meta.env.VITE_TRELLO_API_KEY;
+        const token = import.meta.env.VITE_TRELLO_TOKEN;
+        fetch(
+          `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
+        )
+          .then((r) => r.json())
+          .then((lists) => {
+            const cardlyticsListIds = lists
+              .filter((l) => l.name.toLowerCase() === "cardlytics")
+              .map((l) => l.id);
+            setIsTracker(cardlyticsListIds.includes(card.idList));
+          })
+          .catch(() => setIsTracker(false));
       });
     });
-  });
-}
+  }, []);
+
+  function handleOpenDetails() {
+    if (!t) return;
+    t.card("id", "idList", "name", "desc").then((card) => {
+      // First try to get everything from meta tag
+      const statMatch = card.desc?.match(
+        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
+      );
+
+      let statType = "all";
+      let cardMode = "board";
+      let resolvedListId = card.idList;
+
+      if (statMatch) {
+        cardMode = statMatch[1];
+        resolvedListId = statMatch[2] || card.idList;
+        statType = statMatch[3];
+      } else {
+        // Fallback for old cards that don't have statType in meta
+        const nameMap = [
+          { prefix: "📌 Assigned to Me", type: "assigned" },
+          { prefix: "📅 Due This Week", type: "dueThisWeek" },
+          { prefix: "⚠ Overdue Cards", type: "overdue" },
+          { prefix: "👤 Unassigned Cards", type: "unassigned" },
+          { prefix: "🏷 Cards With Label", type: "withLabel" },
+          { prefix: "💤 Stale Cards", type: "stale" },
+          { prefix: "✨ Created Today", type: "createdToday" },
+          { prefix: "📋 Cards in List", type: "cardsInList" },
+        ];
+        statType =
+          nameMap.find((m) =>
+            card.name.toLowerCase().startsWith(m.prefix.toLowerCase()),
+          )?.type || "all";
+
+        const metaMatch = card.desc?.match(
+          /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
+        );
+        cardMode = metaMatch ? metaMatch[1] : "board";
+        resolvedListId = metaMatch ? metaMatch[2] || card.idList : card.idList;
+      }
+
+      t.board("id").then((board) => {
+        t.modal({
+          title: "Cardlytics",
+          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
+          fullscreen: true,
+        });
+      });
+    });
+  }
 
   function handleStartTracking() {
     if (!t) return;
@@ -943,57 +946,55 @@ export default function App() {
           ).filter((c) => isTrackerCard(c.name));
 
           for (const card of trackerCards) {
-  // Get statType directly from the meta tag instead of parsing the name
-  const statMatch = card.desc?.match(/statType:(\w+)/);
-  if (!statMatch) continue; // Skip old cards that don't have the new meta format
-  
-  const type = statMatch[1]; // This will be "overdue", "assigned", etc.
+            // Get statType directly from the meta tag instead of parsing the name
+            const statMatch = card.desc?.match(/statType:(\w+)/);
+            if (!statMatch) continue; // Skip old cards that don't have the new meta format
 
-  // 🔥 Detect board/list mode from meta
-  const metaMatch = card.desc?.match(
-    /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
-  );
+            const type = statMatch[1]; // This will be "overdue", "assigned", etc.
 
-  const cardMode = metaMatch? metaMatch[1] : "board";
-  const cardListId = metaMatch? metaMatch[2] : null;
+            // 🔥 Detect board/list mode from meta
+            const metaMatch = card.desc?.match(
+              /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
+            );
 
-  let newCount = 0;
+            const cardMode = metaMatch ? metaMatch[1] : "board";
+            const cardListId = metaMatch ? metaMatch[2] : null;
 
-  // ✅ Handle LIST vs BOARD correctly
-  if (cardMode === "list" && cardListId) {
-    const listCards = await getListCards(key, token, cardListId);
-    const listStats = computeStats(
-      listCards.filter((c) =>!isTrackerCard(c.name)),
-      memberId,
-    );
-    newCount = listStats[type]?? 0;
-  } else {
-    newCount = computed[type]?? 0;
-  }
+            let newCount = 0;
 
-  // Skip if same count
-  const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1]?? "-1");
-  if (oldCount === newCount) continue;
+            // ✅ Handle LIST vs BOARD correctly
+            if (cardMode === "list" && cardListId) {
+              const listCards = await getListCards(key, token, cardListId);
+              const listStats = computeStats(
+                listCards.filter((c) => !isTrackerCard(c.name)),
+                memberId,
+              );
+              newCount = listStats[type] ?? 0;
+            } else {
+              newCount = computed[type] ?? 0;
+            }
 
-  // Update description
-  const metaTag =
-    card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
+            // Skip if same count
+            const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1] ?? "-1");
+            if (oldCount === newCount) continue;
 
-  const defaults = DEFAULT_STAT_CONFIG[type];
-  const newCardName = `${defaults.name} — ${newCount}`;
+            // Update description
+            const metaTag =
+              card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
 
-  await updateCard(key, token, card.id, {
-    name: newCardName,
-    desc: `${newCount} card(s) tracked by Cardlytics.${metaTag? `\n\n${metaTag}` : ""}`,
-  });
+            const defaults = DEFAULT_STAT_CONFIG[type];
+            const newCardName = `${defaults.name} — ${newCount}`;
 
-  // 🔥 Generate NEW image with updated count
-  const statColor = DEFAULT_STAT_CONFIG[type]?.cover || "blue";
-  const newCover = await generateStatCoverImage(newCount, statColor);
-  await updateCardCover(key, token, card.id, newCover);
-}
+            await updateCard(key, token, card.id, {
+              name: newCardName,
+              desc: `${newCount} card(s) tracked by Cardlytics.${metaTag ? `\n\n${metaTag}` : ""}`,
+            });
 
-       
+            // 🔥 Generate NEW image with updated count
+            const statColor = DEFAULT_STAT_CONFIG[type]?.cover || "blue";
+            const newCover = await generateStatCoverImage(newCount, statColor);
+            await updateCardCover(key, token, card.id, newCover);
+          }
         }
       } catch (err) {
         console.warn("Sync failed:", err);
@@ -1070,17 +1071,15 @@ export default function App() {
         return;
       }
 
-     
-
       for (const stat of statsToTrack) {
         const defaults = DEFAULT_STAT_CONFIG[stat];
         const saved = configToUse[stat];
         const count = stats[stat];
 
         const metaTag =
-  mode === "list" && listId
-   ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
-    : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
+          mode === "list" && listId
+            ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
+            : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
 
         // Card name has NO count — the count is shown as a big number on the cover image
         const cardName = saved?.cardName || defaults.name;
@@ -1107,38 +1106,6 @@ export default function App() {
           cover,
           coverImageDataUrl,
         );
-      }
-
-      // ── Auto-register webhook once per board ─────────────────────────
-      try {
-        const t = window.TrelloPowerUp?.iframe();
-        if (t) {
-          const alreadyRegistered = await t.get(
-            "board",
-            "shared",
-            "webhookRegistered",
-          );
-          if (!alreadyRegistered) {
-            const whRes = await fetch("https://api.trello.com/1/webhooks", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                key,
-                token,
-                callbackURL:
-                  "https://cardlytics-powerup.vercel.app/api/webhook",
-                idModel: boardId,
-                description: "Cardlytics auto-sync",
-              }),
-            });
-            if (whRes.ok) {
-              await t.set("board", "shared", "webhookRegistered", true);
-              console.log("✅ Webhook registered");
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("Webhook registration skipped:", err);
       }
 
       showToast(
