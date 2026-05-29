@@ -1,7 +1,4 @@
 {
-  "functions": {
-    "api/*.js": {
-      "runtime": "@vercel/node"
-    }
-  }
+  "buildCommand": "cd client && npm run build",
+  "outputDirectory": "client/dist"
 }
