@@ -328,7 +328,7 @@ function CardDetailsView() {
 
         const fn = filterMap[statType] || (() => true);
         const filteredCards = allCards
-          .filter((c) => !isTrackerCard(c.name))
+         .filter((c) => !isTrackerCard(c))
           .filter(fn);
 
         setCards(filteredCards);
