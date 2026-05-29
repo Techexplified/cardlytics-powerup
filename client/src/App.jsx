@@ -58,17 +58,16 @@ function cardCreatedDate(cardId) {
 
 const isTrackerCard = (name) => {
   const lower = name.toLowerCase();
-  const PREFIXES = [
-    "📌 assigned to me",
-    "📅 due this week",
-    "⚠️ overdue cards",
-    "👤 unassigned cards",
-    "🏷️ cards with label",
-    "💤 stale cards",
-    "✨ created today",
-    "📋 cards in list",
-  ];
-  return PREFIXES.some((p) => lower.startsWith(p.toLowerCase()));
+  return [
+    "assigned to me",
+    "due this week",
+    "overdue cards",
+    "unassigned cards",
+    "cards with a label",
+    "stale cards",
+    "created today",
+    "cards in list",
+  ].some((p) => lower.includes(p));
 };
 
 const STAT_LABELS = {
