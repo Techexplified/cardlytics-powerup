@@ -1070,15 +1070,17 @@ export default function App() {
         return;
       }
 
-     const metaTag =
-  mode === "list" && listId
-   ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
-    : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
+     
 
       for (const stat of statsToTrack) {
         const defaults = DEFAULT_STAT_CONFIG[stat];
         const saved = configToUse[stat];
         const count = stats[stat];
+
+        const metaTag =
+  mode === "list" && listId
+   ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
+    : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
 
         // Card name has NO count — the count is shown as a big number on the cover image
         const cardName = saved?.cardName || defaults.name;
