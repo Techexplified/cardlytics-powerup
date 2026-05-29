@@ -56,19 +56,8 @@ function cardCreatedDate(cardId) {
   return new Date(ts);
 }
 
-const isTrackerCard = (name) => {
-  const lower = name.toLowerCase();
-  return [
-    "assigned to me",
-    "due this week",
-    "overdue cards",
-    "unassigned cards",
-    "cards with a label",
-    "stale cards",
-    "created today",
-    "cards in list",
-  ].some((p) => lower.includes(p));
-};
+const isTrackerCard = (card) =>
+  card.desc?.includes("cardlytics:statType");
 
 const isTrackerCardDisplay = (name) => {
   const lower = name.toLowerCase();
@@ -346,7 +335,7 @@ function CardDetailsView() {
         setDetailStats(computeDetailStats(filteredCards));
 
         const computed = computeStats(
-          allCards.filter((c) => !isTrackerCard(c.name)),
+          allCards.filter((c) => !isTrackerCard(c)),
           mid,
         );
         computed.cardsInList = isListScoped
