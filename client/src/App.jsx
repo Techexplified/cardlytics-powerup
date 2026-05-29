@@ -197,18 +197,23 @@ function handleOpenDetails() {
       )?.type || "all";
 
     const metaMatch = card.desc?.match(
-      /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/
-    );
-    const cardMode = metaMatch ? metaMatch[1] : "board";
-    const resolvedListId = metaMatch ? metaMatch[2] || card.idList : null;
+  /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?(?::statType:(\w+))?/,
+);
+const cardMode = metaMatch?.[1] || "board";
+const resolvedListId = metaMatch?.[2] || card.idList;
+const statType = metaMatch?.[3]
+  || nameMap.find((m) =>
+      card.name.toLowerCase().startsWith(m.prefix.toLowerCase())
+    )?.type
+  || "all";
 
-    t.board("id").then((board) => {
-      t.modal({
-        title: "Cardlytics",
-        url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
-        fullscreen: true,
-      });
-    });
+t.board("id").then((board) => {
+  t.modal({
+    title: "Cardlytics",
+    url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
+    fullscreen: true,
+  });
+});
   });
 }
 
@@ -1071,9 +1076,9 @@ export default function App() {
       }
 
       const metaTag =
-        mode === "list" && listId
-          ? `\n\n[_]: cardlytics:mode:list:listId:${listId}`
-          : `\n\n[_]: cardlytics:mode:board`;
+  mode === "list" && listId
+    ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
+    : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
 
       for (const stat of statsToTrack) {
         const defaults = DEFAULT_STAT_CONFIG[stat];
