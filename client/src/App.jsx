@@ -878,7 +878,6 @@ export default function App() {
             // 🔥 Generate NEW image with updated count
             const statColor = DEFAULT_STAT_CONFIG[type]?.cover || "blue";
             const newCover = await generateStatCoverImage(newCount, statColor);
-
             await updateCardCover(key, token, card.id, newCover);
           }
         }
@@ -917,9 +916,9 @@ export default function App() {
     setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
 
-useEffect(() => {
-  fetchData();
-}, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // ── TRACK ────────────────────────────────────────────────────────────────
   // statsOverride and configOverride let onSave call this directly with fresh
