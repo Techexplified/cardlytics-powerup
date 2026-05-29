@@ -38,6 +38,7 @@ const MEMBER_AVATAR_COLORS = [
   "#e8a62e",
   "#4caf50",
 ];
+
 function memberColor(id) {
   let hash = 0;
   for (let i = 0; i < id.length; i++)
@@ -97,9 +98,6 @@ const STAT_LABELS = {
   all: "All Cards",
 };
 
-// ─── Default stat config (cover colors + card names) ─────────────────────────
-// These are the baseline values. If the user customizes via the modal,
-// their saved config (cardConfig state) overrides name and cover.
 const DEFAULT_STAT_CONFIG = {
   assigned: { name: "📌 Assigned to Me", cover: "blue" },
   dueThisWeek: { name: "📅 Due This Week", cover: "yellow" },
@@ -110,6 +108,8 @@ const DEFAULT_STAT_CONFIG = {
   createdToday: { name: "✨ Created Today", cover: "green" },
   cardsInList: { name: "📋 Cards in List", cover: "sky" },
 };
+
+const BASE_URL = "https://api.trello.com/1";
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function Toast({ toast }) {
@@ -135,6 +135,112 @@ const TRACKER_PREFIXES = [
   "📋 Cards in List",
 ];
 
+// ─── ONBOARDING VIEW ─────────────────────────────────────────────────────────
+function OnboardingView() {
+  const t = window.TrelloPowerUp?.iframe?.();
+  function handleDone() {
+    if (t) t.closeModal();
+  }
+  return (
+    <div style={{
+      padding: 32, fontFamily: "'DM Sans', sans-serif",
+      color: "#e0e0e0", background: "#1a1a1a", height: "100%",
+      display: "flex", flexDirection: "column", gap: 16,
+    }}>
+      <h2 style={{ color: "#4ea1ff", margin: 0 }}>👋 Welcome to Cardlytics!</h2>
+      <p style={{ color: "#aaa", margin: 0, lineHeight: 1.6 }}>
+        Cardlytics lets you track your board stats as visual Trello cards —
+        with live counts shown as cover images.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ background: "#252525", borderRadius: 8, padding: "12px 16px" }}>
+          <strong>Step 1</strong> — Click the <strong>Cardlytics</strong> button in the board top bar
+        </div>
+        <div style={{ background: "#252525", borderRadius: 8, padding: "12px 16px" }}>
+          <strong>Step 2</strong> — Select the stats you want to track (e.g. Assigned to Me, Overdue)
+        </div>
+        <div style={{ background: "#252525", borderRadius: 8, padding: "12px 16px" }}>
+          <strong>Step 3</strong> — Click <strong>Track</strong> — cards appear in your Cardlytics list automatically
+        </div>
+      </div>
+      <button
+        onClick={handleDone}
+        style={{
+          marginTop: "auto", padding: "10px 24px", background: "#0052cc",
+          color: "#fff", border: "none", borderRadius: 8,
+          fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+          fontWeight: 600, cursor: "pointer", alignSelf: "flex-end",
+        }}
+      >
+        Get Started →
+      </button>
+    </div>
+  );
+}
+
+// ─── SETTINGS VIEW ───────────────────────────────────────────────────────────
+function SettingsView() {
+  const t = window.TrelloPowerUp?.iframe?.();
+  const [cleared, setCleared] = useState(false);
+
+  async function handleClearData() {
+    if (!t) return;
+    await t.set("board", "shared", "webhookRegistered", false);
+    setCleared(true);
+  }
+
+  function handleClose() {
+    if (t) t.closeModal();
+  }
+
+  return (
+    <div style={{
+      padding: 32, fontFamily: "'DM Sans', sans-serif",
+      color: "#e0e0e0", background: "#1a1a1a", height: "100%",
+      display: "flex", flexDirection: "column", gap: 16,
+    }}>
+      <h2 style={{ color: "#4ea1ff", margin: 0 }}>⚙️ Cardlytics Settings</h2>
+
+      <div style={{ background: "#252525", borderRadius: 8, padding: 16 }}>
+        <p style={{ margin: "0 0 12px", fontWeight: 600 }}>Reset Webhook</p>
+        <p style={{ margin: "0 0 12px", color: "#aaa", fontSize: 13 }}>
+          If auto-sync stops working, reset the webhook registration and it will re-register next time you click Track.
+        </p>
+        <button
+          onClick={handleClearData}
+          style={{
+            padding: "8px 16px", background: cleared ? "#1b5e20" : "#b71c1c",
+            color: "#fff", border: "none", borderRadius: 6,
+            fontFamily: "'DM Sans', sans-serif", fontSize: 13,
+            fontWeight: 600, cursor: "pointer",
+          }}
+        >
+          {cleared ? "✅ Reset Done" : "Reset Webhook"}
+        </button>
+      </div>
+
+      <div style={{ background: "#252525", borderRadius: 8, padding: 16 }}>
+        <p style={{ margin: "0 0 4px", fontWeight: 600 }}>About</p>
+        <p style={{ margin: 0, color: "#aaa", fontSize: 13 }}>
+          Cardlytics v1.0 — Track your Trello board stats as visual cards.
+        </p>
+      </div>
+
+      <button
+        onClick={handleClose}
+        style={{
+          marginTop: "auto", padding: "10px 24px", background: "#252525",
+          color: "#e0e0e0", border: "1px solid #333", borderRadius: 8,
+          fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+          fontWeight: 600, cursor: "pointer", alignSelf: "flex-end",
+        }}
+      >
+        Close
+      </button>
+    </div>
+  );
+}
+
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
 function CardBackView() {
   const t = window.TrelloPowerUp?.iframe?.();
@@ -143,13 +249,9 @@ function CardBackView() {
   useEffect(() => {
     if (!t) return;
     t.card("name", "idList", "desc").then((card) => {
-      // 1. Check prefix match (emoji tracker cards)
       const matchesPrefix = TRACKER_PREFIXES.some((p) =>
         card.name.toLowerCase().startsWith(p.toLowerCase()),
       );
-
-      // 2. Check description for Cardlytics meta tag (covers ALL tracker cards
-      //    including custom-named ones like "Assigned to me on all Workspace boards")
       const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
 
       if (matchesPrefix || hasMetaTag) {
@@ -157,12 +259,10 @@ function CardBackView() {
         return;
       }
 
-      // 3. Fallback: check if card lives in a list named "Cardlytics"
       t.board("id").then((board) => {
         const key = import.meta.env.VITE_TRELLO_API_KEY;
-        const token = import.meta.env.VITE_TRELLO_TOKEN;
         fetch(
-          `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
+          `${BASE_URL}/boards/${board.id}/lists?key=${key}&fields=id,name`,
         )
           .then((r) => r.json())
           .then((lists) => {
@@ -179,7 +279,6 @@ function CardBackView() {
   function handleOpenDetails() {
     if (!t) return;
     t.card("id", "idList", "name", "desc").then((card) => {
-      // First try to get everything from meta tag
       const statMatch = card.desc?.match(
         /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
       );
@@ -193,13 +292,12 @@ function CardBackView() {
         resolvedListId = statMatch[2] || card.idList;
         statType = statMatch[3];
       } else {
-        // Fallback for old cards that don't have statType in meta
         const nameMap = [
           { prefix: "📌 Assigned to Me", type: "assigned" },
           { prefix: "📅 Due This Week", type: "dueThisWeek" },
-          { prefix: "⚠ Overdue Cards", type: "overdue" },
+          { prefix: "⚠️ Overdue Cards", type: "overdue" },
           { prefix: "👤 Unassigned Cards", type: "unassigned" },
-          { prefix: "🏷 Cards With Label", type: "withLabel" },
+          { prefix: "🏷️ Cards With Label", type: "withLabel" },
           { prefix: "💤 Stale Cards", type: "stale" },
           { prefix: "✨ Created Today", type: "createdToday" },
           { prefix: "📋 Cards in List", type: "cardsInList" },
@@ -231,7 +329,7 @@ function CardBackView() {
     t.board("id").then((board) => {
       t.modal({
         title: "Cardlytics",
-        url: `./index.html?boardId=${board.id}`,
+        url: `./index.html?boardId=${board.id}&mode=board`,
         fullscreen: false,
         width: 740,
         height: 600,
@@ -308,12 +406,15 @@ function CardDetailsView() {
   const [sortAsc, setSortAsc] = useState(true);
 
   const key = import.meta.env.VITE_TRELLO_API_KEY;
-  const token = import.meta.env.VITE_TRELLO_TOKEN;
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       try {
+        const t = window.TrelloPowerUp?.iframe?.();
+        const token = t ? await t.get("member", "private", "token") : null;
+        if (!token) { setLoading(false); return; }
+
         const isListScoped = mode === "list" || statType === "cardsInList";
         let allCards;
         if (isListScoped && listId) {
@@ -327,11 +428,7 @@ function CardDetailsView() {
         }
 
         const mid = await getMemberId(key, token);
-        const allBoardLists = await getBoardLists(
-          key,
-          token,
-          boardId || "p8fosANE",
-        );
+        const allBoardLists = await getBoardLists(key, token, boardId);
         const cardlyticsListIds = allBoardLists
           .filter((l) => l.name.toLowerCase() === "cardlytics")
           .map((l) => l.id);
@@ -341,6 +438,7 @@ function CardDetailsView() {
             !isTrackerCardDisplay(c.name) &&
             !cardlyticsListIds.includes(c.idList),
         );
+
         const now = new Date();
         const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         const fourteenAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
@@ -398,8 +496,7 @@ function CardDetailsView() {
           if (boardRes.ok) setBoardName((await boardRes.json()).name);
         }
 
-        const resolvedBoardId = boardId || "p8fosANE";
-        const boardLists = await getBoardLists(key, token, resolvedBoardId);
+        const boardLists = await getBoardLists(key, token, boardId);
         const lmap = {};
         boardLists.forEach((l) => (lmap[l.id] = l.name));
         setListMap(lmap);
@@ -428,22 +525,15 @@ function CardDetailsView() {
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       let va, vb;
-      if (sortCol === "name") {
-        va = a.name;
-        vb = b.name;
-      } else if (sortCol === "due") {
-        va = a.due || "";
-        vb = b.due || "";
-      } else if (sortCol === "created") {
+      if (sortCol === "name") { va = a.name; vb = b.name; }
+      else if (sortCol === "due") { va = a.due || ""; vb = b.due || ""; }
+      else if (sortCol === "created") {
         va = cardCreatedDate(a.id).getTime();
         vb = cardCreatedDate(b.id).getTime();
       } else if (sortCol === "modified") {
         va = a.dateLastActivity || "";
         vb = b.dateLastActivity || "";
-      } else {
-        va = "";
-        vb = "";
-      }
+      } else { va = ""; vb = ""; }
       if (va < vb) return sortAsc ? -1 : 1;
       if (va > vb) return sortAsc ? 1 : -1;
       return 0;
@@ -451,10 +541,7 @@ function CardDetailsView() {
 
   function handleSort(col) {
     if (sortCol === col) setSortAsc((s) => !s);
-    else {
-      setSortCol(col);
-      setSortAsc(true);
-    }
+    else { setSortCol(col); setSortAsc(true); }
   }
 
   function SortArrow({ col }) {
@@ -477,20 +564,11 @@ function CardDetailsView() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          background: "#1a1a1a",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "'DM Sans', sans-serif",
-          gap: 10,
-          color: "#666",
-          fontSize: 13,
-        }}
-      >
+      <div style={{
+        width: "100%", height: "100%", background: "#1a1a1a",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'DM Sans', sans-serif", gap: 10, color: "#666", fontSize: 13,
+      }}>
         <div className="cb-spinner" />
         <span>Loading...</span>
       </div>
@@ -503,26 +581,10 @@ function CardDetailsView() {
     { value: fullStats.assigned, label: "Assigned to me", accent: "#4ea1ff" },
     { value: fullStats.dueThisWeek, label: "Due this week", accent: "#f9c74f" },
     { value: fullStats.overdue, label: "Overdue cards", accent: "#ff5252" },
-    {
-      value: fullStats.unassigned,
-      label: "Unassigned cards",
-      accent: "#ab47bc",
-    },
-    {
-      value: fullStats.withLabel,
-      label: "Cards with a label",
-      accent: "#ff9800",
-    },
-    {
-      value: fullStats.stale,
-      label: "Stale (14+ days inactive)",
-      accent: "#888",
-    },
-    {
-      value: fullStats.createdToday,
-      label: "Created today",
-      accent: "#2ec4b6",
-    },
+    { value: fullStats.unassigned, label: "Unassigned cards", accent: "#ab47bc" },
+    { value: fullStats.withLabel, label: "Cards with a label", accent: "#ff9800" },
+    { value: fullStats.stale, label: "Stale (14+ days inactive)", accent: "#888" },
+    { value: fullStats.createdToday, label: "Created today", accent: "#2ec4b6" },
   ];
 
   return (
@@ -537,27 +599,20 @@ function CardDetailsView() {
             className="cd-stat-card"
             style={{ borderLeft: `3px solid ${s.accent}` }}
           >
-            <div
-              className="cd-stat-num"
-              style={{ color: s.value > 0 ? s.accent : "#666" }}
-            >
+            <div className="cd-stat-num" style={{ color: s.value > 0 ? s.accent : "#666" }}>
               {s.value}
             </div>
             <div className="cd-stat-lbl">{s.label}</div>
           </div>
         ))}
-        <div className="add-filter-card" style={{ marginTop: 4 }}>
-          + Add filter
-        </div>
+        <div className="add-filter-card" style={{ marginTop: 4 }}>+ Add filter</div>
       </div>
 
       <div className="cd-right">
         <div className="cd-banner">
           <div className="cd-banner-count">{detailStats.total}</div>
           <div>
-            <div className="cd-banner-title">
-              {STAT_LABELS[statType] || "Cards"}
-            </div>
+            <div className="cd-banner-title">{STAT_LABELS[statType] || "Cards"}</div>
             <div className="cd-banner-sub">
               {isListScoped ? `In list: ${listName}` : `Board: ${boardName}`}
             </div>
@@ -599,10 +654,7 @@ function CardDetailsView() {
           </div>
         </div>
 
-        <div
-          className="cd-toolbar"
-          style={{ borderTop: "none", paddingTop: 6 }}
-        >
+        <div className="cd-toolbar" style={{ borderTop: "none", paddingTop: 6 }}>
           <div className="cd-search">
             <span style={{ color: "#555", fontSize: 13 }}>🔍</span>
             <input
@@ -618,9 +670,7 @@ function CardDetailsView() {
         </div>
 
         <div className="cd-created-by">
-          <div className="cd-mini-avatar" style={{ background: "#e85d2e" }}>
-            SR
-          </div>
+          <div className="cd-mini-avatar" style={{ background: "#e85d2e" }}>SR</div>
           <span>Created by</span>
           <span className="cd-created-name">Cardlytics</span>
         </div>
@@ -630,35 +680,20 @@ function CardDetailsView() {
             <table className="cd-table">
               <thead>
                 <tr>
-                  <th onClick={() => handleSort("name")}>
-                    Name <SortArrow col="name" />
-                  </th>
+                  <th onClick={() => handleSort("name")}>Name <SortArrow col="name" /></th>
                   <th>Assigned</th>
                   <th>Board</th>
                   <th>Done</th>
-                  <th onClick={() => handleSort("created")}>
-                    Created <SortArrow col="created" />
-                  </th>
-                  <th onClick={() => handleSort("due")}>
-                    Due <SortArrow col="due" />
-                  </th>
-                  <th onClick={() => handleSort("modified")}>
-                    Last Modified <SortArrow col="modified" />
-                  </th>
+                  <th onClick={() => handleSort("created")}>Created <SortArrow col="created" /></th>
+                  <th onClick={() => handleSort("due")}>Due <SortArrow col="due" /></th>
+                  <th onClick={() => handleSort("modified")}>Last Modified <SortArrow col="modified" /></th>
                   <th>List</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={8}
-                      style={{
-                        textAlign: "center",
-                        color: "#555",
-                        padding: "20px",
-                      }}
-                    >
+                    <td colSpan={8} style={{ textAlign: "center", color: "#555", padding: "20px" }}>
                       No cards found
                     </td>
                   </tr>
@@ -667,23 +702,14 @@ function CardDetailsView() {
                   <tr key={card.id}>
                     <td className="td-name">
                       {card.labels?.length > 0 && (
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            gap: 3,
-                            marginRight: 6,
-                          }}
-                        >
+                        <span style={{ display: "inline-flex", gap: 3, marginRight: 6 }}>
                           {card.labels.map((lbl, i) => (
                             <span
                               key={i}
                               style={{
-                                width: 10,
-                                height: 10,
-                                borderRadius: 2,
+                                width: 10, height: 10, borderRadius: 2,
                                 background: LABEL_COLORS[lbl.color] || "#888",
-                                display: "inline-block",
-                                verticalAlign: "middle",
+                                display: "inline-block", verticalAlign: "middle",
                               }}
                             />
                           ))}
@@ -697,11 +723,7 @@ function CardDetailsView() {
                           {card.idMembers.map((mid) => {
                             const m = memberMap[mid];
                             return (
-                              <div
-                                key={mid}
-                                className="cd-mini-avatar"
-                                style={{ background: memberColor(mid) }}
-                              >
+                              <div key={mid} className="cd-mini-avatar" style={{ background: memberColor(mid) }}>
                                 {m?.initials || mid.slice(0, 2).toUpperCase()}
                               </div>
                             );
@@ -713,40 +735,20 @@ function CardDetailsView() {
                     </td>
                     <td className="td-board">● {boardName}</td>
                     <td>
-                      <span
-                        style={{
-                          width: 14,
-                          height: 14,
-                          border: "1px solid #444",
-                          borderRadius: 3,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          background: card.dueComplete
-                            ? "#0a3d0a"
-                            : "transparent",
-                        }}
-                      >
-                        {card.dueComplete && (
-                          <span style={{ color: "#4caf50", fontSize: 10 }}>
-                            ✓
-                          </span>
-                        )}
+                      <span style={{
+                        width: 14, height: 14, border: "1px solid #444",
+                        borderRadius: 3, display: "inline-flex",
+                        alignItems: "center", justifyContent: "center",
+                        background: card.dueComplete ? "#0a3d0a" : "transparent",
+                      }}>
+                        {card.dueComplete && <span style={{ color: "#4caf50", fontSize: 10 }}>✓</span>}
                       </span>
                     </td>
-                    <td className="td-date">
-                      {formatDate(cardCreatedDate(card.id).toISOString())}
-                    </td>
+                    <td className="td-date">{formatDate(cardCreatedDate(card.id).toISOString())}</td>
+                    <td><DueChip due={card.due} dueComplete={card.dueComplete} /></td>
+                    <td className="td-date">{formatDate(card.dateLastActivity)}</td>
                     <td>
-                      <DueChip due={card.due} dueComplete={card.dueComplete} />
-                    </td>
-                    <td className="td-date">
-                      {formatDate(card.dateLastActivity)}
-                    </td>
-                    <td>
-                      <span className="td-list-tag">
-                        {listMap[card.idList] || listName}
-                      </span>
+                      <span className="td-list-tag">{listMap[card.idList] || listName}</span>
                     </td>
                   </tr>
                 ))}
@@ -756,18 +758,11 @@ function CardDetailsView() {
         )}
 
         {activeTab !== "table" && (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#555",
-              fontSize: 13,
-            }}
-          >
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} — coming
-            soon
+          <div style={{
+            flex: 1, display: "flex", alignItems: "center",
+            justifyContent: "center", color: "#555", fontSize: 13,
+          }}>
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} — coming soon
           </div>
         )}
 
@@ -781,8 +776,6 @@ function CardDetailsView() {
     </div>
   );
 }
-
-const BASE_URL = "https://api.trello.com/1";
 
 // ── Generate a cover image with the big number overlaid ──────────────────────
 const COVER_BG_COLORS = {
@@ -798,18 +791,15 @@ const COVER_BG_COLORS = {
 
 function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
   return new Promise((resolve) => {
-    const W = 800,
-      H = 320;
+    const W = 800, H = 320;
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext("2d");
 
     function drawNumber() {
-      // Dark scrim so the number is readable over any background
       ctx.fillStyle = "rgba(0,0,0,0.45)";
       ctx.fillRect(0, 0, W, H);
-
       const numStr = String(count);
       const fontSize = numStr.length > 3 ? 90 : numStr.length > 2 ? 110 : 130;
       ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
@@ -819,30 +809,24 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
       ctx.shadowColor = "rgba(0,0,0,0.5)";
       ctx.shadowBlur = 28;
       ctx.fillText(numStr, W / 2, H / 2);
-
       resolve(canvas.toDataURL("image/jpeg", 0.92));
     }
 
     if (bgImageDataUrl) {
-      // Draw user's custom image as background, then overlay the number
       const img = new Image();
       img.onload = () => {
-        // Cover-fit: fill canvas, center crop
         const scale = Math.max(W / img.width, H / img.height);
-        const sw = img.width * scale,
-          sh = img.height * scale;
+        const sw = img.width * scale, sh = img.height * scale;
         ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
         drawNumber();
       };
       img.onerror = () => {
-        // Fallback to color background if image fails
         ctx.fillStyle = COVER_BG_COLORS[colorName] || "#1565c0";
         ctx.fillRect(0, 0, W, H);
         drawNumber();
       };
       img.src = bgImageDataUrl;
     } else {
-      // Solid color background + subtle gradient
       const bg = COVER_BG_COLORS[colorName] || "#1565c0";
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, W, H);
@@ -863,9 +847,6 @@ export default function App() {
   const view = params.get("view");
   const listId = params.get("listId");
 
-  if (view === "card") return <CardBackView />;
-  if (view === "card-details") return <CardDetailsView />;
-
   const [stats, setStats] = useState({
     assigned: 0,
     dueThisWeek: 0,
@@ -877,22 +858,22 @@ export default function App() {
     cardsInList: 0,
   });
   const [selectedStats, setSelectedStats] = useState([]);
-  const [lastUpdated, setLastUpdated] = useState(
-    new Date().toLocaleTimeString(),
-  );
+  const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString());
   const [lists, setLists] = useState([]);
   const [selectedListId, setSelectedListId] = useState("");
   const [selectedListCount, setSelectedListCount] = useState(null);
   const [trackingListName, setTrackingListName] = useState("");
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
-
-  // ── Customize state ──────────────────────────────────────────────────────
   const [showCustomize, setShowCustomize] = useState(false);
   const [customizeStat, setCustomizeStat] = useState(null);
-  // cardConfig stores per-stat overrides saved from the Customize modal
-  // shape: { [statType]: { cardName: string, cover: string, ... } }
   const [cardConfig, setCardConfig] = useState({});
+
+  // ── Early returns AFTER all hooks ────────────────────────────────────────
+  if (view === "card") return <CardBackView />;
+  if (view === "card-details") return <CardDetailsView />;
+  if (mode === "onboarding") return <OnboardingView />;
+  if (mode === "settings") return <SettingsView />;
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -906,9 +887,12 @@ export default function App() {
 
   async function fetchData() {
     try {
+      const t = window.TrelloPowerUp?.iframe?.();
       const key = import.meta.env.VITE_TRELLO_API_KEY;
-      const token = import.meta.env.VITE_TRELLO_TOKEN;
-      const boardId = "p8fosANE";
+      const token = t ? await t.get("member", "private", "token") : null;
+      if (!token) return;
+      const board = await t.board("id");
+      const boardId = board.id;
 
       const cards =
         mode === "list" && listId
@@ -925,7 +909,6 @@ export default function App() {
       );
       const memberId = await getMemberId(key, token);
 
-      // Fetch member full name for Customize modal avatar
       if (memberId) {
         const memberDetails = await getMemberDetails(key, token, memberId);
         setMemberFullName(memberDetails?.fullName || "");
@@ -934,72 +917,6 @@ export default function App() {
       const computed = computeStats(filteredForStats, memberId);
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
       setStats(computed);
-
-      // ── Auto-sync tracker cards ─────────────────────────────
-      try {
-        const allLists = await getBoardLists(key, token, boardId);
-        const cardlyticsList = allLists.find((l) => l.name === "Cardlytics");
-
-        if (cardlyticsList) {
-          const trackerCards = (
-            await getListCards(key, token, cardlyticsList.id)
-          ).filter((c) => isTrackerCard(c.name));
-
-          for (const card of trackerCards) {
-            // Get statType directly from the meta tag instead of parsing the name
-            const statMatch = card.desc?.match(/statType:(\w+)/);
-            if (!statMatch) continue; // Skip old cards that don't have the new meta format
-
-            const type = statMatch[1]; // This will be "overdue", "assigned", etc.
-
-            // 🔥 Detect board/list mode from meta
-            const metaMatch = card.desc?.match(
-              /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
-            );
-
-            const cardMode = metaMatch ? metaMatch[1] : "board";
-            const cardListId = metaMatch ? metaMatch[2] : null;
-
-            let newCount = 0;
-
-            // ✅ Handle LIST vs BOARD correctly
-            if (cardMode === "list" && cardListId) {
-              const listCards = await getListCards(key, token, cardListId);
-              const listStats = computeStats(
-                listCards.filter((c) => !isTrackerCard(c.name)),
-                memberId,
-              );
-              newCount = listStats[type] ?? 0;
-            } else {
-              newCount = computed[type] ?? 0;
-            }
-
-            // Skip if same count
-            const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1] ?? "-1");
-            if (oldCount === newCount) continue;
-
-            // Update description
-            const metaTag =
-              card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
-
-            const defaults = DEFAULT_STAT_CONFIG[type];
-            const newCardName = `${defaults.name} — ${newCount}`;
-
-            await updateCard(key, token, card.id, {
-              name: newCardName,
-              desc: `${newCount} card(s) tracked by Cardlytics.${metaTag ? `\n\n${metaTag}` : ""}`,
-            });
-
-            // 🔥 Generate NEW image with updated count
-            const statColor = DEFAULT_STAT_CONFIG[type]?.cover || "blue";
-            const newCover = await generateStatCoverImage(newCount, statColor);
-            await updateCardCover(key, token, card.id, newCover);
-          }
-        }
-      } catch (err) {
-        console.warn("Sync failed:", err);
-      }
-
       setLastUpdated(new Date().toLocaleTimeString());
 
       const boardLists = await getBoardLists(key, token, boardId);
@@ -1007,7 +924,7 @@ export default function App() {
 
       if (mode === "list" && listId) {
         const listRes = await fetch(
-          `${BASE_URL}/lists/${listId}?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${import.meta.env.VITE_TRELLO_TOKEN}&fields=name`,
+          `${BASE_URL}/lists/${listId}?key=${key}&token=${token}&fields=name`,
         );
         if (listRes.ok) setTrackingListName((await listRes.json()).name);
       } else {
@@ -1024,12 +941,11 @@ export default function App() {
   async function handleListChange(e) {
     const id = e.target.value;
     setSelectedListId(id);
-    if (!id) {
-      setSelectedListCount(null);
-      return;
-    }
+    if (!id) { setSelectedListCount(null); return; }
+    const t = window.TrelloPowerUp?.iframe?.();
     const key = import.meta.env.VITE_TRELLO_API_KEY;
-    const token = import.meta.env.VITE_TRELLO_TOKEN;
+    const token = t ? await t.get("member", "private", "token") : null;
+    if (!token) return;
     const cards = await getListCards(key, token, id);
     setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
@@ -1039,8 +955,6 @@ export default function App() {
   }, []);
 
   // ── TRACK ────────────────────────────────────────────────────────────────
-  // statsOverride and configOverride let onSave call this directly with fresh
-  // values, bypassing the stale-closure problem with React state.
   const handleTrack = async (statsOverride, configOverride) => {
     const statsToTrack = statsOverride ?? selectedStats;
     const configToUse = configOverride ?? cardConfig;
@@ -1050,9 +964,12 @@ export default function App() {
       return;
     }
     try {
+      const t = window.TrelloPowerUp?.iframe?.();
       const key = import.meta.env.VITE_TRELLO_API_KEY;
-      const token = import.meta.env.VITE_TRELLO_TOKEN;
-      const boardId = "p8fosANE";
+      const token = t ? await t.get("member", "private", "token") : null;
+      if (!token) { showToast("Not authorized", "error"); return; }
+      const board = await t.board("id");
+      const boardId = board.id;
 
       let targetListId;
       if (mode === "list" && listId) {
@@ -1066,10 +983,8 @@ export default function App() {
         targetListId = cardlyticsList.id;
         setTrackingListName("Cardlytics");
       }
-      if (!targetListId) {
-        showToast("List not found", "error");
-        return;
-      }
+
+      if (!targetListId) { showToast("List not found", "error"); return; }
 
       for (const stat of statsToTrack) {
         const defaults = DEFAULT_STAT_CONFIG[stat];
@@ -1081,36 +996,43 @@ export default function App() {
             ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
             : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
 
-        // Card name has NO count — the count is shown as a big number on the cover image
         const cardName = saved?.cardName || defaults.name;
-
         const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
-
         const cover = saved?.cover || defaults.cover;
 
-        // Always generate a cover image with the big count number.
-        // If the user uploaded a custom image, use it as the background and
-        // draw the number on top of it.
         const coverImageDataUrl = await generateStatCoverImage(
           count,
           cover,
           saved?.coverImage || null,
         );
 
-        await createCard(
-          key,
-          token,
-          targetListId,
-          cardName,
-          desc,
-          cover,
-          coverImageDataUrl,
-        );
+        await createCard(key, token, targetListId, cardName, desc, cover, coverImageDataUrl);
       }
 
-      showToast(
-        `${statsToTrack.length} card(s) added to "${trackingListName}" ✅`,
-      );
+      // ── Auto-register webhook once per board ──────────────────────────
+      try {
+        const alreadyRegistered = await t.get("board", "shared", "webhookRegistered");
+        if (!alreadyRegistered) {
+          const whRes = await fetch("https://api.trello.com/1/webhooks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              key,
+              token,
+              callbackURL: "https://cardlytics-powerup.vercel.app/api/webhook",
+              idModel: boardId,
+              description: "Cardlytics auto-sync",
+            }),
+          });
+          if (whRes.ok) {
+            await t.set("board", "shared", "webhookRegistered", true);
+          }
+        }
+      } catch (err) {
+        console.warn("Webhook registration skipped:", err);
+      }
+
+      showToast(`${statsToTrack.length} card(s) added to "${trackingListName}" ✅`);
       setSelectedStats([]);
     } catch (err) {
       console.error("Trello API Error:", err);
@@ -1122,7 +1044,6 @@ export default function App() {
     <div className="popup">
       <Toast toast={toast} />
 
-      {/* ── Customize modal (two-step: stat picker → card config) ── */}
       <CustomizeFlow
         show={showCustomize}
         lists={lists}
@@ -1131,13 +1052,10 @@ export default function App() {
         customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
         onSave={async (type, cfg) => {
-          // Build the new config synchronously so handleTrack gets fresh values
-          // (setState is async — can't rely on cardConfig being updated yet)
           const newConfig = { ...cardConfig, [type]: cfg };
           setCardConfig(newConfig);
           setShowCustomize(false);
           setCustomizeStat(null);
-          // Track immediately — no need to go back and click Track
           await handleTrack([type], newConfig);
         }}
         onClose={() => {
@@ -1169,10 +1087,7 @@ export default function App() {
           >
             All Cards
           </button>
-          <button
-            className="btn-customize"
-            onClick={() => setShowCustomize(true)}
-          >
+          <button className="btn-customize" onClick={() => setShowCustomize(true)}>
             Customize
           </button>
         </div>
@@ -1188,118 +1103,49 @@ export default function App() {
         )}
 
         <Section title="MY WORK">
-          <StatCard
-            value={stats.assigned}
-            label="Assigned to me across workspace"
-            tag="live"
-            type="assigned"
-            onClick={handleStatClick}
-            selected={selectedStats}
-          />
-          <StatCard
-            value={stats.dueThisWeek}
-            label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
-            type="dueThisWeek"
-            onClick={handleStatClick}
-            selected={selectedStats}
-          />
-          <StatCard
-            value={stats.overdue}
-            label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
-            tag="hot"
-            type="overdue"
-            onClick={handleStatClick}
-            selected={selectedStats}
-          />
+          <StatCard value={stats.assigned} label="Assigned to me across workspace" tag="live" type="assigned" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.dueThisWeek} label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.overdue} label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} tag="hot" type="overdue" onClick={handleStatClick} selected={selectedStats} />
         </Section>
 
         <Section title="BOARD INSIGHTS">
-          <StatCard
-            value={stats.unassigned}
-            label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
-            type="unassigned"
-            onClick={handleStatClick}
-            selected={selectedStats}
-          />
-          <StatCard
-            value={stats.withLabel}
-            label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
-            type="withLabel"
-            onClick={handleStatClick}
-            selected={selectedStats}
-          />
-          <StatCard
-            value={stats.stale}
-            label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
-            type="stale"
-            onClick={handleStatClick}
-            selected={selectedStats}
-          />
+          <StatCard value={stats.unassigned} label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="unassigned" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.withLabel} label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="withLabel" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard value={stats.stale} label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="stale" onClick={handleStatClick} selected={selectedStats} />
         </Section>
 
         <Section title="ACTIVITY">
-          <StatCard
-            value={stats.createdToday}
-            label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
-            type="createdToday"
-            onClick={handleStatClick}
-            selected={selectedStats}
-          />
+          <StatCard value={stats.createdToday} label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} />
 
           {mode === "board" && (
             <div
               className={`card list-picker ${selectedListId && selectedStats.includes("cardsInList") ? "selected" : ""}`}
-              onClick={() => {
-                if (selectedListId) handleStatClick("cardsInList");
-              }}
+              onClick={() => { if (selectedListId) handleStatClick("cardsInList"); }}
             >
               <div className="list-picker-top">
-                {selectedListCount !== null && (
-                  <div className="card-value">{selectedListCount}</div>
-                )}
-                <select
-                  className="list-dropdown"
-                  value={selectedListId}
-                  onChange={handleListChange}
-                  onClick={(e) => e.stopPropagation()}
-                >
+                {selectedListCount !== null && <div className="card-value">{selectedListCount}</div>}
+                <select className="list-dropdown" value={selectedListId} onChange={handleListChange} onClick={(e) => e.stopPropagation()}>
                   <option value="">Select a list</option>
                   {lists.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
+                    <option key={l.id} value={l.id}>{l.name}</option>
                   ))}
                 </select>
               </div>
               <div className="card-label">
-                {selectedListId
-                  ? "Click to select · Cards in list"
-                  : "Select a list first"}
+                {selectedListId ? "Click to select · Cards in list" : "Select a list first"}
               </div>
             </div>
           )}
 
           {mode === "list" && (
-            <StatCard
-              value={stats.cardsInList}
-              label="Cards in this list"
-              type="cardsInList"
-              onClick={handleStatClick}
-              selected={selectedStats}
-            />
+            <StatCard value={stats.cardsInList} label="Cards in this list" type="cardsInList" onClick={handleStatClick} selected={selectedStats} />
           )}
 
           <div className="add-filter-card">+ Add filter</div>
         </Section>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          padding: "8px 12px",
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 12px" }}>
         <button
           className="btn-customize"
           onClick={() => handleTrack()}
@@ -1327,9 +1173,7 @@ export default function App() {
         </div>
         <div className="footer-right">
           <span className="footer-text">Updated: {lastUpdated}</span>
-          <button className="btn-refresh" onClick={fetchData}>
-            ↻
-          </button>
+          <button className="btn-refresh" onClick={fetchData}>↻</button>
         </div>
       </div>
     </div>
