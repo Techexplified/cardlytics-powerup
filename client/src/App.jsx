@@ -56,8 +56,19 @@ function cardCreatedDate(cardId) {
   return new Date(ts);
 }
 
-const isTrackerCard = (card) =>
-  card.desc?.includes("cardlytics:statType");
+const isTrackerCard = (name) => {
+  const lower = name.toLowerCase();
+  return [
+    "assigned to me",
+    "due this week",
+    "overdue cards",
+    "unassigned cards",
+    "cards with a label",
+    "stale cards",
+    "created today",
+    "cards in list",
+  ].some((p) => lower.includes(p));
+};
 
 const isTrackerCardDisplay = (name) => {
   const lower = name.toLowerCase();
@@ -168,17 +179,23 @@ function CardBackView() {
   function handleOpenDetails() {
     if (!t) return;
     t.card("id", "idList", "name", "desc").then((card) => {
-    
-     
+      const nameMap = [
+        { prefix: "📌 Assigned to Me", type: "assigned" },
+        { prefix: "📅 Due This Week", type: "dueThisWeek" },
+        { prefix: "⚠️ Overdue Cards", type: "overdue" },
+        { prefix: "👤 Unassigned Cards", type: "unassigned" },
+        { prefix: "🏷️ Cards With Label", type: "withLabel" },
+        { prefix: "💤 Stale Cards", type: "stale" },
+        { prefix: "✨ Created Today", type: "createdToday" },
+        { prefix: "📋 Cards in List", type: "cardsInList" },
+      ];
+      const statType =
+        nameMap.find((m) =>
+          card.name.toLowerCase().startsWith(m.prefix.toLowerCase()),
+        )?.type || "all";
       const metaMatch = card.desc?.match(
-        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-z0-9]+))?/,
+        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
       );
-
-      const statMatch = card.desc?.match(
-  /\[_\]: cardlytics:statType:(\w+)/
-);
-
-const statType = statMatch ? statMatch[1] : "all";
       const cardMode = metaMatch ? metaMatch[1] : "board";
       const resolvedListId = metaMatch ? metaMatch[2] || card.idList : null;
       t.board("id").then((board) => {
@@ -328,21 +345,19 @@ function CardDetailsView() {
 
         const fn = filterMap[statType] || (() => true);
         const filteredCards = allCards
-         .filter((c) => !isTrackerCard(c))
+          .filter((c) => !isTrackerCard(c.name))
           .filter(fn);
 
         setCards(filteredCards);
         setDetailStats(computeDetailStats(filteredCards));
 
         const computed = computeStats(
-          allCards.filter(
-  (c) => !isTrackerCardDisplay(c.name)
-),
+          allCards.filter((c) => !isTrackerCard(c.name)),
           mid,
         );
         computed.cardsInList = isListScoped
-  ? allCards.filter((c) => !isTrackerCardDisplay(c.name)).length
-  : 0;
+          ? allCards.filter((c) => !isTrackerCard(c.name)).length
+          : 0;
         setFullStats(computed);
 
         if (listId) {
@@ -888,7 +903,7 @@ export default function App() {
         .map((l) => l.id);
 
       const filteredForStats = cards.filter(
-        (c) =>!isTrackerCard(c) &&!cardlyticsListIds.includes(c.idList),
+        (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
       );
       const memberId = await getMemberId(key, token);
 
@@ -910,7 +925,7 @@ export default function App() {
         if (cardlyticsList) {
           const trackerCards = (
             await getListCards(key, token, cardlyticsList.id)
-          ).filter((c) => isTrackerCard(c));;
+          ).filter((c) => isTrackerCard(c.name));
 
           const nameToType = {
             "assigned to me": "assigned",
@@ -1011,7 +1026,7 @@ export default function App() {
     const key = import.meta.env.VITE_TRELLO_API_KEY;
     const token = import.meta.env.VITE_TRELLO_TOKEN;
     const cards = await getListCards(key, token, id);
-    setSelectedListCount(cards.filter((c) => !isTrackerCard(c)).length);
+    setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
 
   useEffect(() => {
@@ -1064,7 +1079,7 @@ export default function App() {
         // Card name has NO count — the count is shown as a big number on the cover image
         const cardName = saved?.cardName || defaults.name;
 
-      const desc = `${count} card(s) tracked by Cardlytics.${metaTag}\n[_]: cardlytics:statType:${stat}`;
+        const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
 
         const cover = saved?.cover || defaults.cover;
 
