@@ -159,15 +159,17 @@ function CardBackView() {
   }
 
   function handleStartTracking() {
-    if (!t) return;
-    t.board("id").then((board) => {
-      t.modal({
-        title: "Cardlytics",
-        url: `./index.html?boardId=${board.id}`,
-        fullscreen: true,
-      });
+  if (!t) return;
+  t.board("id").then((board) => {
+    t.modal({
+      title: "Cardlytics",
+      url: `./index.html?boardId=${board.id}`,
+      fullscreen: false,
+      width: 740,
+      height: 600,
     });
-  }
+  });
+}
 
   return (
     <div
