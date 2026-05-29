@@ -70,14 +70,6 @@ const isTrackerCard = (name) => {
   ].some((p) => lower.includes(p));
 };
 
-function isRealCard(card, cardlyticsListIds) {
-  return (
-    !isTrackerCard(card.name) &&
-    !isTrackerCardDisplay(card.name) &&
-    !cardlyticsListIds.includes(card.idList)
-  );
-}
-
 const isTrackerCardDisplay = (name) => {
   const lower = name.toLowerCase();
   const PREFIXES = [
@@ -149,40 +141,40 @@ function CardBackView() {
   const [isTracker, setIsTracker] = useState(false);
 
   useEffect(() => {
-    if (!t) return;
-    t.card("name", "idList", "desc").then((card) => {
-      // 1. Check prefix match (emoji tracker cards)
-      const matchesPrefix = TRACKER_PREFIXES.some((p) =>
-        card.name.toLowerCase().startsWith(p.toLowerCase()),
-      );
+  if (!t) return;
+  t.card("name", "idList", "desc").then((card) => {
+    // 1. Check prefix match (emoji tracker cards)
+    const matchesPrefix = TRACKER_PREFIXES.some((p) =>
+      card.name.toLowerCase().startsWith(p.toLowerCase())
+    );
 
-      // 2. Check description for Cardlytics meta tag (covers ALL tracker cards
-      //    including custom-named ones like "Assigned to me on all Workspace boards")
-      const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
+    // 2. Check description for Cardlytics meta tag (covers ALL tracker cards
+    //    including custom-named ones like "Assigned to me on all Workspace boards")
+    const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
 
-      if (matchesPrefix || hasMetaTag) {
-        setIsTracker(true);
-        return;
-      }
+    if (matchesPrefix || hasMetaTag) {
+      setIsTracker(true);
+      return;
+    }
 
-      // 3. Fallback: check if card lives in a list named "Cardlytics"
-      t.board("id").then((board) => {
-        const key = import.meta.env.VITE_TRELLO_API_KEY;
-        const token = import.meta.env.VITE_TRELLO_TOKEN;
-        fetch(
-          `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
-        )
-          .then((r) => r.json())
-          .then((lists) => {
-            const cardlyticsListIds = lists
-              .filter((l) => l.name.toLowerCase() === "cardlytics")
-              .map((l) => l.id);
-            setIsTracker(cardlyticsListIds.includes(card.idList));
-          })
-          .catch(() => setIsTracker(false));
-      });
+    // 3. Fallback: check if card lives in a list named "Cardlytics"
+    t.board("id").then((board) => {
+      const key = import.meta.env.VITE_TRELLO_API_KEY;
+      const token = import.meta.env.VITE_TRELLO_TOKEN;
+      fetch(
+        `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`
+      )
+        .then((r) => r.json())
+        .then((lists) => {
+          const cardlyticsListIds = lists
+            .filter((l) => l.name.toLowerCase() === "cardlytics")
+            .map((l) => l.id);
+          setIsTracker(cardlyticsListIds.includes(card.idList));
+        })
+        .catch(() => setIsTracker(false));
     });
-  }, []);
+  });
+}, []);
 
   function handleOpenDetails() {
     if (!t) return;
@@ -199,7 +191,7 @@ function CardBackView() {
       ];
       const statType =
         nameMap.find((m) =>
-          card.name.toLowerCase().includes(m.prefix.toLowerCase()),
+          card.name.toLowerCase().startsWith(m.prefix.toLowerCase()),
         )?.type || "all";
       const metaMatch = card.desc?.match(
         /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
@@ -326,7 +318,11 @@ function CardDetailsView() {
           .filter((l) => l.name.toLowerCase() === "cardlytics")
           .map((l) => l.id);
 
-        allCards = allCards.filter((c) => isRealCard(c, cardlyticsListIds));
+        allCards = allCards.filter(
+          (c) =>
+            !isTrackerCardDisplay(c.name) &&
+            !cardlyticsListIds.includes(c.idList),
+        );
         const now = new Date();
         const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         const fourteenAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
@@ -348,19 +344,19 @@ function CardDetailsView() {
         };
 
         const fn = filterMap[statType] || (() => true);
-        console.log("statType:", statType); 
         const filteredCards = allCards
+          .filter((c) => !isTrackerCard(c.name))
           .filter(fn);
 
         setCards(filteredCards);
         setDetailStats(computeDetailStats(filteredCards));
 
         const computed = computeStats(
-         allCards,
+          allCards.filter((c) => !isTrackerCard(c.name)),
           mid,
         );
         computed.cardsInList = isListScoped
-          ? allCards.length
+          ? allCards.filter((c) => !isTrackerCard(c.name)).length
           : 0;
         setFullStats(computed);
 
@@ -906,8 +902,8 @@ export default function App() {
         .filter((l) => l.name.toLowerCase() === "cardlytics")
         .map((l) => l.id);
 
-      const filteredForStats = cards.filter((c) =>
-        isRealCard(c, cardlyticsListIds),
+      const filteredForStats = cards.filter(
+        (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
       );
       const memberId = await getMemberId(key, token);
 
