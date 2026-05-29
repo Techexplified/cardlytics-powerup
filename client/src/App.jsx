@@ -141,67 +141,76 @@ function CardBackView() {
   const [isTracker, setIsTracker] = useState(false);
 
   useEffect(() => {
-    if (!t) return;
-    t.card("name", "idList").then((card) => {
-      const matchesPrefix = TRACKER_PREFIXES.some((p) =>
-        card.name.toLowerCase().startsWith(p.toLowerCase())
-      );
+  if (!t) return;
+  t.card("name", "idList", "desc").then((card) => {
+    // 1. Check prefix match (emoji tracker cards)
+    const matchesPrefix = TRACKER_PREFIXES.some((p) =>
+      card.name.toLowerCase().startsWith(p.toLowerCase())
+    );
 
-      if (matchesPrefix) {
-        setIsTracker(true);
-        return;
-      }
+    // 2. Check description for Cardlytics meta tag (covers ALL tracker cards
+    //    including custom-named ones like "Assigned to me on all Workspace boards")
+    const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
 
-      // Fallback: check if card is inside a list named "Cardlytics"
-      t.board("id").then((board) => {
-        const key = import.meta.env.VITE_TRELLO_API_KEY;
-        const token = import.meta.env.VITE_TRELLO_TOKEN;
-        fetch(
-          `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`
-        )
-          .then((r) => r.json())
-          .then((lists) => {
-            const cardlyticsListIds = lists
-              .filter((l) => l.name.toLowerCase() === "cardlytics")
-              .map((l) => l.id);
-            setIsTracker(cardlyticsListIds.includes(card.idList));
-          })
-          .catch(() => setIsTracker(false));
+    if (matchesPrefix || hasMetaTag) {
+      setIsTracker(true);
+      return;
+    }
+
+    // 3. Fallback: check if card lives in a list named "Cardlytics"
+    t.board("id").then((board) => {
+      const key = import.meta.env.VITE_TRELLO_API_KEY;
+      const token = import.meta.env.VITE_TRELLO_TOKEN;
+      fetch(
+        `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`
+      )
+        .then((r) => r.json())
+        .then((lists) => {
+          const cardlyticsListIds = lists
+            .filter((l) => l.name.toLowerCase() === "cardlytics")
+            .map((l) => l.id);
+          setIsTracker(cardlyticsListIds.includes(card.idList));
+        })
+        .catch(() => setIsTracker(false));
+    });
+  });
+}, []);
+
+function handleOpenDetails() {
+  if (!t) return;
+  t.card("id", "idList", "name", "desc").then((card) => {
+    const nameMap = [
+      { prefix: "📌 Assigned to Me", type: "assigned" },
+      { prefix: "📅 Due This Week", type: "dueThisWeek" },
+      { prefix: "⚠️ Overdue Cards", type: "overdue" },
+      { prefix: "👤 Unassigned Cards", type: "unassigned" },
+      { prefix: "🏷️ Cards With Label", type: "withLabel" },
+      { prefix: "💤 Stale Cards", type: "stale" },
+      { prefix: "✨ Created Today", type: "createdToday" },
+      { prefix: "📋 Cards in List", type: "cardsInList" },
+    ];
+
+    // Try prefix match first, then fall back to "all"
+    const statType =
+      nameMap.find((m) =>
+        card.name.toLowerCase().startsWith(m.prefix.toLowerCase())
+      )?.type || "all";
+
+    const metaMatch = card.desc?.match(
+      /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/
+    );
+    const cardMode = metaMatch ? metaMatch[1] : "board";
+    const resolvedListId = metaMatch ? metaMatch[2] || card.idList : null;
+
+    t.board("id").then((board) => {
+      t.modal({
+        title: "Cardlytics",
+        url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
+        fullscreen: true,
       });
     });
-  }, []);
-  
-  function handleOpenDetails() {
-    if (!t) return;
-    t.card("id", "idList", "name", "desc").then((card) => {
-      const nameMap = [
-        { prefix: "📌 Assigned to Me", type: "assigned" },
-        { prefix: "📅 Due This Week", type: "dueThisWeek" },
-        { prefix: "⚠️ Overdue Cards", type: "overdue" },
-        { prefix: "👤 Unassigned Cards", type: "unassigned" },
-        { prefix: "🏷️ Cards With Label", type: "withLabel" },
-        { prefix: "💤 Stale Cards", type: "stale" },
-        { prefix: "✨ Created Today", type: "createdToday" },
-        { prefix: "📋 Cards in List", type: "cardsInList" },
-      ];
-      const statType =
-        nameMap.find((m) =>
-          card.name.toLowerCase().startsWith(m.prefix.toLowerCase()),
-        )?.type || "all";
-      const metaMatch = card.desc?.match(
-        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
-      );
-      const cardMode = metaMatch ? metaMatch[1] : "board";
-      const resolvedListId = metaMatch ? metaMatch[2] || card.idList : null;
-      t.board("id").then((board) => {
-        t.modal({
-          title: "Cardlytics",
-          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
-          fullscreen: true,
-        });
-      });
-    });
-  }
+  });
+}
 
   function handleStartTracking() {
     if (!t) return;
