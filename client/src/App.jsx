@@ -140,24 +140,37 @@ function CardBackView() {
   const t = window.TrelloPowerUp?.iframe?.();
   const [isTracker, setIsTracker] = useState(false);
 
- useEffect(() => {
-  if (!t) return;
-  t.card("name", "idList").then((card) => {
-    t.board("lists").then((board) => {
-      const cardlyticsListIds = board.lists
-        .filter(l => l.name.toLowerCase() === "cardlytics")
-        .map(l => l.id);
-      
-      const matchesPrefix = TRACKER_PREFIXES.some(p =>
+  useEffect(() => {
+    if (!t) return;
+    t.card("name", "idList").then((card) => {
+      const matchesPrefix = TRACKER_PREFIXES.some((p) =>
         card.name.toLowerCase().startsWith(p.toLowerCase())
       );
-      const isInCardlyticsList = cardlyticsListIds.includes(card.idList);
-      
-      setIsTracker(matchesPrefix || isInCardlyticsList);
-    });
-  });
-}, []);
 
+      if (matchesPrefix) {
+        setIsTracker(true);
+        return;
+      }
+
+      // Fallback: check if card is inside a list named "Cardlytics"
+      t.board("id").then((board) => {
+        const key = import.meta.env.VITE_TRELLO_API_KEY;
+        const token = import.meta.env.VITE_TRELLO_TOKEN;
+        fetch(
+          `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`
+        )
+          .then((r) => r.json())
+          .then((lists) => {
+            const cardlyticsListIds = lists
+              .filter((l) => l.name.toLowerCase() === "cardlytics")
+              .map((l) => l.id);
+            setIsTracker(cardlyticsListIds.includes(card.idList));
+          })
+          .catch(() => setIsTracker(false));
+      });
+    });
+  }, []);
+  
   function handleOpenDetails() {
     if (!t) return;
     t.card("id", "idList", "name", "desc").then((card) => {
