@@ -1121,22 +1121,25 @@ export default function App() {
         </div>
         <div className="header-actions">
           <button
-            className="btn-customize"
-            onClick={() => {
-              const t = window.TrelloPowerUp?.iframe?.();
-              if (t) {
-                t.board("id").then((board) => {
-                  t.modal({
-                    title: "Cardlytics",
-                    url: `./index.html?view=card-details&boardId=${board.id}&statType=all&mode=board`,
-                    fullscreen: true,
-                  });
-                });
-              }
-            }}
-          >
-            All Cards
-          </button>
+  className="btn-customize"
+  onClick={() => {
+    const t = window.TrelloPowerUp?.iframe?.();
+    if (t) {
+      t.board("id").then((board) => {
+        t.closeModal();
+        setTimeout(() => {
+          t.modal({
+            title: "Cardlytics — All Cards",
+            url: `./index.html?view=card-details&boardId=${board.id}&statType=all&mode=board`,
+            fullscreen: true,
+          });
+        }, 100);
+      });
+    }
+  }}
+>
+  All Cards
+</button>
           <button
             className="btn-customize"
             onClick={() => setShowCustomize(true)}
