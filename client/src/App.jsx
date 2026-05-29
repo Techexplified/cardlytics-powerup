@@ -1126,14 +1126,11 @@ export default function App() {
     const t = window.TrelloPowerUp?.iframe?.();
     if (t) {
       t.board("id").then((board) => {
-        t.closeModal();
-        setTimeout(() => {
-          t.modal({
-            title: "Cardlytics — All Cards",
-            url: `./index.html?view=card-details&boardId=${board.id}&statType=all&mode=board`,
-            fullscreen: true,
-          });
-        }, 100);
+        t.modal({
+          title: "Cardlytics — All Cards",
+          url: `./index.html?view=card-details&boardId=${board.id}&statType=all&mode=board`,
+          fullscreen: true,
+        });
       });
     }
   }}
