@@ -8,9 +8,7 @@ import {
   getListCards,
   getBoardLists,
   createCard,
-  createList,
-  updateCard,
-  updateCardCover,
+  resolveTargetList,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import "./index.css";
@@ -111,10 +109,34 @@ function Toast({ toast }) {
   );
 }
 
+const TRACKER_PREFIXES = [
+  "📌 Assigned to Me",
+  "📅 Due This Week",
+  "⚠️ Overdue Cards",
+  "👤 Unassigned Cards",
+  "🏷️ Cards With Label",
+  "💤 Stale Cards",
+  "✨ Created Today",
+  "📋 Cards in List",
+];
+
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
 function CardBackView() {
-  function handleOpenCardlytics() {
-    const t = window.TrelloPowerUp?.iframe?.();
+  const t = window.TrelloPowerUp?.iframe?.();
+  const [isTracker, setIsTracker] = useState(false);
+
+  useEffect(() => {
+    if (!t) return;
+    t.card("name").then((card) => {
+      setIsTracker(
+        TRACKER_PREFIXES.some((p) =>
+          card.name.toLowerCase().startsWith(p.toLowerCase()),
+        ),
+      );
+    });
+  }, []);
+
+  function handleOpenDetails() {
     if (!t) return;
     t.card("id", "idList", "name", "desc").then((card) => {
       const nameMap = [
@@ -146,6 +168,17 @@ function CardBackView() {
     });
   }
 
+  function handleStartTracking() {
+    if (!t) return;
+    t.board("id").then((board) => {
+      t.modal({
+        title: "Cardlytics",
+        url: `./index.html?boardId=${board.id}`,
+        fullscreen: true,
+      });
+    });
+  }
+
   return (
     <div
       className="cb-root"
@@ -154,13 +187,28 @@ function CardBackView() {
       <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>
         Cardlytics
       </span>
-      <button
-        className="cb-btn-primary"
-        style={{ width: "auto", padding: "7px 16px", flexShrink: 0 }}
-        onClick={handleOpenCardlytics}
-      >
-        View Details
-      </button>
+      {isTracker ? (
+        <button
+          className="cb-btn-primary"
+          style={{ width: "auto", padding: "7px 16px", flexShrink: 0 }}
+          onClick={handleOpenDetails}
+        >
+          View Details
+        </button>
+      ) : (
+        <button
+          className="cb-btn-primary"
+          style={{
+            width: "auto",
+            padding: "7px 16px",
+            flexShrink: 0,
+            background: "#0052cc",
+          }}
+          onClick={handleStartTracking}
+        >
+          Start Tracking
+        </button>
+      )}
     </div>
   );
 }
@@ -862,6 +910,7 @@ export default function App() {
 
             // Skip if same count
             const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1] ?? "-1");
+            if (oldCount === newCount) continue; // skip entirely if count unchanged
 
             // Update description
             const metaTag =
@@ -896,7 +945,10 @@ export default function App() {
         );
         if (listRes.ok) setTrackingListName((await listRes.json()).name);
       } else {
-        if (boardLists.length > 0) setTrackingListName(boardLists[0].name);
+        const existing = boardLists.find(
+          (l) => l.name.toLowerCase() === "cardlytics",
+        );
+        setTrackingListName(existing?.name || boardLists[0]?.name || "");
       }
     } catch (err) {
       console.error(err);
@@ -991,31 +1043,36 @@ export default function App() {
       }
 
       // ── Auto-register webhook once per board ─────────────────────────
-try {
-  const t = window.TrelloPowerUp?.iframe();
-  if (t) {
-    const alreadyRegistered = await t.get('board', 'shared', 'webhookRegistered');
-    if (!alreadyRegistered) {
-      const whRes = await fetch("https://api.trello.com/1/webhooks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key,
-          token,
-          callbackURL: "https://cardlytics-powerup.vercel.app/api/webhook",
-          idModel: boardId,
-          description: "Cardlytics auto-sync"
-        })
-      });
-      if (whRes.ok) {
-        await t.set('board', 'shared', 'webhookRegistered', true);
-        console.log("✅ Webhook registered");
+      try {
+        const t = window.TrelloPowerUp?.iframe();
+        if (t) {
+          const alreadyRegistered = await t.get(
+            "board",
+            "shared",
+            "webhookRegistered",
+          );
+          if (!alreadyRegistered) {
+            const whRes = await fetch("https://api.trello.com/1/webhooks", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                key,
+                token,
+                callbackURL:
+                  "https://cardlytics-powerup.vercel.app/api/webhook",
+                idModel: boardId,
+                description: "Cardlytics auto-sync",
+              }),
+            });
+            if (whRes.ok) {
+              await t.set("board", "shared", "webhookRegistered", true);
+              console.log("✅ Webhook registered");
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Webhook registration skipped:", err);
       }
-    }
-  }
-} catch (err) {
-  console.warn("Webhook registration skipped:", err);
-}
 
       showToast(
         `${statsToTrack.length} card(s) added to "${trackingListName}" ✅`,
