@@ -917,10 +917,8 @@ export default function App() {
     setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
 
- useEffect(() => {
+useEffect(() => {
   fetchData();
-  const interval = setInterval(fetchData, 10000); // auto-refresh every 30s
-  return () => clearInterval(interval);
 }, []);
 
   // ── TRACK ────────────────────────────────────────────────────────────────
