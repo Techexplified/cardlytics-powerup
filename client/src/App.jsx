@@ -11,6 +11,8 @@ import {
   createList,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
+import LoginScreen from "./components/LoginScreen";
+import { getStoredToken, storeToken, clearToken } from "./utils/auth";
 import "./index.css";
 
 // ─── TRELLO LABEL COLOR MAP ───────────────────────────────────────────────────
@@ -863,6 +865,7 @@ export default function App() {
   const view = params.get("view");
   const listId = params.get("listId");
 
+  const [token, setToken] = useState(() => getStoredToken());
 
   const [stats, setStats] = useState({
     assigned: 0,
@@ -892,12 +895,21 @@ export default function App() {
   // shape: { [statType]: { cardName: string, cover: string, ... } }
   const [cardConfig, setCardConfig] = useState({});
 
-   useEffect(() => {
+  useEffect(() => {
     fetchData();
   }, []);
 
+  if (!token)
+    return (
+      <LoginScreen
+        onAuth={(t) => {
+          storeToken(t);
+          setToken(t);
+        }}
+      />
+    );
   if (view === "card") return <CardBackView />;
-if (view === "card-details") return <CardDetailsView />;
+  if (view === "card-details") return <CardDetailsView />;
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -912,7 +924,8 @@ if (view === "card-details") return <CardDetailsView />;
   async function fetchData() {
     try {
       const key = import.meta.env.VITE_TRELLO_API_KEY;
-      const token = import.meta.env.VITE_TRELLO_TOKEN;
+      const token = getStoredToken();
+      if (!token) return;
       const boardId = "p8fosANE";
 
       const cards =
@@ -939,8 +952,6 @@ if (view === "card-details") return <CardDetailsView />;
       const computed = computeStats(filteredForStats, memberId);
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
       setStats(computed);
-
-    
 
       setLastUpdated(new Date().toLocaleTimeString());
 
@@ -971,11 +982,11 @@ if (view === "card-details") return <CardDetailsView />;
       return;
     }
     const key = import.meta.env.VITE_TRELLO_API_KEY;
-    const token = import.meta.env.VITE_TRELLO_TOKEN;
+    const token = getStoredToken();
+    if (!token) return;
     const cards = await getListCards(key, token, id);
     setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
-
 
   // ── TRACK ────────────────────────────────────────────────────────────────
   // statsOverride and configOverride let onSave call this directly with fresh
@@ -990,7 +1001,11 @@ if (view === "card-details") return <CardDetailsView />;
     }
     try {
       const key = import.meta.env.VITE_TRELLO_API_KEY;
-      const token = import.meta.env.VITE_TRELLO_TOKEN;
+      const token = getStoredToken();
+      if (!token) {
+        showToast("Not authorized", "error");
+        return;
+      }
       const boardId = "p8fosANE";
 
       let targetListId;
