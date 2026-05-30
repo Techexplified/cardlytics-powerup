@@ -67,12 +67,9 @@
               height: 500,
             });
           },
-          "show-settings": function (t) {
-            return t.modal({
-              title: "Cardlytics Settings",
-              url: BASE_URL + "/index.html?mode=settings",
-              fullscreen: false,
-              height: 400,
+          "remove-personal-settings": function (t) {
+            return t.set("member", "private", "token", null).then(function () {
+              localStorage.removeItem("cardlytics_trello_token");
             });
           },
           "authorization-status": function (t) {
