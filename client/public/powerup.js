@@ -85,6 +85,6 @@ window.TrelloPowerUp.initialize({
 },
 
 }, {
-  appKey: key,      // ← this is what enables t.getRestApi()
+  appKey: key,     
   appName: 'Cardlytics'
 });
