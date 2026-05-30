@@ -863,8 +863,6 @@ export default function App() {
   const view = params.get("view");
   const listId = params.get("listId");
 
-  if (view === "card") return <CardBackView />;
-  if (view === "card-details") return <CardDetailsView />;
 
   const [stats, setStats] = useState({
     assigned: 0,
@@ -893,6 +891,13 @@ export default function App() {
   // cardConfig stores per-stat overrides saved from the Customize modal
   // shape: { [statType]: { cardName: string, cover: string, ... } }
   const [cardConfig, setCardConfig] = useState({});
+
+   useEffect(() => {
+    fetchData();
+  }, []);
+
+  if (view === "card") return <CardBackView />;
+if (view === "card-details") return <CardDetailsView />;
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -935,70 +940,7 @@ export default function App() {
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
       setStats(computed);
 
-      // ── Auto-sync tracker cards ─────────────────────────────
-      try {
-        const allLists = await getBoardLists(key, token, boardId);
-        const cardlyticsList = allLists.find((l) => l.name === "Cardlytics");
-
-        if (cardlyticsList) {
-          const trackerCards = (
-            await getListCards(key, token, cardlyticsList.id)
-          ).filter((c) => isTrackerCard(c.name));
-
-          for (const card of trackerCards) {
-            // Get statType directly from the meta tag instead of parsing the name
-            const statMatch = card.desc?.match(/statType:(\w+)/);
-            if (!statMatch) continue; // Skip old cards that don't have the new meta format
-
-            const type = statMatch[1]; // This will be "overdue", "assigned", etc.
-
-            // 🔥 Detect board/list mode from meta
-            const metaMatch = card.desc?.match(
-              /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
-            );
-
-            const cardMode = metaMatch ? metaMatch[1] : "board";
-            const cardListId = metaMatch ? metaMatch[2] : null;
-
-            let newCount = 0;
-
-            // ✅ Handle LIST vs BOARD correctly
-            if (cardMode === "list" && cardListId) {
-              const listCards = await getListCards(key, token, cardListId);
-              const listStats = computeStats(
-                listCards.filter((c) => !isTrackerCard(c.name)),
-                memberId,
-              );
-              newCount = listStats[type] ?? 0;
-            } else {
-              newCount = computed[type] ?? 0;
-            }
-
-            // Skip if same count
-            const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1] ?? "-1");
-            if (oldCount === newCount) continue;
-
-            // Update description
-            const metaTag =
-              card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
-
-            const defaults = DEFAULT_STAT_CONFIG[type];
-            const newCardName = `${defaults.name} — ${newCount}`;
-
-            await updateCard(key, token, card.id, {
-              name: newCardName,
-              desc: `${newCount} card(s) tracked by Cardlytics.${metaTag ? `\n\n${metaTag}` : ""}`,
-            });
-
-            // 🔥 Generate NEW image with updated count
-            const statColor = DEFAULT_STAT_CONFIG[type]?.cover || "blue";
-            const newCover = await generateStatCoverImage(newCount, statColor);
-            await updateCardCover(key, token, card.id, newCover);
-          }
-        }
-      } catch (err) {
-        console.warn("Sync failed:", err);
-      }
+    
 
       setLastUpdated(new Date().toLocaleTimeString());
 
@@ -1034,9 +976,6 @@ export default function App() {
     setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
 
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   // ── TRACK ────────────────────────────────────────────────────────────────
   // statsOverride and configOverride let onSave call this directly with fresh
