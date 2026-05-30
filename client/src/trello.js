@@ -110,6 +110,17 @@ export async function getBoardLists(key, token, boardId) {
   return res.json();
 }
 
+// ── Convert base64 data URL to Blob without fetch (avoids CSP issues) ────────
+function dataUrlToBlob(dataUrl) {
+  const base64Data = dataUrl.split(',')[1];
+  const byteCharacters = atob(base64Data);
+  const byteArray = new Uint8Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteArray[i] = byteCharacters.charCodeAt(i);
+  }
+  return new Blob([byteArray], { type: 'image/jpeg' });
+}
+
 // ── Create a Cardlytics tracker card ─────────────────────────────────────────
 export async function createCard(key, token, listId, name, desc, coverColor = "blue", coverImageDataUrl = null) {
   // Step 1: create the card
@@ -129,9 +140,7 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
   // Step 2a: if a custom image was provided, upload it as an attachment
   if (coverImageDataUrl) {
     try {
-      // Convert base64 data URL → Blob
-      const response = await fetch(coverImageDataUrl);
-      const blob = await response.blob();
+      const blob = dataUrlToBlob(coverImageDataUrl);
       const formData = new FormData();
       formData.append("key", key);
       formData.append("token", token);
@@ -197,7 +206,7 @@ export async function createList(key, token, boardId, name) {
 
 export async function updateCard(key, token, cardId, updates) {
   const params = new URLSearchParams({ key, token, ...updates });
-  const res = await fetch(`https://api.trello.com/1/cards/${cardId}`, {
+  const res = await fetch(`${BASE}/cards/${cardId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: params,
@@ -207,40 +216,36 @@ export async function updateCard(key, token, cardId, updates) {
 }
 
 export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
-  // Convert base64 to blob
-  const blob = await (await fetch(coverImageDataUrl)).blob();
+  const blob = dataUrlToBlob(coverImageDataUrl);
 
   const form = new FormData();
   form.append("file", blob, "cover.jpg");
   form.append("key", key);
   form.append("token", token);
 
-  // STEP 1: upload attachment
-  const attachRes = await fetch(
-    `https://api.trello.com/1/cards/${cardId}/attachments`,
-    {
-      method: "POST",
-      body: form,
-    }
-  );
+  // Step 1: upload attachment
+  const attachRes = await fetch(`${BASE}/cards/${cardId}/attachments`, {
+    method: "POST",
+    body: form,
+  });
+
+  if (!attachRes.ok) {
+    console.warn("Cover attachment upload failed:", await attachRes.text());
+    return;
+  }
 
   const attachment = await attachRes.json();
 
-  // STEP 2: SET IT AS COVER (THIS IS THE KEY 🔥)
-  await fetch(
-    `https://api.trello.com/1/cards/${cardId}?key=${key}&token=${token}`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
+  // Step 2: set it as cover
+  await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      cover: {
+        idAttachment: attachment.id,
+        size: "full",
+        brightness: "dark",
       },
-      body: JSON.stringify({
-        cover: {
-          idAttachment: attachment.id,
-          size: "full",
-          brightness: "dark",
-        },
-      }),
-    }
-  );
+    }),
+  });
 }
