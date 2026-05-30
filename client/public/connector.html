@@ -76,15 +76,15 @@
             });
           },
           "authorization-status": function (t) {
-            return t.get("member", "private", "token").then(function (token) {
-              return { authorized: !!token };
-            });
+            var token = localStorage.getItem("cardlytics_trello_token");
+            return { authorized: !!token };
           },
           "show-authorization": function (t) {
-            return t.popup({
+            return t.modal({
               title: "Connect Cardlytics",
               url: BASE_URL + "/index.html?mode=auth",
-              height: 200,
+              fullscreen: false,
+              height: 500,
             });
           },
         },
