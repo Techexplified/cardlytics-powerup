@@ -865,9 +865,8 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
 }
 
 function AuthView() {
-  const t = window.TrelloPowerUp?.iframe?.();
-
   async function handleAuth() {
+    const t = window.TrelloPowerUp.iframe();
     await t.getRestApi().authorize({
       scope: 'read,write',
       expiration: 'never'
