@@ -67,7 +67,7 @@
               height: 500,
             });
           },
-          "remove-personal-settings": function (t) {
+          "remove-data": function (t) {
             return t.set("member", "private", "token", null).then(function () {
               localStorage.removeItem("cardlytics_trello_token");
             });
