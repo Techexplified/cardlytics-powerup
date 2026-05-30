@@ -864,6 +864,37 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
   });
 }
 
+function AuthView() {
+  const t = window.TrelloPowerUp?.iframe?.();
+
+  async function handleAuth() {
+    await t.getRestApi().authorize({
+      scope: 'read,write',
+      expiration: 'never'
+    });
+    t.closePopup();
+  }
+
+  return (
+    <div style={{
+      padding: 24, background: '#1a1a1a', height: '100vh',
+      fontFamily: 'sans-serif', color: '#fff', display: 'flex',
+      flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16
+    }}>
+      <h3 style={{ margin: 0 }}>Connect Cardlytics</h3>
+      <p style={{ color: '#888', textAlign: 'center', margin: 0 }}>
+        Authorize access to your Trello boards.
+      </p>
+      <button onClick={handleAuth} style={{
+        padding: '10px 28px', background: '#0052cc', color: '#fff',
+        border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14
+      }}>
+        Authorize
+      </button>
+    </div>
+  );
+}
+
 function SettingsView() {
   const t = window.TrelloPowerUp?.iframe?.();
 
@@ -900,6 +931,7 @@ export default function App() {
   if (view === "card") return <CardBackView />;
   if (view === "card-details") return <CardDetailsView />;
   if (mode === 'settings') return <SettingsView />;
+  if (mode === 'auth') return <AuthView />;
 
   const [stats, setStats] = useState({
     assigned: 0,

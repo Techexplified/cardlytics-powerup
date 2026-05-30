@@ -77,7 +77,11 @@ window.TrelloPowerUp.initialize({
 },
 
 'show-authorization': function(t) {
-  return t.getRestApi().authorize({ scope: 'read,write', expiration: 'never' });
+  return t.popup({
+    title: 'Authorize Cardlytics',
+    url: './index.html?mode=auth',
+    height: 200,
+  });
 },
 
 }, {
