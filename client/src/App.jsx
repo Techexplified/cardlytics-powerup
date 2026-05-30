@@ -820,7 +820,7 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
       ctx.shadowBlur = 28;
       ctx.fillText(numStr, W / 2, H / 2);
 
-      resolve(canvas.toDataURL("image/jpeg", 0.92));
+      resolve(canvas.toDataURL("image/png"));
     }
 
     if (bgImageDataUrl) {
