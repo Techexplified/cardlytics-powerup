@@ -1,32 +1,37 @@
 /* global TrelloPowerUp */
 
+const key = 'YOUR_TRELLO_API_KEY'; // public, safe to hardcode
+
 window.TrelloPowerUp.initialize({
 
-  // ── Board button ────────────────────────────────────────────────
-  'board-buttons': function (t) {
-    return [{
-      text: 'Cardlytics',
-      icon: {
-        dark: 'https://cardlytics-powerup.vercel.app/logo-light.png',
-        light: 'https://cardlytics-powerup.vercel.app/logo-dark.png'
-      },
-      callback: function (t) {
-        return t.modal({
-          title: 'Cardlytics',
-          url: './index.html?mode=board',
-          fullscreen: false,
-          height: 600
-        });
-      }
-    }];
+  'board-buttons': function(t) {
+    return t.getRestApi().isAuthorized().then(function(authorized) {
+      return [{
+        text: 'Cardlytics',
+        icon: {
+          dark: 'https://cardlytics-powerup.vercel.app/logo-light.png',
+          light: 'https://cardlytics-powerup.vercel.app/logo-dark.png'
+        },
+        callback: function(t) {
+          if (!authorized) {
+            return t.getRestApi().authorize({ scope: 'read,write', expiration: 'never' });
+          }
+          return t.modal({
+            title: 'Cardlytics',
+            url: './index.html?mode=board',
+            fullscreen: false,
+            height: 600
+          });
+        }
+      }];
+    });
   },
 
-  // ── List action ─────────────────────────────────────────────────
-  'list-actions': function (t) {
+  'list-actions': function(t) {
     return [{
       text: 'Cardlytics',
-      callback: function (t) {
-        return t.list('id').then(function (list) {
+      callback: function(t) {
+        return t.list('id').then(function(list) {
           return t.modal({
             title: 'Cardlytics',
             url: `./index.html?mode=list&listId=${list.id}`,
@@ -38,8 +43,7 @@ window.TrelloPowerUp.initialize({
     }];
   },
 
-  // ── Card back section ───────────────────────────────────────────
-  'card-back-section': function (t) {
+  'card-back-section': function(t) {
     return {
       title: 'Cardlytics',
       icon: 'https://cardlytics-powerup.vercel.app/logo.png',
@@ -51,8 +55,7 @@ window.TrelloPowerUp.initialize({
     };
   },
 
-  // ── First install onboarding ────────────────────────────────────
-  'on-enable': function (t) {
+  'on-enable': function(t) {
     return t.modal({
       title: 'Welcome to Cardlytics 👋',
       url: './index.html?mode=onboarding',
@@ -61,8 +64,8 @@ window.TrelloPowerUp.initialize({
     });
   },
 
-  // ── Settings panel ──────────────────────────────────────────────
-  'show-settings': function (t) {
+  // ── Settings — must include disconnect option for Atlassian approval
+  'show-settings': function(t) {
     return t.modal({
       title: 'Cardlytics Settings',
       url: './index.html?mode=settings',
@@ -71,21 +74,19 @@ window.TrelloPowerUp.initialize({
     });
   },
 
-  // ── Authorization status ────────────────────────────────────────
-  'authorization-status': function (t) {
-    return t.get('member', 'private', 'token').then(function (token) {
-      return { authorized: !!token };
+  // ── Official auth check
+  'authorization-status': function(t) {
+    return t.getRestApi().isAuthorized().then(function(authorized) {
+      return { authorized };
     });
   },
 
-  // ── Show authorization ──────────────────────────────────────────
-  'show-authorization': function (t) {
-    return t.modal({
-      title: 'Connect Your Trello Account',
-      url: './index.html?mode=auth',
-      fullscreen: false,
-      height: 400
-    });
+  // ── Official auth flow
+  'show-authorization': function(t) {
+    return t.getRestApi().authorize({ scope: 'read,write', expiration: 'never' });
   }
 
+}, {
+  appKey: key,      // ← this is what enables t.getRestApi()
+  appName: 'Cardlytics'
 });
