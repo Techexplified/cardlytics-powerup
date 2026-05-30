@@ -899,15 +899,17 @@ export default function App() {
     fetchData();
   }, []);
 
-  if (!token)
-    return (
-      <LoginScreen
-        onAuth={(t) => {
-          storeToken(t);
-          setToken(t);
-        }}
-      />
-    );
+if (!token)
+  return (
+    <LoginScreen
+      onAuth={async (t) => {
+        storeToken(t);
+        setToken(t);
+        const trello = window.TrelloPowerUp?.iframe?.();
+        if (trello) await trello.set("member", "private", "token", t);
+      }}
+    />
+  );
   if (view === "card") return <CardBackView />;
   if (view === "card-details") return <CardDetailsView />;
 
