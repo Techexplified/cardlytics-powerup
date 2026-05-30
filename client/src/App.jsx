@@ -9,17 +9,9 @@ import {
   getBoardLists,
   createCard,
   createList,
-  updateCardCover,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import "./index.css";
-
-async function getTrelloAuth() {
-  const t = window.TrelloPowerUp?.iframe?.();
-  const key = import.meta.env.VITE_TRELLO_API_KEY;
-  const token = await t.getRestApi().getToken();
-  return { key, token };
-}
 
 // ─── TRELLO LABEL COLOR MAP ───────────────────────────────────────────────────
 const LABEL_COLORS = {
@@ -864,62 +856,6 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
   });
 }
 
-function AuthView() {
-  async function handleAuth() {
-    const t = window.TrelloPowerUp.iframe();
-    await t.getRestApi().authorize({
-      scope: 'read,write',
-      expiration: 'never'
-    });
-    t.closePopup();
-  }
-
-  return (
-    <div style={{
-      padding: 24, background: '#1a1a1a', height: '100vh',
-      fontFamily: 'sans-serif', color: '#fff', display: 'flex',
-      flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16
-    }}>
-      <h3 style={{ margin: 0 }}>Connect Cardlytics</h3>
-      <p style={{ color: '#888', textAlign: 'center', margin: 0 }}>
-        Authorize access to your Trello boards.
-      </p>
-      <button onClick={handleAuth} style={{
-        padding: '10px 28px', background: '#0052cc', color: '#fff',
-        border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14
-      }}>
-        Authorize
-      </button>
-    </div>
-  );
-}
-
-function SettingsView() {
-  const t = window.TrelloPowerUp?.iframe?.();
-
-  async function handleDisconnect() {
-    await t.getRestApi().clearToken();
-    t.closeModal();
-  }
-
-  return (
-    <div style={{
-      padding: 32, background: '#1a1a1a', height: '100vh',
-      fontFamily: 'sans-serif', color: '#fff', display: 'flex',
-      flexDirection: 'column', gap: 16
-    }}>
-      <h2 style={{ margin: 0 }}>Cardlytics Settings</h2>
-      <p style={{ color: '#888' }}>Manage your Cardlytics connection.</p>
-      <button onClick={handleDisconnect} style={{
-        padding: '10px 20px', background: '#c0392b', color: '#fff',
-        border: 'none', borderRadius: 6, cursor: 'pointer', width: 'fit-content'
-      }}>
-        Disconnect Cardlytics
-      </button>
-    </div>
-  );
-}
-
 // ─── MAIN APP ────────────────────────────────────────────────────────────────
 export default function App() {
   const params = new URLSearchParams(window.location.search);
@@ -929,8 +865,6 @@ export default function App() {
 
   if (view === "card") return <CardBackView />;
   if (view === "card-details") return <CardDetailsView />;
-  if (mode === 'settings') return <SettingsView />;
-  if (mode === 'auth') return <AuthView />;
 
   const [stats, setStats] = useState({
     assigned: 0,
@@ -972,9 +906,8 @@ export default function App() {
 
   async function fetchData() {
     try {
-      // ✅ Replace with
-      const { key, token } = await getTrelloAuth();
-      if (!token) return;
+      const key = import.meta.env.VITE_TRELLO_API_KEY;
+      const token = import.meta.env.VITE_TRELLO_TOKEN;
       const boardId = "p8fosANE";
 
       const cards =
@@ -1095,9 +1028,8 @@ export default function App() {
       setSelectedListCount(null);
       return;
     }
-    // ✅ Replace with
-    const { key, token } = await getTrelloAuth();
-    if (!token) return;
+    const key = import.meta.env.VITE_TRELLO_API_KEY;
+    const token = import.meta.env.VITE_TRELLO_TOKEN;
     const cards = await getListCards(key, token, id);
     setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
@@ -1118,9 +1050,8 @@ export default function App() {
       return;
     }
     try {
-      // ✅ Replace with
-      const { key, token } = await getTrelloAuth();
-      if (!token) return;
+      const key = import.meta.env.VITE_TRELLO_API_KEY;
+      const token = import.meta.env.VITE_TRELLO_TOKEN;
       const boardId = "p8fosANE";
 
       let targetListId;
