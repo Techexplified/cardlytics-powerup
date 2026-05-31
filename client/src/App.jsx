@@ -899,17 +899,17 @@ export default function App() {
     fetchData();
   }, []);
 
-if (!token)
-  return (
-    <LoginScreen
-      onAuth={async (t) => {
-        storeToken(t);
-        setToken(t);
-        const trello = window.TrelloPowerUp?.iframe?.();
-        if (trello) await trello.set("member", "private", "token", t);
-      }}
-    />
-  );
+  if (!token)
+    return (
+      <LoginScreen
+        onAuth={async (t) => {
+          storeToken(t);
+          setToken(t);
+          const trello = window.TrelloPowerUp?.iframe?.();
+          if (trello) await trello.set("member", "private", "token", t);
+        }}
+      />
+    );
   if (view === "card") return <CardBackView />;
   if (view === "card-details") return <CardDetailsView />;
 
@@ -944,6 +944,14 @@ if (!token)
         (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
       );
       const memberId = await getMemberId(key, token);
+
+      // Tell connector.html the user is authorized → shows "Remove personal settings"
+      const trello = window.TrelloPowerUp?.iframe?.();
+      if (trello) {
+        trello
+          .set("member", "private", "cardlyticsConnected", true)
+          .catch(() => {});
+      }
 
       // Fetch member full name for Customize modal avatar
       if (memberId) {

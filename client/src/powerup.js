@@ -90,18 +90,4 @@ window.TrelloPowerUp.initialize({
       height: 400,
     });
   },
-
-  // ── Remove personal settings ────────────────────────────────────
-  // Clears the stored token + any member-scoped data so the user
-  // can disconnect and re-authorize from scratch.
-  "remove-personal-settings": function (t) {
-    return t.remove("member", "private", "token")
-      .then(function () {
-        // Also clear the webhookRegistered flag stored per board
-        return t.remove("board", "shared", "webhookRegistered");
-      })
-      .catch(function () {
-        // Ignore errors if keys didn't exist
-      });
-  },
 });
