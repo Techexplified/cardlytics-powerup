@@ -1,6 +1,6 @@
 export const TRELLO_API_KEY = "eea918ac665b2e6ffcd2c13fb34decb4";
 
-export const AUTH_CALLBACK_URL = `${window.location.origin}/auth.html`;
+export const AUTH_CALLBACK_URL = window.location.origin;
 
 export const TRELLO_AUTH_URL = () =>
   `https://trello.com/1/authorize?` +
