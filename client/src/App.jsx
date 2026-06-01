@@ -329,11 +329,7 @@ function CardDetailsView() {
         }
 
         const mid = await getMemberId(key, token);
-        const allBoardLists = await getBoardLists(
-          key,
-          token,
-         boardId,
-        );
+        const allBoardLists = await getBoardLists(key, token, boardId);
         const cardlyticsListIds = allBoardLists
           .filter((l) => l.name.toLowerCase() === "cardlytics")
           .map((l) => l.id);
@@ -929,9 +925,10 @@ export default function App() {
       const token = getStoredToken();
       if (!token) return;
       const t = window.TrelloPowerUp?.iframe?.();
-      if (!t) return;
-      const board = await t.board("id");
-      const boardId = board.id;
+      const boardId = t
+        ? (await t.board("id")).id
+        : new URLSearchParams(window.location.search).get("boardId");
+      if (!boardId) return;
 
       const cards =
         mode === "list" && listId

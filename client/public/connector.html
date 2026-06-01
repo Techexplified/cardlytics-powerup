@@ -73,24 +73,9 @@
             });
           },
           "authorization-status": function (t) {
-            return t
-              .get("member", "private", "cardlyticsConnected")
-              .then(function (val) {
-                return { authorized: !!val };
-              });
+            var token = localStorage.getItem("cardlytics_trello_token");
+            return { authorized: !!token };
           },
-
-          // "remove-personal-settings": function (t) {
-          //   return t
-          //     .remove("member", "private", "cardlyticsConnected")
-          //     .then(function () {
-          //       return t.remove("member", "private", "token");
-          //     })
-          //     .then(function () {
-          //       return t.remove("board", "shared", "webhookRegistered");
-          //     })
-          //     .catch(function () {});
-          // },
 
           "show-authorization": function (t) {
             return t.modal({
