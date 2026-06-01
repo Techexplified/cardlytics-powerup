@@ -332,7 +332,7 @@ function CardDetailsView() {
         const allBoardLists = await getBoardLists(
           key,
           token,
-          boardId || "p8fosANE",
+         boardId,
         );
         const cardlyticsListIds = allBoardLists
           .filter((l) => l.name.toLowerCase() === "cardlytics")
@@ -400,7 +400,7 @@ function CardDetailsView() {
           if (boardRes.ok) setBoardName((await boardRes.json()).name);
         }
 
-        const resolvedBoardId = boardId || "p8fosANE";
+        const resolvedBoardId = boardId;
         const boardLists = await getBoardLists(key, token, resolvedBoardId);
         const lmap = {};
         boardLists.forEach((l) => (lmap[l.id] = l.name));
@@ -928,7 +928,10 @@ export default function App() {
       const key = import.meta.env.VITE_TRELLO_API_KEY;
       const token = getStoredToken();
       if (!token) return;
-      const boardId = "p8fosANE";
+      const t = window.TrelloPowerUp?.iframe?.();
+      if (!t) return;
+      const board = await t.board("id");
+      const boardId = board.id;
 
       const cards =
         mode === "list" && listId
@@ -1016,7 +1019,10 @@ export default function App() {
         showToast("Not authorized", "error");
         return;
       }
-      const boardId = "p8fosANE";
+      const t = window.TrelloPowerUp?.iframe?.();
+      if (!t) return;
+      const board = await t.board("id");
+      const boardId = board.id;
 
       let targetListId;
       if (mode === "list" && listId) {
