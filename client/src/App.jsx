@@ -892,8 +892,8 @@ export default function App() {
   const [cardConfig, setCardConfig] = useState({});
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (token) fetchData();
+  }, [token]);
 
   if (!token)
     return (
