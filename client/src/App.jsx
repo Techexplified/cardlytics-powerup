@@ -12,7 +12,12 @@ import {
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
-import { getStoredToken, storeToken, clearToken } from "./utils/auth";
+import {
+  TRELLO_API_KEY,
+  getStoredToken,
+  storeToken,
+  clearToken,
+} from "./utils/auth";
 import "./index.css";
 
 // ─── TRELLO LABEL COLOR MAP ───────────────────────────────────────────────────
@@ -161,8 +166,8 @@ function CardBackView() {
 
       // 3. Fallback: check if card lives in a list named "Cardlytics"
       t.board("id").then((board) => {
-        const key = import.meta.env.VITE_TRELLO_API_KEY;
-        const token = import.meta.env.VITE_TRELLO_TOKEN;
+        const key = TRELLO_API_KEY;
+        const token = getStoredToken();
         fetch(
           `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
         )
@@ -309,8 +314,8 @@ function CardDetailsView() {
   const [sortCol, setSortCol] = useState("name");
   const [sortAsc, setSortAsc] = useState(true);
 
-  const key = import.meta.env.VITE_TRELLO_API_KEY;
-  const token = import.meta.env.VITE_TRELLO_TOKEN;
+  const key = TRELLO_API_KEY;
+const token = getStoredToken();
 
   useEffect(() => {
     async function load() {
@@ -921,7 +926,7 @@ export default function App() {
 
   async function fetchData() {
     try {
-      const key = import.meta.env.VITE_TRELLO_API_KEY;
+     const key = TRELLO_API_KEY;
       const token = getStoredToken();
       if (!token) return;
       const t = window.TrelloPowerUp?.iframe?.();
@@ -991,7 +996,7 @@ export default function App() {
       setSelectedListCount(null);
       return;
     }
-    const key = import.meta.env.VITE_TRELLO_API_KEY;
+    const key = TRELLO_API_KEY;
     const token = getStoredToken();
     if (!token) return;
     const cards = await getListCards(key, token, id);
@@ -1010,7 +1015,7 @@ export default function App() {
       return;
     }
     try {
-      const key = import.meta.env.VITE_TRELLO_API_KEY;
+      const key = TRELLO_API_KEY;
       const token = getStoredToken();
       if (!token) {
         showToast("Not authorized", "error");

@@ -1,6 +1,7 @@
 export const TRELLO_API_KEY = "eea918ac665b2e6ffcd2c13fb34decb4";
 
-export const AUTH_CALLBACK_URL = window.location.origin;
+// ✅ Hardcoded — window.location.origin is unreliable inside Trello iframes
+export const AUTH_CALLBACK_URL = "https://cardlytics-powerup-eight.vercel.app/auth.html";
 
 export const TRELLO_AUTH_URL = () =>
   `https://trello.com/1/authorize?` +
@@ -56,10 +57,9 @@ export function authorizeWithTrello() {
       if (popup.closed) {
         clearInterval(pollTimer);
         window.removeEventListener("message", handler);
-        const stored = localStorage.getItem("trello_token");
+        // ✅ Fixed: use correct TOKEN_KEY
+        const stored = localStorage.getItem(TOKEN_KEY);
         if (stored) {
-          localStorage.removeItem("trello_token");
-          storeToken(stored);
           resolve(stored);
         } else {
           reject(new Error("Authorization cancelled."));
