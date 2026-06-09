@@ -126,6 +126,15 @@
         {
           // ── Board button with notification dot ──────────────────────────
           "board-buttons": function(t) {
+            // Re-render every 30 seconds to check for changes
+            t.render(function() {
+              return t.board("id").then(async function(board) {
+                var changed = false;
+                try { changed = await hasStatsChanged(t, board.id); } catch(e) {}
+                return t.set("board", "private", "cardlytics_dot", changed);
+              });
+            });
+
             return t.board("id").then(async function(board) {
               var changed = false;
               try {

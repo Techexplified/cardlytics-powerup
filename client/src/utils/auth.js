@@ -1,4 +1,4 @@
-export const TRELLO_API_KEY = "0919ce148a7f8507be8f698a755ffeda";
+export const TRELLO_API_KEY = import.meta.env.VITE_TRELLO_API_KEY;
 
 // ✅ Hardcoded — window.location.origin is unreliable inside Trello iframes
 export const AUTH_CALLBACK_URL =

@@ -760,6 +760,17 @@ function CardDetailsView() {
   );
 }
 
+// ── Convert base64 data URL to Blob ──────────────────────────────────────────
+function dataUrlToBlob(dataUrl) {
+  const base64Data = dataUrl.split(",")[1];
+  const byteCharacters = atob(base64Data);
+  const byteArray = new Uint8Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteArray[i] = byteCharacters.charCodeAt(i);
+  }
+  return new Blob([byteArray], { type: "image/jpeg" });
+}
+
 // ── Generate a cover image with the big number overlaid ──────────────────────
 const COVER_BG_COLORS = {
   blue: "#1565c0",
@@ -865,6 +876,80 @@ export default function App() {
     if (token) fetchData();
   }, [token]);
 
+  // ── Refresh all existing tracker card covers with latest counts ───────────
+  async function refreshTrackerCards(boardId, latestStats) {
+    const key = TRELLO_API_KEY;
+    const token = getStoredToken();
+    if (!token || !boardId) return;
+
+    try {
+      const allLists = await getBoardLists(key, token, boardId);
+      const cardlyticsLists = allLists.filter(
+        (l) => l.name.toLowerCase() === "cardlytics"
+      );
+      if (cardlyticsLists.length === 0) return;
+
+      for (const list of cardlyticsLists) {
+        const listCards = await getListCards(key, token, list.id);
+
+        for (const card of listCards) {
+          // Parse meta tag to get statType
+          const statMatch = card.desc?.match(
+            /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/
+          );
+          if (!statMatch) continue;
+
+          const statType = statMatch[3];
+          const count = latestStats[statType];
+          if (count === undefined) continue;
+
+          // Use default cover color for this stat
+          const cover = DEFAULT_STAT_CONFIG[statType]?.cover || "blue";
+
+          // Generate new cover image with updated count
+          const coverImageDataUrl = await generateStatCoverImage(count, cover, null);
+
+          // Update description count
+          const newDesc = card.desc.replace(
+            /^\d+ card\(s\) tracked by Cardlytics\./,
+            `${count} card(s) tracked by Cardlytics.`
+          );
+
+          // Upload new cover image as attachment
+          const blob = dataUrlToBlob(coverImageDataUrl);
+          const formData = new FormData();
+          formData.append("key", key);
+          formData.append("token", token);
+          formData.append("file", blob, "cover.jpg");
+          formData.append("setCover", "false");
+
+          const attachRes = await fetch(
+            `${TRELLO_BASE}/cards/${card.id}/attachments`,
+            { method: "POST", body: formData }
+          );
+
+          if (attachRes.ok) {
+            const attachment = await attachRes.json();
+            await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${token}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                desc: newDesc,
+                cover: {
+                  idAttachment: attachment.id,
+                  brightness: "dark",
+                  size: "full",
+                },
+              }),
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("refreshTrackerCards error:", err);
+    }
+  }
+
   if (!token)
     return (
       <LoginScreen
@@ -938,6 +1023,9 @@ export default function App() {
         const hash = Object.values(computed).join(",");
         trello.set("board", "shared", "cardlytics_last_stats_hash", hash).catch(() => {});
       }
+
+      // ── Refresh existing tracker card covers with latest counts ──────────
+      refreshTrackerCards(boardId, computed);
 
       const boardLists = await getBoardLists(key, token, boardId);
       setLists(boardLists);
