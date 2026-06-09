@@ -127,20 +127,25 @@
           // ── Board button with notification dot ──────────────────────────
           "board-buttons": function(t) {
             return t.board("id").then(async function(board) {
+              // Read stored dot state first (fast), then verify in background
               var changed = false;
               try {
-                changed = await hasStatsChanged(t, board.id);
+                // Use stored value for instant render
+                var stored = await t.get("board", "private", "cardlytics_dot");
+                changed = stored === true;
+
+                // Verify in background and update if needed
+                hasStatsChanged(t, board.id).then(function(nowChanged) {
+                  t.set("board", "private", "cardlytics_dot", nowChanged);
+                }).catch(function() {});
               } catch (e) {}
 
-              // Poll every 30 seconds and invalidate if changed
+              // Poll every 30 seconds — if stats changed, invalidate to force re-render
               setInterval(async function() {
                 try {
                   var nowChanged = await hasStatsChanged(t, board.id);
-                  if (nowChanged) {
-                    t.set("board", "private", "cardlytics_needs_refresh", true)
-                      .then(function() { t.board("id"); }) // force re-render
-                      .catch(function() {});
-                  }
+                  await t.set("board", "private", "cardlytics_dot", nowChanged);
+                  t.invalidate();
                 } catch(e) {}
               }, 30000);
 

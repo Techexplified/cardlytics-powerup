@@ -1066,6 +1066,8 @@ export default function App() {
       if (trello) {
         const hash = Object.values(computed).join(",");
         trello.set("board", "shared", "cardlytics_last_stats_hash", hash).catch(() => {});
+        trello.set("board", "private", "cardlytics_dot", false).catch(() => {});
+        trello.invalidate?.();
       }
 
       // ── Refresh existing tracker card covers with latest counts ──────────
