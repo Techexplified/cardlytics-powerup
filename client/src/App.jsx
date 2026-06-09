@@ -12,11 +12,7 @@ import {
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
-import {
-  TRELLO_API_KEY,
-  getStoredToken,
-  storeToken,
-} from "./utils/auth";
+import { TRELLO_API_KEY, getStoredToken, storeToken } from "./utils/auth";
 import "./index.css";
 
 const TRELLO_BASE = "https://api.trello.com/1";
@@ -497,10 +493,26 @@ function CardDetailsView() {
     { value: fullStats.assigned, label: "Assigned to me", accent: "#4ea1ff" },
     { value: fullStats.dueThisWeek, label: "Due this week", accent: "#f9c74f" },
     { value: fullStats.overdue, label: "Overdue cards", accent: "#ff5252" },
-    { value: fullStats.unassigned, label: "Unassigned cards", accent: "#ab47bc" },
-    { value: fullStats.withLabel, label: "Cards with a label", accent: "#ff9800" },
-    { value: fullStats.stale, label: "Stale (14+ days inactive)", accent: "#888" },
-    { value: fullStats.createdToday, label: "Created today", accent: "#2ec4b6" },
+    {
+      value: fullStats.unassigned,
+      label: "Unassigned cards",
+      accent: "#ab47bc",
+    },
+    {
+      value: fullStats.withLabel,
+      label: "Cards with a label",
+      accent: "#ff9800",
+    },
+    {
+      value: fullStats.stale,
+      label: "Stale (14+ days inactive)",
+      accent: "#888",
+    },
+    {
+      value: fullStats.createdToday,
+      label: "Created today",
+      accent: "#2ec4b6",
+    },
   ];
 
   return (
@@ -885,20 +897,26 @@ export default function App() {
     try {
       const allLists = await getBoardLists(key, token, boardId);
       const cardlyticsLists = allLists.filter(
-        (l) => l.name.toLowerCase() === "cardlytics"
+        (l) => l.name.toLowerCase() === "cardlytics",
       );
-      console.log("Cardlytics: found lists", cardlyticsLists.map(l => l.name));
+      console.log(
+        "Cardlytics: found lists",
+        cardlyticsLists.map((l) => l.name),
+      );
       if (cardlyticsLists.length === 0) return;
 
       for (const list of cardlyticsLists) {
         const listCards = await getListCards(key, token, list.id);
-        console.log("Cardlytics: tracker cards found", listCards.map(c => c.name));
+        console.log(
+          "Cardlytics: tracker cards found",
+          listCards.map((c) => c.name),
+        );
 
         for (const card of listCards) {
           // Try new format first: :statType:assigned
           let statType = null;
           const newMatch = card.desc?.match(
-            /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/
+            /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
           );
           if (newMatch) {
             statType = newMatch[3];
@@ -915,10 +933,13 @@ export default function App() {
               { prefix: "cards in list", type: "cardsInList" },
             ];
             const lower = card.name.toLowerCase();
-            statType = nameMap.find(m => lower.includes(m.prefix))?.type || null;
+            statType =
+              nameMap.find((m) => lower.includes(m.prefix))?.type || null;
           }
 
-          console.log(`Cardlytics: card "${card.name}" → statType: ${statType}, count: ${latestStats[statType]}`);
+          console.log(
+            `Cardlytics: card "${card.name}" → statType: ${statType}, count: ${latestStats[statType]}`,
+          );
           if (!statType) continue;
 
           const count = latestStats[statType];
@@ -928,18 +949,22 @@ export default function App() {
           const cover = DEFAULT_STAT_CONFIG[statType]?.cover || "blue";
 
           // Generate new cover image with updated count
-          const coverImageDataUrl = await generateStatCoverImage(count, cover, null);
+          const coverImageDataUrl = await generateStatCoverImage(
+            count,
+            cover,
+            null,
+          );
 
           // Update description count
           const newDesc = (card.desc || "").replace(
             /^\d+ card\(s\) tracked by Cardlytics\./,
-            `${count} card(s) tracked by Cardlytics.`
+            `${count} card(s) tracked by Cardlytics.`,
           );
 
           // Delete old cover attachments to avoid stale covers
           try {
             const existingAttachRes = await fetch(
-              `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${token}`
+              `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${token}`,
             );
             if (existingAttachRes.ok) {
               const existingAttachments = await existingAttachRes.json();
@@ -947,7 +972,7 @@ export default function App() {
                 if (att.name === "cover.jpg") {
                   await fetch(
                     `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${token}`,
-                    { method: "DELETE" }
+                    { method: "DELETE" },
                   );
                 }
               }
@@ -966,26 +991,34 @@ export default function App() {
 
           const attachRes = await fetch(
             `${TRELLO_BASE}/cards/${card.id}/attachments`,
-            { method: "POST", body: formData }
+            { method: "POST", body: formData },
           );
 
           if (attachRes.ok) {
             const attachment = await attachRes.json();
-            const updateRes = await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${token}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                desc: newDesc,
-                cover: {
-                  idAttachment: attachment.id,
-                  brightness: "dark",
-                  size: "full",
-                },
-              }),
-            });
-            console.log(`Cardlytics: updated card "${card.name}" with count ${count}`, updateRes.ok ? "✅" : "❌");
+            const updateRes = await fetch(
+              `${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${token}`,
+              {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  desc: newDesc,
+                  cover: {
+                    idAttachment: attachment.id,
+                    brightness: "dark",
+                    size: "full",
+                  },
+                }),
+              },
+            );
+            console.log(
+              `Cardlytics: updated card "${card.name}" with count ${count}`,
+              updateRes.ok ? "✅" : "❌",
+            );
           } else {
-            console.warn(`Cardlytics: failed to upload attachment for "${card.name}"`);
+            console.warn(
+              `Cardlytics: failed to upload attachment for "${card.name}"`,
+            );
           }
         }
       }
@@ -1065,13 +1098,17 @@ export default function App() {
       // ── Save current stats hash so the notification dot clears ──────────
       if (trello) {
         const hash = Object.values(computed).join(",");
-        trello.set("board", "shared", "cardlytics_last_stats_hash", hash).catch(() => {});
+        trello
+          .set("board", "shared", "cardlytics_last_stats_hash", hash)
+          .catch(() => {});
         trello.set("board", "private", "cardlytics_dot", false).catch(() => {});
         trello.invalidate?.();
       }
 
       // ── Refresh existing tracker card covers with latest counts ──────────
-      refreshTrackerCards(boardId, computed);
+      await refreshTrackerCards(boardId, computed);
+      const trelloCtx = window.TrelloPowerUp?.iframe?.();
+      trelloCtx?.invalidate?.();
 
       const boardLists = await getBoardLists(key, token, boardId);
       setLists(boardLists);
