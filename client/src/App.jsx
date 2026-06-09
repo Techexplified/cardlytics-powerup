@@ -991,8 +991,8 @@ setBoardId(boardId);
 
       if (mode === "list" && listId) {
         const listRes = await fetch(
-          `${BASE_URL}/lists/${listId}?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${import.meta.env.VITE_TRELLO_TOKEN}&fields=name`,
-        );
+  `${BASE_URL}/lists/${listId}?key=${key}&token=${token}&fields=name`,
+);
         if (listRes.ok) setTrackingListName((await listRes.json()).name);
       } else {
         const existing = boardLists.find(
