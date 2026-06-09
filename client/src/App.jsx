@@ -887,19 +887,40 @@ export default function App() {
       const cardlyticsLists = allLists.filter(
         (l) => l.name.toLowerCase() === "cardlytics"
       );
+      console.log("Cardlytics: found lists", cardlyticsLists.map(l => l.name));
       if (cardlyticsLists.length === 0) return;
 
       for (const list of cardlyticsLists) {
         const listCards = await getListCards(key, token, list.id);
+        console.log("Cardlytics: tracker cards found", listCards.map(c => c.name));
 
         for (const card of listCards) {
-          // Parse meta tag to get statType
-          const statMatch = card.desc?.match(
+          // Try new format first: :statType:assigned
+          let statType = null;
+          const newMatch = card.desc?.match(
             /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/
           );
-          if (!statMatch) continue;
+          if (newMatch) {
+            statType = newMatch[3];
+          } else {
+            // Fallback: infer statType from card name for older cards
+            const nameMap = [
+              { prefix: "assigned to me", type: "assigned" },
+              { prefix: "due this week", type: "dueThisWeek" },
+              { prefix: "overdue", type: "overdue" },
+              { prefix: "unassigned", type: "unassigned" },
+              { prefix: "with label", type: "withLabel" },
+              { prefix: "stale", type: "stale" },
+              { prefix: "created today", type: "createdToday" },
+              { prefix: "cards in list", type: "cardsInList" },
+            ];
+            const lower = card.name.toLowerCase();
+            statType = nameMap.find(m => lower.includes(m.prefix))?.type || null;
+          }
 
-          const statType = statMatch[3];
+          console.log(`Cardlytics: card "${card.name}" → statType: ${statType}, count: ${latestStats[statType]}`);
+          if (!statType) continue;
+
           const count = latestStats[statType];
           if (count === undefined) continue;
 
@@ -910,12 +931,12 @@ export default function App() {
           const coverImageDataUrl = await generateStatCoverImage(count, cover, null);
 
           // Update description count
-          const newDesc = card.desc.replace(
+          const newDesc = (card.desc || "").replace(
             /^\d+ card\(s\) tracked by Cardlytics\./,
             `${count} card(s) tracked by Cardlytics.`
           );
 
-          // Delete old cover attachments (cover.jpg) to avoid stale covers
+          // Delete old cover attachments to avoid stale covers
           try {
             const existingAttachRes = await fetch(
               `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${token}`
@@ -950,7 +971,7 @@ export default function App() {
 
           if (attachRes.ok) {
             const attachment = await attachRes.json();
-            await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${token}`, {
+            const updateRes = await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${token}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -962,6 +983,9 @@ export default function App() {
                 },
               }),
             });
+            console.log(`Cardlytics: updated card "${card.name}" with count ${count}`, updateRes.ok ? "✅" : "❌");
+          } else {
+            console.warn(`Cardlytics: failed to upload attachment for "${card.name}"`);
           }
         }
       }
