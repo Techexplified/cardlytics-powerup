@@ -870,6 +870,7 @@ export default function App() {
   const listId = params.get("listId");
 
   const [token, setToken] = useState(() => getStoredToken());
+  const [boardId, setBoardId] = useState(null);
 
   const [stats, setStats] = useState({
     assigned: 0,
@@ -945,9 +946,10 @@ export default function App() {
       if (!token) return;
       const t = window.TrelloPowerUp?.iframe?.();
       const boardId = t
-        ? (await t.board("id")).id
-        : new URLSearchParams(window.location.search).get("boardId");
-      if (!boardId) return;
+  ? (await t.board("id")).id
+  : new URLSearchParams(window.location.search).get("boardId");
+if (!boardId) return;
+setBoardId(boardId);
 
       const cards =
         mode === "list" && listId
@@ -1022,14 +1024,12 @@ export default function App() {
     const key = TRELLO_API_KEY;
     const tok = getStoredToken();
     if (!tok) return;
-    const t = window.TrelloPowerUp?.iframe?.();
-    if (!t) return;
-    const board = await t.board("id");
-    const boardId = board.id;
+ const resolvedBoardId = boardId || new URLSearchParams(window.location.search).get("boardId");
+if (!resolvedBoardId) return;
 
     // ── Fetch fresh data directly (don't rely on stale stats state) ──
-    const allCardsRaw = await getBoardCards(key, tok, boardId);
-    const allLists = await getBoardLists(key, tok, boardId);
+    const allCardsRaw = await getBoardCards(key, tok, resolvedBoardId);
+    const allLists = await getBoardLists(key, tok, resolvedBoardId);
     const cardlyticsListIds = allLists
       .filter((l) => l.name.toLowerCase() === "cardlytics")
       .map((l) => l.id);
@@ -1042,7 +1042,7 @@ export default function App() {
 
     // ── Find all tracker cards ──
     const res = await fetch(
-      `https://api.trello.com/1/boards/${boardId}/cards?key=${key}&token=${tok}&fields=id,name,desc,idList`
+      `https://api.trello.com/1/boards/${resolvedBoardId}/cards?key=${key}&token=${tok}&fields=id,name,desc,idList`
     );
     if (!res.ok) return;
     const allCards = await res.json();
@@ -1121,10 +1121,8 @@ export default function App() {
         showToast("Not authorized", "error");
         return;
       }
-      const t = window.TrelloPowerUp?.iframe?.();
-      if (!t) return;
-      const board = await t.board("id");
-      const boardId = board.id;
+    const resolvedBoardId = boardId || new URLSearchParams(window.location.search).get("boardId");
+if (!resolvedBoardId) return;
 
       let targetListId;
       if (mode === "list" && listId) {
