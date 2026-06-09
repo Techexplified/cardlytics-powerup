@@ -1077,10 +1077,10 @@ export default function App() {
       }
 
       // Update desc
-      const updatedDesc = card.desc.replace(
-        /^\d+ card\(s\) tracked by Cardlytics\./,
-        `${count} card(s) tracked by Cardlytics.`
-      );
+     const updatedDesc = card.desc.replace(
+  /^\d+ card\(s\) tracked by Cardlytics\./m,
+  `${count} card(s) tracked by Cardlytics.`
+);
       await updateCard(key, tok, card.id, { desc: updatedDesc });
 
       // Regenerate cover with new count

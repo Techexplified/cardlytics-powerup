@@ -205,11 +205,10 @@ export async function createList(key, token, boardId, name) {
 }
 
 export async function updateCard(key, token, cardId, updates) {
-  const params = new URLSearchParams({ key, token, ...updates });
-  const res = await fetch(`${BASE}/cards/${cardId}`, {
+  const res = await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: params,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
   });
   if (!res.ok) throw new Error("Failed to update card");
   return res.json();
