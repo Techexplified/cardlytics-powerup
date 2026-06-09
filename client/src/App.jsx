@@ -1020,6 +1020,7 @@ setBoardId(boardId);
   }
 
  const syncTrackerCards = async () => {
+  console.log("sync triggered, boardId:", boardId);
   try {
     const key = TRELLO_API_KEY;
     const tok = getStoredToken();
