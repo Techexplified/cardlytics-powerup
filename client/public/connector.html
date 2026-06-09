@@ -34,56 +34,101 @@
         try {
           // Fetch cards
           var cardsRes = await fetch(
-            TRELLO_API + "/boards/" + boardId + "/cards?" + buildAuth() +
-            "&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList"
+            TRELLO_API +
+              "/boards/" +
+              boardId +
+              "/cards?" +
+              buildAuth() +
+              "&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList",
           );
           if (!cardsRes.ok) return null;
           var cards = await cardsRes.json();
 
           // Fetch lists to filter out Cardlytics list
           var listsRes = await fetch(
-            TRELLO_API + "/boards/" + boardId + "/lists?" + buildAuth() + "&fields=id,name"
+            TRELLO_API +
+              "/boards/" +
+              boardId +
+              "/lists?" +
+              buildAuth() +
+              "&fields=id,name",
           );
           var lists = listsRes.ok ? await listsRes.json() : [];
           var cardlyticsListIds = lists
-            .filter(function(l) { return l.name.toLowerCase() === "cardlytics"; })
-            .map(function(l) { return l.id; });
+            .filter(function (l) {
+              return l.name.toLowerCase() === "cardlytics";
+            })
+            .map(function (l) {
+              return l.id;
+            });
 
           // Filter out tracker cards
           var TRACKER_PREFIXES = [
-            "📌 assigned to me", "📅 due this week", "⚠️ overdue cards",
-            "👤 unassigned cards", "🏷️ cards with label", "💤 stale cards",
-            "✨ created today", "📋 cards in list"
+            "📌 assigned to me",
+            "📅 due this week",
+            "⚠️ overdue cards",
+            "👤 unassigned cards",
+            "🏷️ cards with label",
+            "💤 stale cards",
+            "✨ created today",
+            "📋 cards in list",
           ];
           function isTrackerCard(name) {
             var lower = name.toLowerCase();
-            return TRACKER_PREFIXES.some(function(p) { return lower.startsWith(p); }) ||
-              ["assigned to me","due this week","overdue cards","unassigned cards",
-               "cards with a label","stale cards","created today","cards in list"]
-              .some(function(p) { return lower.includes(p); });
+            return (
+              TRACKER_PREFIXES.some(function (p) {
+                return lower.startsWith(p);
+              }) ||
+              [
+                "assigned to me",
+                "due this week",
+                "overdue cards",
+                "unassigned cards",
+                "cards with a label",
+                "stale cards",
+                "created today",
+                "cards in list",
+              ].some(function (p) {
+                return lower.includes(p);
+              })
+            );
           }
 
-          var filtered = cards.filter(function(c) {
-            return !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList);
+          var filtered = cards.filter(function (c) {
+            return (
+              !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList)
+            );
           });
 
           // Get member ID
-          var memberRes = await fetch(TRELLO_API + "/members/me?" + buildAuth());
+          var memberRes = await fetch(
+            TRELLO_API + "/members/me?" + buildAuth(),
+          );
           var memberId = memberRes.ok ? (await memberRes.json()).id : null;
 
           // Compute stats
           var now = new Date();
-          var startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          var startOfDay = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+          );
           var endOfWeek = new Date(startOfDay);
           endOfWeek.setDate(startOfDay.getDate() + 7);
           var staleThreshold = new Date(now);
           staleThreshold.setDate(now.getDate() - 14);
 
-          var assigned = 0, dueThisWeek = 0, overdue = 0,
-              unassigned = 0, withLabel = 0, stale = 0, createdToday = 0;
+          var assigned = 0,
+            dueThisWeek = 0,
+            overdue = 0,
+            unassigned = 0,
+            withLabel = 0,
+            stale = 0,
+            createdToday = 0;
 
-          filtered.forEach(function(card) {
-            if (memberId && card.idMembers && card.idMembers.includes(memberId)) assigned++;
+          filtered.forEach(function (card) {
+            if (memberId && card.idMembers && card.idMembers.includes(memberId))
+              assigned++;
             if (!card.idMembers || card.idMembers.length === 0) unassigned++;
             if (card.labels && card.labels.length > 0) withLabel++;
             if (card.due && !card.dueComplete) {
@@ -91,12 +136,24 @@
               if (due < now) overdue++;
               else if (due >= startOfDay && due <= endOfWeek) dueThisWeek++;
             }
-            if (card.dateLastActivity && new Date(card.dateLastActivity) < staleThreshold) stale++;
+            if (
+              card.dateLastActivity &&
+              new Date(card.dateLastActivity) < staleThreshold
+            )
+              stale++;
             var ts = parseInt(card.id.substring(0, 8), 16) * 1000;
             if (new Date(ts) >= startOfDay) createdToday++;
           });
 
-          return { assigned, dueThisWeek, overdue, unassigned, withLabel, stale, createdToday };
+          return {
+            assigned,
+            dueThisWeek,
+            overdue,
+            unassigned,
+            withLabel,
+            stale,
+            createdToday,
+          };
         } catch (e) {
           console.warn("Cardlytics: fetchBoardStats error", e);
           return null;
@@ -108,7 +165,11 @@
         var current = await fetchBoardStats(boardId);
         if (!current) return false;
 
-        var stored = await t.get("board", "shared", "cardlytics_last_stats_hash");
+        var stored = await t.get(
+          "board",
+          "shared",
+          "cardlytics_last_stats_hash",
+        );
         var currentHash = hashStats(current);
 
         return stored !== currentHash;
@@ -118,15 +179,20 @@
       async function saveStatsHash(t, boardId) {
         var current = await fetchBoardStats(boardId);
         if (!current) return;
-        await t.set("board", "shared", "cardlytics_last_stats_hash", hashStats(current));
+        await t.set(
+          "board",
+          "shared",
+          "cardlytics_last_stats_hash",
+          hashStats(current),
+        );
       }
 
       // ── Initialize Power-Up ───────────────────────────────────────────────
       TrelloPowerUp.initialize(
         {
           // ── Board button with notification dot ──────────────────────────
-          "board-buttons": function(t) {
-            return t.board("id").then(async function(board) {
+          "board-buttons": function (t) {
+            return t.board("id").then(async function (board) {
               // Read stored dot state first (fast), then verify in background
               var changed = false;
               try {
@@ -135,18 +201,44 @@
                 changed = stored === true;
 
                 // Verify in background and update if needed
-                hasStatsChanged(t, board.id).then(function(nowChanged) {
-                  t.set("board", "private", "cardlytics_dot", nowChanged);
-                }).catch(function() {});
+                hasStatsChanged(t, board.id)
+                  .then(function (nowChanged) {
+                    t.set("board", "private", "cardlytics_dot", nowChanged);
+                  })
+                  .catch(function () {});
               } catch (e) {}
 
               // Poll every 30 seconds — if stats changed, invalidate to force re-render
-              setInterval(async function() {
+              setInterval(async function () {
                 try {
                   var nowChanged = await hasStatsChanged(t, board.id);
                   await t.set("board", "private", "cardlytics_dot", nowChanged);
+
+                  if (nowChanged) {
+                    var freshStats = await fetchBoardStats(board.id);
+                    if (freshStats) {
+                      await t.set(
+                        "board",
+                        "shared",
+                        "cardlytics_last_stats_hash",
+                        hashStats(freshStats),
+                      );
+
+                      // Tell React app to update covers
+                      window.parent.postMessage(
+                        {
+                          type: "cardlytics-refresh-covers",
+                          boardId: board.id,
+                          stats: freshStats,
+                        },
+                        "*",
+                      );
+                    }
+                  }
                   t.invalidate();
-                } catch(e) {}
+                } catch (e) {
+                  console.warn("Cardlytics poll error", e);
+                }
               }, 30000);
 
               return [
@@ -156,7 +248,7 @@
                     dark: BASE_URL + "/logo.png",
                     light: BASE_URL + "/logo.png",
                   },
-                  callback: function(t) {
+                  callback: function (t) {
                     return t.modal({
                       title: "Cardlytics",
                       url: BASE_URL + "/index.html?mode=board&refresh=1",
@@ -170,12 +262,12 @@
           },
 
           // ── List actions ────────────────────────────────────────────────
-          "list-actions": function(t) {
+          "list-actions": function (t) {
             return [
               {
                 text: "Cardlytics",
-                callback: function(t) {
-                  return t.list("id").then(function(list) {
+                callback: function (t) {
+                  return t.list("id").then(function (list) {
                     return t.modal({
                       title: "Cardlytics",
                       url: BASE_URL + "/index.html?mode=list&listId=" + list.id,
@@ -189,7 +281,7 @@
           },
 
           // ── Card back section ───────────────────────────────────────────
-          "card-back-section": function(t) {
+          "card-back-section": function (t) {
             return {
               title: "Cardlytics",
               icon: BASE_URL + "/logo.png",
@@ -202,7 +294,7 @@
           },
 
           // ── On enable ───────────────────────────────────────────────────
-          "on-enable": function(t) {
+          "on-enable": function (t) {
             return t.modal({
               title: "Welcome to Cardlytics 👋",
               url: BASE_URL + "/index.html?mode=onboarding",
@@ -212,24 +304,25 @@
           },
 
           // ── Remove data ─────────────────────────────────────────────────
-          "remove-data": function(t) {
-            return t.remove("board", "shared", "cardlytics_last_stats_hash")
-              .then(function() {
+          "remove-data": function (t) {
+            return t
+              .remove("board", "shared", "cardlytics_last_stats_hash")
+              .then(function () {
                 return t.set("member", "private", "token", null);
               })
-              .then(function() {
+              .then(function () {
                 localStorage.removeItem("cardlytics_trello_token");
               });
           },
 
           // ── Authorization status ────────────────────────────────────────
-          "authorization-status": function(t) {
+          "authorization-status": function (t) {
             var token = localStorage.getItem("cardlytics_trello_token");
             return { authorized: !!token };
           },
 
           // ── Show authorization ──────────────────────────────────────────
-          "show-authorization": function(t) {
+          "show-authorization": function (t) {
             return t.modal({
               title: "Connect Cardlytics",
               url: BASE_URL + "/index.html?mode=auth",
@@ -241,7 +334,7 @@
         {
           appKey: KEY,
           appName: "Cardlytics",
-        }
+        },
       );
     </script>
   </body>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { inferColorFromStatType } from "./trello";
 import {
   getBoardCards,
   computeStats,
@@ -9,15 +10,16 @@ import {
   getBoardLists,
   createCard,
   createList,
-  updateCard,
-  updateCardCover,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
-import { TRELLO_API_KEY, getStoredToken, storeToken } from "./utils/auth";
+import {
+  TRELLO_API_KEY,
+  getStoredToken,
+  storeToken,
+  clearToken,
+} from "./utils/auth";
 import "./index.css";
-
-const TRELLO_BASE = "https://api.trello.com/1";
 
 // ─── TRELLO LABEL COLOR MAP ───────────────────────────────────────────────────
 const LABEL_COLORS = {
@@ -104,6 +106,8 @@ const STAT_LABELS = {
 };
 
 // ─── Default stat config (cover colors + card names) ─────────────────────────
+// These are the baseline values. If the user customizes via the modal,
+// their saved config (cardConfig state) overrides name and cover.
 const DEFAULT_STAT_CONFIG = {
   assigned: { name: "📌 Assigned to Me", cover: "blue" },
   dueThisWeek: { name: "📅 Due This Week", cover: "yellow" },
@@ -147,9 +151,13 @@ function CardBackView() {
   useEffect(() => {
     if (!t) return;
     t.card("name", "idList", "desc").then((card) => {
+      // 1. Check prefix match (emoji tracker cards)
       const matchesPrefix = TRACKER_PREFIXES.some((p) =>
         card.name.toLowerCase().startsWith(p.toLowerCase()),
       );
+
+      // 2. Check description for Cardlytics meta tag (covers ALL tracker cards
+      //    including custom-named ones like "Assigned to me on all Workspace boards")
       const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
 
       if (matchesPrefix || hasMetaTag) {
@@ -157,11 +165,12 @@ function CardBackView() {
         return;
       }
 
+      // 3. Fallback: check if card lives in a list named "Cardlytics"
       t.board("id").then((board) => {
         const key = TRELLO_API_KEY;
         const token = getStoredToken();
         fetch(
-          `${TRELLO_BASE}/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
+          `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
         )
           .then((r) => r.json())
           .then((lists) => {
@@ -178,6 +187,7 @@ function CardBackView() {
   function handleOpenDetails() {
     if (!t) return;
     t.card("id", "idList", "name", "desc").then((card) => {
+      // First try to get everything from meta tag
       const statMatch = card.desc?.match(
         /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
       );
@@ -191,6 +201,7 @@ function CardBackView() {
         resolvedListId = statMatch[2] || card.idList;
         statType = statMatch[3];
       } else {
+        // Fallback for old cards that don't have statType in meta
         const nameMap = [
           { prefix: "📌 Assigned to Me", type: "assigned" },
           { prefix: "📅 Due This Week", type: "dueThisWeek" },
@@ -373,25 +384,26 @@ function CardDetailsView() {
 
         if (listId) {
           const listRes = await fetch(
-            `${TRELLO_BASE}/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`,
+            `${BASE_URL}/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`,
           );
           if (listRes.ok) {
             const listData = await listRes.json();
             setListName(listData.name);
             const resolvedBoardId = boardId || listData.idBoard;
             const boardRes = await fetch(
-              `${TRELLO_BASE}/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`,
+              `${BASE_URL}/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`,
             );
             if (boardRes.ok) setBoardName((await boardRes.json()).name);
           }
         } else if (boardId) {
           const boardRes = await fetch(
-            `${TRELLO_BASE}/boards/${boardId}?key=${key}&token=${token}&fields=name`,
+            `${BASE_URL}/boards/${boardId}?key=${key}&token=${token}&fields=name`,
           );
           if (boardRes.ok) setBoardName((await boardRes.json()).name);
         }
 
-        const boardLists = await getBoardLists(key, token, boardId);
+        const resolvedBoardId = boardId;
+        const boardLists = await getBoardLists(key, token, resolvedBoardId);
         const lmap = {};
         boardLists.forEach((l) => (lmap[l.id] = l.name));
         setListMap(lmap);
@@ -774,16 +786,7 @@ function CardDetailsView() {
   );
 }
 
-// ── Convert base64 data URL to Blob ──────────────────────────────────────────
-function dataUrlToBlob(dataUrl) {
-  const base64Data = dataUrl.split(",")[1];
-  const byteCharacters = atob(base64Data);
-  const byteArray = new Uint8Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteArray[i] = byteCharacters.charCodeAt(i);
-  }
-  return new Blob([byteArray], { type: "image/jpeg" });
-}
+const BASE_URL = "https://api.trello.com/1";
 
 // ── Generate a cover image with the big number overlaid ──────────────────────
 const COVER_BG_COLORS = {
@@ -807,6 +810,7 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
     const ctx = canvas.getContext("2d");
 
     function drawNumber() {
+      // Dark scrim so the number is readable over any background
       ctx.fillStyle = "rgba(0,0,0,0.45)";
       ctx.fillRect(0, 0, W, H);
 
@@ -824,8 +828,10 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
     }
 
     if (bgImageDataUrl) {
+      // Draw user's custom image as background, then overlay the number
       const img = new Image();
       img.onload = () => {
+        // Cover-fit: fill canvas, center crop
         const scale = Math.max(W / img.width, H / img.height);
         const sw = img.width * scale,
           sh = img.height * scale;
@@ -833,12 +839,14 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
         drawNumber();
       };
       img.onerror = () => {
+        // Fallback to color background if image fails
         ctx.fillStyle = COVER_BG_COLORS[colorName] || "#1565c0";
         ctx.fillRect(0, 0, W, H);
         drawNumber();
       };
       img.src = bgImageDataUrl;
     } else {
+      // Solid color background + subtle gradient
       const bg = COVER_BG_COLORS[colorName] || "#1565c0";
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, W, H);
@@ -882,8 +890,11 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
 
+  // ── Customize state ──────────────────────────────────────────────────────
   const [showCustomize, setShowCustomize] = useState(false);
   const [customizeStat, setCustomizeStat] = useState(null);
+  // cardConfig stores per-stat overrides saved from the Customize modal
+  // shape: { [statType]: { cardName: string, cover: string, ... } }
   const [cardConfig, setCardConfig] = useState({});
 
   useEffect(() => {
@@ -891,127 +902,15 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  // ── Refresh all existing tracker card covers with latest counts ───────────
-  async function refreshTrackerCards(boardId, latestStats) {
-    const key = TRELLO_API_KEY;
-    const token = getStoredToken();
-    if (!token || !boardId) return;
-
-    try {
-      const allLists = await getBoardLists(key, token, boardId);
-      const cardlyticsLists = allLists.filter(
-        (l) => l.name.toLowerCase() === "cardlytics",
-      );
-      console.log(
-        "Cardlytics: found lists",
-        cardlyticsLists.map((l) => l.name),
-      );
-      if (cardlyticsLists.length === 0) return;
-
-      for (const list of cardlyticsLists) {
-        const listCards = await getListCards(key, token, list.id);
-        console.log(
-          "Cardlytics: tracker cards found",
-          listCards.map((c) => c.name),
-        );
-
-        for (const card of listCards) {
-          // Try new format first: :statType:assigned
-          let statType = null;
-          const newMatch = card.desc?.match(
-            /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
-          );
-          if (newMatch) {
-            statType = newMatch[3];
-          } else {
-            // Fallback: infer statType from card name for older cards
-            const nameMap = [
-              { prefix: "assigned to me", type: "assigned" },
-              { prefix: "due this week", type: "dueThisWeek" },
-              { prefix: "overdue", type: "overdue" },
-              { prefix: "unassigned", type: "unassigned" },
-              { prefix: "with label", type: "withLabel" },
-              { prefix: "stale", type: "stale" },
-              { prefix: "created today", type: "createdToday" },
-              { prefix: "cards in list", type: "cardsInList" },
-            ];
-            const lower = card.name.toLowerCase();
-            statType =
-              nameMap.find((m) => lower.includes(m.prefix))?.type || null;
-          }
-
-          console.log(
-            `Cardlytics: card "${card.name}" → statType: ${statType}, count: ${latestStats[statType]}`,
-          );
-          if (!statType) continue;
-
-          const count = latestStats[statType];
-          if (count === undefined) continue;
-
-          // Use default cover color for this stat
-          const cover = DEFAULT_STAT_CONFIG[statType]?.cover || "blue";
-
-          // Generate new cover image with updated count
-          const coverImageDataUrl = await generateStatCoverImage(
-            count,
-            cover,
-            null,
-          );
-
-          // Update description count
-          const newDesc = (card.desc || "").replace(
-            /^\d+ card\(s\) tracked by Cardlytics\./,
-            `${count} card(s) tracked by Cardlytics.`,
-          );
-
-          // Upload new cover image as attachment
-          const blob = dataUrlToBlob(coverImageDataUrl);
-          const formData = new FormData();
-          formData.append("key", key);
-          formData.append("token", token);
-          formData.append("file", blob, "cover.jpg");
-          formData.append("setCover", "false");
-
-          const attachRes = await fetch(
-            `${TRELLO_BASE}/cards/${card.id}/attachments`,
-            { method: "POST", body: formData },
-          );
-
-          if (attachRes.ok) {
-            const attachment = await attachRes.json();
-            const updateRes = await fetch(
-              `${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${token}`,
-              {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  desc: newDesc,
-                  cover: {
-                    idAttachment: attachment.id,
-                    brightness: "dark",
-                    size: "full",
-                  },
-                }),
-              },
-            );
-            console.log(
-              `Cardlytics: updated card "${card.name}" with count ${count}`,
-              updateRes.ok ? "✅" : "❌",
-            );
-          } else {
-            console.warn(
-              `Cardlytics: failed to upload attachment for "${card.name}"`,
-            );
-          }
-        }
-      }
-    } catch (err) {
-      console.warn("refreshTrackerCards error:", err);
-    }
-  }
+    if (!token) return;
+    const interval = setInterval(
+      () => {
+        syncTrackerCards();
+      },
+      5 * 60 * 1000,
+    );
+    return () => clearInterval(interval);
+  }, [token, stats, cardConfig]);
 
   if (!token)
     return (
@@ -1063,6 +962,7 @@ export default function App() {
       );
       const memberId = await getMemberId(key, token);
 
+      // Tell connector.html the user is authorized → shows "Remove personal settings"
       const trello = window.TrelloPowerUp?.iframe?.();
       if (trello) {
         trello
@@ -1070,6 +970,7 @@ export default function App() {
           .catch(() => {});
       }
 
+      // Fetch member full name for Customize modal avatar
       if (memberId) {
         const memberDetails = await getMemberDetails(key, token, memberId);
         setMemberFullName(memberDetails?.fullName || "");
@@ -1079,80 +980,14 @@ export default function App() {
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
       setStats(computed);
 
-      // ── Auto-sync tracker card covers with latest counts ─────────────────
-      try {
-        const allLists = await getBoardLists(key, token, boardId);
-        const cardlyticsList = allLists.find((l) => l.name === "Cardlytics");
-
-        if (cardlyticsList) {
-          const trackerCards = (
-            await getListCards(key, token, cardlyticsList.id)
-          ).filter((c) => isTrackerCard(c.name));
-
-          const nameToType = {
-            "assigned to me": "assigned",
-            "due this week": "dueThisWeek",
-            "overdue cards": "overdue",
-            "unassigned cards": "unassigned",
-            "cards with a label": "withLabel",
-            "stale cards": "stale",
-            "created today": "createdToday",
-            "cards in list": "cardsInList",
-          };
-
-          for (const card of trackerCards) {
-            const lower = card.name.toLowerCase();
-            const matchedKey = Object.keys(nameToType).find((k) =>
-              lower.includes(k),
-            );
-            if (!matchedKey) continue;
-
-            const type = nameToType[matchedKey];
-            const newCount = computed[type] ?? 0;
-
-            const metaTag =
-              card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
-            const defaults = DEFAULT_STAT_CONFIG[type];
-
-            await updateCard(key, token, card.id, {
-              desc: `${newCount} card(s) tracked by Cardlytics.${metaTag ? `\n\n${metaTag}` : ""}`,
-            });
-
-            const newCover = await generateStatCoverImage(
-              newCount,
-              defaults.cover,
-            );
-            await updateCardCover(key, token, card.id, newCover);
-          }
-        }
-      } catch (err) {
-        console.warn("Auto-sync failed:", err);
-      }
-
       setLastUpdated(new Date().toLocaleTimeString());
-
-      // ── Save current stats hash so the notification dot clears ──────────
-      if (trello) {
-        const hash = Object.values(computed).join(",");
-        trello
-          .set("board", "shared", "cardlytics_last_stats_hash", hash)
-          .catch(() => {});
-        trello.set("board", "private", "cardlytics_dot", false).catch(() => {});
-        trello.invalidate?.();
-      }
-
-      // ── Refresh existing tracker card covers with latest counts ──────────
-      await refreshTrackerCards(boardId, computed);
-      await new Promise((res) => setTimeout(res, 1500));
-      const trelloCtx = window.TrelloPowerUp?.iframe?.();
-      trelloCtx?.invalidate?.();
 
       const boardLists = await getBoardLists(key, token, boardId);
       setLists(boardLists);
 
       if (mode === "list" && listId) {
         const listRes = await fetch(
-          `${TRELLO_BASE}/lists/${listId}?key=${key}&token=${token}&fields=name`,
+          `${BASE_URL}/lists/${listId}?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${import.meta.env.VITE_TRELLO_TOKEN}&fields=name`,
         );
         if (listRes.ok) setTrackingListName((await listRes.json()).name);
       } else {
@@ -1180,6 +1015,79 @@ export default function App() {
     setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
 
+  const syncTrackerCards = async () => {
+    try {
+      const key = TRELLO_API_KEY;
+      const tok = getStoredToken();
+      if (!tok) return;
+      const t = window.TrelloPowerUp?.iframe?.();
+      if (!t) return;
+      const board = await t.board("id");
+      const boardId = board.id;
+
+      await fetchData(); // refresh stats first
+
+      const res = await fetch(
+        `https://api.trello.com/1/boards/${boardId}/cards?key=${key}&token=${tok}&fields=id,name,desc,idList`,
+      );
+      if (!res.ok) return;
+      const allCards = await res.json();
+
+      const trackerCards = allCards.filter((c) =>
+        /\[_\]: cardlytics:mode:(board|list)/.test(c.desc || ""),
+      );
+
+      if (trackerCards.length === 0) {
+        showToast("No tracker cards found", "error");
+        return;
+      }
+
+      for (const card of trackerCards) {
+        const match = card.desc.match(
+          /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
+        );
+        if (!match) continue;
+
+        const statType = match[3];
+        const listId = match[2] || null;
+
+        let count;
+        if (statType === "cardsInList" && listId) {
+          const listCards = await getListCards(key, tok, listId);
+          count = listCards.filter(
+            (c) => !/\[_\]: cardlytics:mode:/.test(c.desc || ""),
+          ).length;
+        } else {
+          count = stats[statType] ?? 0;
+        }
+
+        // Update desc
+        const updatedDesc = card.desc.replace(
+          /^\d+ card\(s\) tracked by Cardlytics\./,
+          `${count} card(s) tracked by Cardlytics.`,
+        );
+        await updateCard(key, tok, card.id, { desc: updatedDesc });
+
+        // Regenerate cover with new count
+        const saved = cardConfig[statType];
+        const coverDataUrl = await generateStatCoverImage(
+          count,
+          saved?.cover || inferColorFromStatType(statType),
+          saved?.coverImage || null,
+        );
+        await updateCardCover(key, tok, card.id, coverDataUrl);
+      }
+
+      showToast(`${trackerCards.length} card(s) synced ✅`);
+    } catch (err) {
+      console.error("Sync error:", err);
+      showToast("Sync failed. Please try again.", "error");
+    }
+  };
+
+  // ── TRACK ────────────────────────────────────────────────────────────────
+  // statsOverride and configOverride let onSave call this directly with fresh
+  // values, bypassing the stale-closure problem with React state.
   const handleTrack = async (statsOverride, configOverride) => {
     const statsToTrack = statsOverride ?? selectedStats;
     const configToUse = configOverride ?? cardConfig;
@@ -1227,10 +1135,16 @@ export default function App() {
             ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
             : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
 
+        // Card name has NO count — the count is shown as a big number on the cover image
         const cardName = saved?.cardName || defaults.name;
+
         const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
+
         const cover = saved?.cover || defaults.cover;
 
+        // Always generate a cover image with the big count number.
+        // If the user uploaded a custom image, use it as the background and
+        // draw the number on top of it.
         const coverImageDataUrl = await generateStatCoverImage(
           count,
           cover,
@@ -1262,6 +1176,7 @@ export default function App() {
     <div className="popup">
       <Toast toast={toast} />
 
+      {/* ── Customize modal (two-step: stat picker → card config) ── */}
       <CustomizeFlow
         show={showCustomize}
         lists={lists}
@@ -1270,10 +1185,13 @@ export default function App() {
         customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
         onSave={async (type, cfg) => {
+          // Build the new config synchronously so handleTrack gets fresh values
+          // (setState is async — can't rely on cardConfig being updated yet)
           const newConfig = { ...cardConfig, [type]: cfg };
           setCardConfig(newConfig);
           setShowCustomize(false);
           setCustomizeStat(null);
+          // Track immediately — no need to go back and click Track
           await handleTrack([type], newConfig);
         }}
         onClose={() => {
@@ -1463,9 +1381,7 @@ export default function App() {
         </div>
         <div className="footer-right">
           <span className="footer-text">Updated: {lastUpdated}</span>
-          <button className="btn-refresh" onClick={fetchData}>
-            ↻
-          </button>
+          <button className="btn-refresh" onClick={syncTrackerCards}>↻</button>
         </div>
       </div>
     </div>

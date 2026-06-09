@@ -37,7 +37,7 @@ export async function getMemberDetails(key, token, memberId) {
 
 export async function getListCards(key, token, listId) {
   const res = await fetch(
-    `${BASE}/lists/${listId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList,desc`
+    `${BASE}/lists/${listId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList`
   );
   if (!res.ok) return [];
   return res.json();
@@ -204,45 +204,62 @@ export async function createList(key, token, boardId, name) {
   return res.json();
 }
 
-// ── Update card name/desc ─────────────────────────────────────────────────
-export async function updateCard(key, token, cardId, fields) {
-  await fetch(`${BASE}/cards/${cardId}?${buildAuth(key, token)}`, {
+export async function updateCard(key, token, cardId, updates) {
+  const params = new URLSearchParams({ key, token, ...updates });
+  const res = await fetch(`${BASE}/cards/${cardId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params,
+  });
+  if (!res.ok) throw new Error("Failed to update card");
+  return res.json();
+}
+
+export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
+  const blob = dataUrlToBlob(coverImageDataUrl);
+
+  const form = new FormData();
+  form.append("file", blob, "cover.jpg");
+  form.append("key", key);
+  form.append("token", token);
+
+  // Step 1: upload attachment
+  const attachRes = await fetch(`${BASE}/cards/${cardId}/attachments`, {
+    method: "POST",
+    body: form,
+  });
+
+  if (!attachRes.ok) {
+    console.warn("Cover attachment upload failed:", await attachRes.text());
+    return;
+  }
+
+  const attachment = await attachRes.json();
+
+  // Step 2: set it as cover
+  await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(fields),
+    body: JSON.stringify({
+      cover: {
+        idAttachment: attachment.id,
+        size: "full",
+        brightness: "dark",
+      },
+    }),
   });
 }
 
-// ── Upload new cover image and set as cover ───────────────────────────────
-export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
-  try {
-    const blob = dataUrlToBlob(coverImageDataUrl);
-    const formData = new FormData();
-    formData.append("key", key);
-    formData.append("token", token);
-    formData.append("file", blob, "cover.jpg");
-    formData.append("setCover", "false");
-
-    const attachRes = await fetch(`${BASE}/cards/${cardId}/attachments`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (attachRes.ok) {
-      const attachment = await attachRes.json();
-      await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cover: {
-            idAttachment: attachment.id,
-            brightness: "dark",
-            size: "full",
-          },
-        }),
-      });
-    }
-  } catch (err) {
-    console.warn("updateCardCover error:", err);
-  }
+export function inferColorFromStatType(statType) {
+  const map = {
+    assigned:     "blue",
+    dueThisWeek:  "yellow",
+    overdue:      "red",
+    unassigned:   "purple",
+    withLabel:    "orange",
+    stale:        "black",
+    createdToday: "green",
+    cardsInList:  "sky",
+  };
+  return map[statType] || "blue";
 }
