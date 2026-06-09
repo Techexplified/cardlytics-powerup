@@ -203,3 +203,46 @@ export async function createList(key, token, boardId, name) {
   if (!res.ok) throw new Error("Failed to create list");
   return res.json();
 }
+
+// ── Update card name/desc ─────────────────────────────────────────────────
+export async function updateCard(key, token, cardId, fields) {
+  await fetch(`${BASE}/cards/${cardId}?${buildAuth(key, token)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(fields),
+  });
+}
+
+// ── Upload new cover image and set as cover ───────────────────────────────
+export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
+  try {
+    const blob = dataUrlToBlob(coverImageDataUrl);
+    const formData = new FormData();
+    formData.append("key", key);
+    formData.append("token", token);
+    formData.append("file", blob, "cover.jpg");
+    formData.append("setCover", "false");
+
+    const attachRes = await fetch(`${BASE}/cards/${cardId}/attachments`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (attachRes.ok) {
+      const attachment = await attachRes.json();
+      await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cover: {
+            idAttachment: attachment.id,
+            brightness: "dark",
+            size: "full",
+          },
+        }),
+      });
+    }
+  } catch (err) {
+    console.warn("updateCardCover error:", err);
+  }
+}

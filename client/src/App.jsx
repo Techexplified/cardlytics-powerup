@@ -9,6 +9,8 @@ import {
   getBoardLists,
   createCard,
   createList,
+  updateCard,
+  updateCardCover,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
@@ -888,6 +890,10 @@ export default function App() {
     if (token) fetchData();
   }, [token]);
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   // ── Refresh all existing tracker card covers with latest counts ───────────
   async function refreshTrackerCards(boardId, latestStats) {
     const key = TRELLO_API_KEY;
@@ -1072,6 +1078,56 @@ export default function App() {
       const computed = computeStats(filteredForStats, memberId);
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
       setStats(computed);
+
+      // ── Auto-sync tracker card covers with latest counts ─────────────────
+      try {
+        const allLists = await getBoardLists(key, token, boardId);
+        const cardlyticsList = allLists.find((l) => l.name === "Cardlytics");
+
+        if (cardlyticsList) {
+          const trackerCards = (
+            await getListCards(key, token, cardlyticsList.id)
+          ).filter((c) => isTrackerCard(c.name));
+
+          const nameToType = {
+            "assigned to me": "assigned",
+            "due this week": "dueThisWeek",
+            "overdue cards": "overdue",
+            "unassigned cards": "unassigned",
+            "cards with a label": "withLabel",
+            "stale cards": "stale",
+            "created today": "createdToday",
+            "cards in list": "cardsInList",
+          };
+
+          for (const card of trackerCards) {
+            const lower = card.name.toLowerCase();
+            const matchedKey = Object.keys(nameToType).find((k) =>
+              lower.includes(k),
+            );
+            if (!matchedKey) continue;
+
+            const type = nameToType[matchedKey];
+            const newCount = computed[type] ?? 0;
+
+            const metaTag =
+              card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
+            const defaults = DEFAULT_STAT_CONFIG[type];
+
+            await updateCard(key, token, card.id, {
+              desc: `${newCount} card(s) tracked by Cardlytics.${metaTag ? `\n\n${metaTag}` : ""}`,
+            });
+
+            const newCover = await generateStatCoverImage(
+              newCount,
+              defaults.cover,
+            );
+            await updateCardCover(key, token, card.id, newCover);
+          }
+        }
+      } catch (err) {
+        console.warn("Auto-sync failed:", err);
+      }
 
       setLastUpdated(new Date().toLocaleTimeString());
 
