@@ -37,7 +37,7 @@ export async function getMemberDetails(key, token, memberId) {
 
 export async function getListCards(key, token, listId) {
   const res = await fetch(
-    `${BASE}/lists/${listId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList`
+    `${BASE}/lists/${listId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList,desc`
   );
   if (!res.ok) return [];
   return res.json();
