@@ -915,6 +915,26 @@ export default function App() {
             `${count} card(s) tracked by Cardlytics.`
           );
 
+          // Delete old cover attachments (cover.jpg) to avoid stale covers
+          try {
+            const existingAttachRes = await fetch(
+              `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${token}`
+            );
+            if (existingAttachRes.ok) {
+              const existingAttachments = await existingAttachRes.json();
+              for (const att of existingAttachments) {
+                if (att.name === "cover.jpg") {
+                  await fetch(
+                    `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${token}`,
+                    { method: "DELETE" }
+                  );
+                }
+              }
+            }
+          } catch (e) {
+            console.warn("Could not delete old attachments:", e);
+          }
+
           // Upload new cover image as attachment
           const blob = dataUrlToBlob(coverImageDataUrl);
           const formData = new FormData();
