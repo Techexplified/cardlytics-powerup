@@ -10,6 +10,8 @@ import {
   getBoardLists,
   createCard,
   createList,
+  updateCard,
+  updateCardCover,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
@@ -1015,75 +1017,91 @@ export default function App() {
     setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
 
-  const syncTrackerCards = async () => {
-    try {
-      const key = TRELLO_API_KEY;
-      const tok = getStoredToken();
-      if (!tok) return;
-      const t = window.TrelloPowerUp?.iframe?.();
-      if (!t) return;
-      const board = await t.board("id");
-      const boardId = board.id;
+ const syncTrackerCards = async () => {
+  try {
+    const key = TRELLO_API_KEY;
+    const tok = getStoredToken();
+    if (!tok) return;
+    const t = window.TrelloPowerUp?.iframe?.();
+    if (!t) return;
+    const board = await t.board("id");
+    const boardId = board.id;
 
-      await fetchData(); // refresh stats first
+    // ── Fetch fresh data directly (don't rely on stale stats state) ──
+    const allCardsRaw = await getBoardCards(key, tok, boardId);
+    const allLists = await getBoardLists(key, tok, boardId);
+    const cardlyticsListIds = allLists
+      .filter((l) => l.name.toLowerCase() === "cardlytics")
+      .map((l) => l.id);
 
-      const res = await fetch(
-        `https://api.trello.com/1/boards/${boardId}/cards?key=${key}&token=${tok}&fields=id,name,desc,idList`,
-      );
-      if (!res.ok) return;
-      const allCards = await res.json();
+    const cleanCards = allCardsRaw.filter(
+      (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList)
+    );
+    const memberId = await getMemberId(key, tok);
+    const freshStats = computeStats(cleanCards, memberId);
 
-      const trackerCards = allCards.filter((c) =>
-        /\[_\]: cardlytics:mode:(board|list)/.test(c.desc || ""),
-      );
+    // ── Find all tracker cards ──
+    const res = await fetch(
+      `https://api.trello.com/1/boards/${boardId}/cards?key=${key}&token=${tok}&fields=id,name,desc,idList`
+    );
+    if (!res.ok) return;
+    const allCards = await res.json();
 
-      if (trackerCards.length === 0) {
-        showToast("No tracker cards found", "error");
-        return;
-      }
+    const trackerCards = allCards.filter((c) =>
+      /\[_\]: cardlytics:mode:(board|list)/.test(c.desc || "")
+    );
 
-      for (const card of trackerCards) {
-        const match = card.desc.match(
-          /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
-        );
-        if (!match) continue;
-
-        const statType = match[3];
-        const listId = match[2] || null;
-
-        let count;
-        if (statType === "cardsInList" && listId) {
-          const listCards = await getListCards(key, tok, listId);
-          count = listCards.filter(
-            (c) => !/\[_\]: cardlytics:mode:/.test(c.desc || ""),
-          ).length;
-        } else {
-          count = stats[statType] ?? 0;
-        }
-
-        // Update desc
-        const updatedDesc = card.desc.replace(
-          /^\d+ card\(s\) tracked by Cardlytics\./,
-          `${count} card(s) tracked by Cardlytics.`,
-        );
-        await updateCard(key, tok, card.id, { desc: updatedDesc });
-
-        // Regenerate cover with new count
-        const saved = cardConfig[statType];
-        const coverDataUrl = await generateStatCoverImage(
-          count,
-          saved?.cover || inferColorFromStatType(statType),
-          saved?.coverImage || null,
-        );
-        await updateCardCover(key, tok, card.id, coverDataUrl);
-      }
-
-      showToast(`${trackerCards.length} card(s) synced ✅`);
-    } catch (err) {
-      console.error("Sync error:", err);
-      showToast("Sync failed. Please try again.", "error");
+    if (trackerCards.length === 0) {
+      showToast("No tracker cards found", "error");
+      return;
     }
-  };
+
+    for (const card of trackerCards) {
+      const match = card.desc.match(
+        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/
+      );
+      if (!match) continue;
+
+      const statType = match[3];
+      const listId   = match[2] || null;
+
+      // Use freshStats instead of stale stats state
+      let count;
+      if (statType === "cardsInList" && listId) {
+        const listCards = await getListCards(key, tok, listId);
+        count = listCards.filter(
+          (c) => !/\[_\]: cardlytics:mode:/.test(c.desc || "")
+        ).length;
+      } else {
+        count = freshStats[statType] ?? 0;
+      }
+
+      // Update desc
+      const updatedDesc = card.desc.replace(
+        /^\d+ card\(s\) tracked by Cardlytics\./,
+        `${count} card(s) tracked by Cardlytics.`
+      );
+      await updateCard(key, tok, card.id, { desc: updatedDesc });
+
+      // Regenerate cover with new count
+      const saved = cardConfig[statType];
+      const coverDataUrl = await generateStatCoverImage(
+        count,
+        saved?.cover || inferColorFromStatType(statType),
+        saved?.coverImage || null
+      );
+      await updateCardCover(key, tok, card.id, coverDataUrl);
+    }
+
+    // Update the UI stats too
+    setStats(freshStats);
+    setLastUpdated(new Date().toLocaleTimeString());
+    showToast(`${trackerCards.length} card(s) synced ✅`);
+  } catch (err) {
+    console.error("Sync error:", err);
+    showToast("Sync failed. Please try again.", "error");
+  }
+};
 
   // ── TRACK ────────────────────────────────────────────────────────────────
   // statsOverride and configOverride let onSave call this directly with fresh
