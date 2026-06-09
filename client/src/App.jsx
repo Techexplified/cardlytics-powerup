@@ -1026,7 +1026,8 @@ showToast(`sync started, boardId: ${boardId}`);
     const key = TRELLO_API_KEY;
     const tok = getStoredToken();
     if (!tok) return;
- const resolvedBoardId = boardId || new URLSearchParams(window.location.search).get("boardId");
+ const resolvedBoardId =
+  boardId || new URLSearchParams(window.location.search).get("boardId");
 if (!resolvedBoardId) return;
 
     // ── Fetch fresh data directly (don't rely on stale stats state) ──
@@ -1048,10 +1049,10 @@ if (!resolvedBoardId) return;
     );
     if (!res.ok) return;
     const allCards = await res.json();
-
     const trackerCards = allCards.filter((c) =>
-      /\[_\]: cardlytics:mode:(board|list)/.test(c.desc || "")
-    );
+  /\[_\]: cardlytics:mode:(board|list)/.test(c.desc || "") &&
+  !c.closed
+);
 
     if (trackerCards.length === 0) {
       showToast("No tracker cards found", "error");
@@ -1072,8 +1073,10 @@ if (!resolvedBoardId) return;
       if (statType === "cardsInList" && listId) {
         const listCards = await getListCards(key, tok, listId);
         count = listCards.filter(
-          (c) => !/\[_\]: cardlytics:mode:/.test(c.desc || "")
-        ).length;
+  (c) =>
+    !isTrackerCard(c.name) &&
+    !/\[_\]: cardlytics:mode:/.test(c.desc || "")
+).length;
       } else {
         count = freshStats[statType] ?? 0;
       }
@@ -1109,6 +1112,13 @@ if (!resolvedBoardId) return;
   // statsOverride and configOverride let onSave call this directly with fresh
   // values, bypassing the stale-closure problem with React state.
   const handleTrack = async (statsOverride, configOverride) => {
+
+    const id =
+  boardId || new URLSearchParams(window.location.search).get("boardId");
+if (!id) {
+  showToast("Board ID not found", "error");
+  return;
+}
     const statsToTrack = statsOverride ?? selectedStats;
     const configToUse = configOverride ?? cardConfig;
 
@@ -1130,10 +1140,10 @@ if (!resolvedBoardId) return;
       if (mode === "list" && listId) {
         targetListId = listId;
       } else {
-        const boardLists = await getBoardLists(key, token, boardId);
+        const boardLists = await getBoardLists(key, token, resolvedBoardId);
         let cardlyticsList = boardLists.find((l) => l.name === "Cardlytics");
         if (!cardlyticsList) {
-          cardlyticsList = await createList(key, token, boardId, "Cardlytics");
+          cardlyticsList = await createList(key, token, resolvedBoardId, "Cardlytics");
         }
         targetListId = cardlyticsList.id;
         setTrackingListName("Cardlytics");
@@ -1146,7 +1156,25 @@ if (!resolvedBoardId) return;
       for (const stat of statsToTrack) {
         const defaults = DEFAULT_STAT_CONFIG[stat];
         const saved = configToUse[stat];
-        const count = stats[stat];
+        // ✅ Get fresh data (same logic as sync)
+const freshCards = await getBoardCards(key, token, id);
+
+const allLists = await getBoardLists(key, token, resolvedBoardId);
+const cardlyticsListIds = allLists
+  .filter((l) => l.name.toLowerCase() === "cardlytics")
+  .map((l) => l.id);
+
+const cleanCards = freshCards.filter(
+  (c) =>
+    !isTrackerCard(c.name) &&
+    !cardlyticsListIds.includes(c.idList)
+);
+
+const memberId = await getMemberId(key, token);
+const freshStats = computeStats(cleanCards, memberId);
+
+// ✅ Use fresh value
+const count = freshStats[stat] ?? 0;
 
         const metaTag =
           mode === "list" && listId
