@@ -1468,7 +1468,7 @@ export default function App() {
           </span>
         </div>
         <div className="footer-right">
-          <span className="footer-text">Updated: {lastUpdated}</span>
+          <span className="footer-text">Updated sync: {lastUpdated}</span>
           <button className="btn-refresh" onClick={syncTrackerCards}>
             ↻ sync
           </button>
