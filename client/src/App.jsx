@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import {useEffect(() => {
+import { useEffect } from "react";
+
+import {
   getBoardCards,
   computeStats,
   computeDetailStats,
