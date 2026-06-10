@@ -14,7 +14,7 @@ export async function getBoard(key, token, boardId) {
 
 export async function getBoardCards(key, token, boardId) {
   const res = await fetch(
-    `${BASE}/boards/${boardId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList`
+    `${BASE}/boards/${boardId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList,desc`
   );
   if (!res.ok) throw new Error(`Trello error ${res.status}`);
   return res.json();
@@ -37,7 +37,7 @@ export async function getMemberDetails(key, token, memberId) {
 
 export async function getListCards(key, token, listId) {
   const res = await fetch(
-    `${BASE}/lists/${listId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList`
+    `${BASE}/lists/${listId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList,desc`
   );
   if (!res.ok) return [];
   return res.json();
@@ -119,6 +119,24 @@ function dataUrlToBlob(dataUrl) {
     byteArray[i] = byteCharacters.charCodeAt(i);
   }
   return new Blob([byteArray], { type: 'image/jpeg' });
+}
+
+// ── Get all attachments for a card ───────────────────────────────────────────
+export async function getCardAttachments(key, token, cardId) {
+  const res = await fetch(
+    `${BASE}/cards/${cardId}/attachments?${buildAuth(key, token)}&fields=id,name,isUpload`
+  );
+  if (!res.ok) return [];
+  return res.json();
+}
+
+// ── Delete a single attachment ───────────────────────────────────────────────
+export async function deleteAttachment(key, token, cardId, attachmentId) {
+  const res = await fetch(
+    `${BASE}/cards/${cardId}/attachments/${attachmentId}?${buildAuth(key, token)}`,
+    { method: "DELETE" }
+  );
+  return res.ok;
 }
 
 // ── Create a Cardlytics tracker card ─────────────────────────────────────────
@@ -214,39 +232,65 @@ export async function updateCard(key, token, cardId, updates) {
   return res.json();
 }
 
+/**
+ * updateCardCover — replaces the cover image on a tracker card.
+ *
+ * Strategy:
+ *  1. Fetch all existing uploaded attachments on the card.
+ *  2. Delete every previously uploaded cover attachment (named "cover.jpg").
+ *  3. Upload the new cover image.
+ *  4. Set the new attachment as the card cover.
+ *
+ * This avoids unbounded attachment growth and ensures the displayed
+ * number is always the freshest value.
+ */
 export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
-  const blob = dataUrlToBlob(coverImageDataUrl);
+  try {
+    // Step 1: fetch existing attachments
+    const existing = await getCardAttachments(key, token, cardId);
 
-  const form = new FormData();
-  form.append("file", blob, "cover.jpg");
-  form.append("key", key);
-  form.append("token", token);
+    // Step 2: delete all previous cover uploads (file named cover.jpg)
+    const oldCovers = existing.filter(
+      (a) => a.isUpload && a.name === "cover.jpg"
+    );
+    await Promise.all(
+      oldCovers.map((a) => deleteAttachment(key, token, cardId, a.id))
+    );
 
-  // Step 1: upload attachment
-  const attachRes = await fetch(`${BASE}/cards/${cardId}/attachments`, {
-    method: "POST",
-    body: form,
-  });
+    // Step 3: upload the new cover image
+    const blob = dataUrlToBlob(coverImageDataUrl);
+    const form = new FormData();
+    form.append("file", blob, "cover.jpg");
+    form.append("key", key);
+    form.append("token", token);
 
-  if (!attachRes.ok) {
-    console.warn("Cover attachment upload failed:", await attachRes.text());
-    return;
+    const attachRes = await fetch(`${BASE}/cards/${cardId}/attachments`, {
+      method: "POST",
+      body: form,
+    });
+
+    if (!attachRes.ok) {
+      console.warn("Cover attachment upload failed:", await attachRes.text());
+      return;
+    }
+
+    const attachment = await attachRes.json();
+
+    // Step 4: set it as the card cover
+    await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cover: {
+          idAttachment: attachment.id,
+          size: "full",
+          brightness: "dark",
+        },
+      }),
+    });
+  } catch (err) {
+    console.warn("updateCardCover error:", err);
   }
-
-  const attachment = await attachRes.json();
-
-  // Step 2: set it as cover
-  await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      cover: {
-        idAttachment: attachment.id,
-        size: "full",
-        brightness: "dark",
-      },
-    }),
-  });
 }
 
 export function inferColorFromStatType(statType) {
