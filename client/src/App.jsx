@@ -12,11 +12,7 @@ import {
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
-import {
-  TRELLO_API_KEY,
-  getStoredToken,
-  storeToken,
-} from "./utils/auth";
+import { TRELLO_API_KEY, getStoredToken, storeToken } from "./utils/auth";
 import "./index.css";
 
 const TRELLO_BASE = "https://api.trello.com/1";
@@ -497,10 +493,26 @@ function CardDetailsView() {
     { value: fullStats.assigned, label: "Assigned to me", accent: "#4ea1ff" },
     { value: fullStats.dueThisWeek, label: "Due this week", accent: "#f9c74f" },
     { value: fullStats.overdue, label: "Overdue cards", accent: "#ff5252" },
-    { value: fullStats.unassigned, label: "Unassigned cards", accent: "#ab47bc" },
-    { value: fullStats.withLabel, label: "Cards with a label", accent: "#ff9800" },
-    { value: fullStats.stale, label: "Stale (14+ days inactive)", accent: "#888" },
-    { value: fullStats.createdToday, label: "Created today", accent: "#2ec4b6" },
+    {
+      value: fullStats.unassigned,
+      label: "Unassigned cards",
+      accent: "#ab47bc",
+    },
+    {
+      value: fullStats.withLabel,
+      label: "Cards with a label",
+      accent: "#ff9800",
+    },
+    {
+      value: fullStats.stale,
+      label: "Stale (14+ days inactive)",
+      accent: "#888",
+    },
+    {
+      value: fullStats.createdToday,
+      label: "Created today",
+      accent: "#2ec4b6",
+    },
   ];
 
   return (
@@ -862,7 +874,28 @@ export default function App() {
   const [cardConfig, setCardConfig] = useState({});
 
   useEffect(() => {
-    if (token) fetchData();
+    if (!token) return;
+
+    // 1. Trello render lifecycle — fires on every iframe re-render
+    const t = window.TrelloPowerUp?.iframe?.();
+    if (t) {
+      t.render(() => {
+        fetchData();
+      });
+    }
+
+    // 2. Initial fetch
+    fetchData();
+
+    // 3. Polling every 5 seconds
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 3000);
+
+    // 4. Cleanup on unmount or token change
+    return () => {
+      clearInterval(intervalId);
+    };
   }, [token]);
 
   if (!token)
