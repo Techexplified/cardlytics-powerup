@@ -1291,7 +1291,7 @@ export default function App() {
             />
           )}
 
-          <div className="add-filter-card">+ Add filter</div>
+          {/* <div className="add-filter-card">+ Add filter</div> */}
         </Section>
       </div>
 
