@@ -1054,7 +1054,7 @@ export default function App() {
 
   // ── SYNC ─────────────────────────────────────────────────────────────────
   const syncTrackerCards = async () => {
-    alert("sync started");
+    showToast("Sync started...", "success");
     try {
       const key = TRELLO_API_KEY;
       const tok = getStoredToken();
@@ -1094,7 +1094,7 @@ export default function App() {
           /\[_\]: cardlytics:mode:(board|list)/.test(c.desc || "") && !c.closed,
       );
 
-      alert("tracker cards found: " + trackerCards.length);
+      showToast("Tracker cards found: " + trackerCards.length, "success");
 
       if (trackerCards.length === 0) {
         showToast("No tracker cards found on this board", "error");
@@ -1470,7 +1470,7 @@ export default function App() {
         <div className="footer-right">
           <span className="footer-text">Updated: {lastUpdated}</span>
           <button className="btn-refresh" onClick={syncTrackerCards}>
-            ↻
+            ↻ sync
           </button>
         </div>
       </div>
