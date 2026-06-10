@@ -211,17 +211,25 @@ export async function updateCardCover(key, token, cardId, coverImageDataUrl, des
   formData.append("key", key);
   formData.append("token", token);
   formData.append("file", blob, "cover.jpg");
-  formData.append("setCover", "true");
 
-  await fetch(`https://api.trello.com/1/cards/${cardId}/attachments`, {
+  const res = await fetch(`https://api.trello.com/1/cards/${cardId}/attachments`, {
     method: "POST",
     body: formData,
   });
 
-  // ✅ ALSO update description
+  const attachment = await res.json();
+
+  // 🔥 FORCE SET THIS ATTACHMENT AS COVER
   await fetch(`https://api.trello.com/1/cards/${cardId}?key=${key}&token=${token}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ desc }),
+    body: JSON.stringify({
+      cover: {
+        idAttachment: attachment.id,
+        size: "full",
+        brightness: "dark"
+      },
+      desc: desc
+    }),
   });
 }

@@ -875,40 +875,40 @@ export default function App() {
   const [cardConfig, setCardConfig] = useState({});
 
   useEffect(() => {
-  if (!token) return;
+    if (!token) return;
 
-  const t = window.TrelloPowerUp?.iframe?.();
-  let intervalId;
-  let isFetching = false;
+    const t = window.TrelloPowerUp?.iframe?.();
+    let intervalId;
+    let isFetching = false;
 
-  async function loadData() {
-    if (isFetching) return; // prevent duplicate calls
-    isFetching = true;
-    try {
-      await fetchData();
-    } finally {
-      isFetching = false;
+    async function loadData() {
+      if (isFetching) return; // prevent duplicate calls
+      isFetching = true;
+      try {
+        await fetchData();
+      } finally {
+        isFetching = false;
+      }
     }
-  }
 
-  // initial load
-  loadData();
+    // initial load
+    loadData();
 
-  // Trello re-render trigger
-  if (t) {
-    t.render(() => {
-      loadData();
-    });
-  }
+    // Trello re-render trigger
+    if (t) {
+      t.render(() => {
+        loadData();
+      });
+    }
 
-  // polling
-  intervalId = setInterval(loadData, 5000);
+    // polling
+    intervalId = setInterval(loadData, 5000);
 
-  // cleanup
-  return () => {
-    clearInterval(intervalId);
-  };
-}, [token]);
+    // cleanup
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [token]);
   if (!token)
     return (
       <LoginScreen
@@ -1052,10 +1052,7 @@ export default function App() {
         const saved = configToUse[stat];
         const count = stats[stat];
 
-        const metaTag =
-          mode === "list" && listId
-            ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
-            : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
+        const metaTag = `\n\n[_]: cardlytics:stat:${stat}`;
 
         const cardName = saved?.cardName || defaults.name;
         const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
@@ -1063,31 +1060,37 @@ export default function App() {
 
         const existingCards = await getListCards(key, token, targetListId);
 
-const existing = existingCards.find(c =>
-  c.desc?.includes(`statType:${stat}`)
-);
+        const existing = existingCards.find((c) =>
+          c.desc?.includes(`cardlytics:stat:${stat}`),
+        );
 
-const coverImageDataUrl = await generateStatCoverImage(
-  count,
-  cover,
-  saved?.coverImage || null
-);
+        const coverImageDataUrl = await generateStatCoverImage(
+          count,
+          cover,
+          saved?.coverImage || null,
+        );
 
-if (existing) {
-  // ✅ UPDATE EXISTING CARD
-  await updateCardCover(key, token, existing.id, coverImageDataUrl, desc);
-} else {
-  // ✅ CREATE NEW CARD
-  await createCard(
-    key,
-    token,
-    targetListId,
-    cardName,
-    desc,
-    cover,
-    coverImageDataUrl
-  );
-}
+        if (existing) {
+          // ✅ UPDATE EXISTING CARD
+          await updateCardCover(
+            key,
+            token,
+            existing.id,
+            coverImageDataUrl,
+            desc,
+          );
+        } else {
+          // ✅ CREATE NEW CARD
+          await createCard(
+            key,
+            token,
+            targetListId,
+            cardName,
+            desc,
+            cover,
+            coverImageDataUrl,
+          );
+        }
       }
 
       showToast(
