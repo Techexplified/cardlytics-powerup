@@ -14,7 +14,7 @@ export async function getBoard(key, token, boardId) {
 
 export async function getBoardCards(key, token, boardId) {
   const res = await fetch(
-    `${BASE}/boards/${boardId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList,desc`
+    `${BASE}/boards/${boardId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList`
   );
   if (!res.ok) throw new Error(`Trello error ${res.status}`);
   return res.json();
@@ -37,7 +37,7 @@ export async function getMemberDetails(key, token, memberId) {
 
 export async function getListCards(key, token, listId) {
   const res = await fetch(
-    `${BASE}/lists/${listId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList,desc`
+    `${BASE}/lists/${listId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList`
   );
   if (!res.ok) return [];
   return res.json();
@@ -121,24 +121,6 @@ function dataUrlToBlob(dataUrl) {
   return new Blob([byteArray], { type: 'image/jpeg' });
 }
 
-// ── Get all attachments for a card ───────────────────────────────────────────
-export async function getCardAttachments(key, token, cardId) {
-  const res = await fetch(
-    `${BASE}/cards/${cardId}/attachments?${buildAuth(key, token)}&fields=id,name,isUpload`
-  );
-  if (!res.ok) return [];
-  return res.json();
-}
-
-// ── Delete a single attachment ───────────────────────────────────────────────
-export async function deleteAttachment(key, token, cardId, attachmentId) {
-  const res = await fetch(
-    `${BASE}/cards/${cardId}/attachments/${attachmentId}?${buildAuth(key, token)}`,
-    { method: "DELETE" }
-  );
-  return res.ok;
-}
-
 // ── Create a Cardlytics tracker card ─────────────────────────────────────────
 export async function createCard(key, token, listId, name, desc, coverColor = "blue", coverImageDataUrl = null) {
   // Step 1: create the card
@@ -162,7 +144,7 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
       const formData = new FormData();
       formData.append("key", key);
       formData.append("token", token);
-      formData.append("file", blob, `cover_${Date.now()}.jpg`);
+      formData.append("file", blob, "cover.jpg");
       formData.append("setCover", "false");
 
       const attachRes = await fetch(`${BASE}/cards/${card.id}/attachments`, {
@@ -220,100 +202,4 @@ export async function createList(key, token, boardId, name) {
   );
   if (!res.ok) throw new Error("Failed to create list");
   return res.json();
-}
-
-export async function updateCard(key, token, cardId, updates) {
-  const res = await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(updates),
-  });
-  if (!res.ok) throw new Error("Failed to update card");
-  return res.json();
-}
-
-/**
- * updateCardCover — replaces the cover image on a tracker card.
- *
- * Step order matters:
- *  1. Clear the cover first (set cover to {}) so Trello releases its hold
- *     on the current attachment. Without this, Trello rejects DELETE on
- *     an attachment that is actively set as the card cover.
- *  2. Delete ALL previously uploaded attachments.
- *  3. Upload the new cover image with a unique timestamped filename so
- *     Trello's CDN serves the fresh image immediately (cache-busting).
- *  4. Set the new attachment as the card cover.
- */
-export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
-  try {
-    // Step 1: clear cover
-    await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cover: {} }),
-    });
-
-    // Step 2: delete old attachments
-    const existing = await getCardAttachments(key, token, cardId);
-    const oldUploads = existing.filter((a) => a.isUpload);
-    for (const a of oldUploads) {
-      await deleteAttachment(key, token, cardId, a.id);
-    }
-
-    // Step 3: upload new cover
-    const uniqueFilename = `cover_${Date.now()}.jpg`;
-    const blob = dataUrlToBlob(coverImageDataUrl);
-    alert("Uploading cover for card: " + cardId + " size: " + blob.size);
-
-    const form = new FormData();
-    form.append("file", blob, uniqueFilename);
-    form.append("key", key);
-    form.append("token", token);
-
-    const attachRes = await fetch(`${BASE}/cards/${cardId}/attachments`, {
-      method: "POST",
-      body: form,
-    });
-
-    if (!attachRes.ok) {
-      console.warn("Cover attachment upload failed:", await attachRes.text());
-      return;
-    }
-
-    const attachment = await attachRes.json();
-    alert("Uploaded attachment: " + attachment.id + " | " + attachment.url);
-
-    // Step 4: set cover, retry once after 1.2s if it fails
-    const trySetCover = () =>
-      fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cover: { idAttachment: attachment.id, size: "full", brightness: "dark" },
-        }),
-      });
-
-    const r1 = await trySetCover();
-    if (!r1.ok) {
-      await new Promise(r => setTimeout(r, 1200));
-      await trySetCover();
-    }
-
-  } catch (err) {
-    console.warn("updateCardCover error:", err);
-  }
-}
-
-export function inferColorFromStatType(statType) {
-  const map = {
-    assigned:     "blue",
-    dueThisWeek:  "yellow",
-    overdue:      "red",
-    unassigned:   "purple",
-    withLabel:    "orange",
-    stale:        "black",
-    createdToday: "green",
-    cardsInList:  "sky",
-  };
-  return map[statType] || "blue";
 }
