@@ -9,6 +9,8 @@ import {
   getBoardLists,
   createCard,
   createList,
+  updateCard,
+  updateCardCover,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import "./index.css";
@@ -943,11 +945,11 @@ export default function App() {
         if (cardlyticsList) {
           const trackerCards = (
             await getListCards(key, token, cardlyticsList.id)
-          ).filter((c) => isTrackerCard(c.name));
+          ).filter((c) => /cardlytics:mode:/.test(c.desc || ""));
 
           for (const card of trackerCards) {
             // Get statType directly from the meta tag instead of parsing the name
-            const statMatch = card.desc?.match(/statType:(\w+)/);
+            const statMatch = card.desc?.match(/cardlytics:.*statType:(\w+)/);
             if (!statMatch) continue; // Skip old cards that don't have the new meta format
 
             const type = statMatch[1]; // This will be "overdue", "assigned", etc.
