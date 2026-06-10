@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import {
+import {useEffect(() => {
   getBoardCards,
   computeStats,
   computeDetailStats,
@@ -9,6 +9,7 @@ import {
   getBoardLists,
   createCard,
   createList,
+  updateCardCover,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
@@ -874,30 +875,40 @@ export default function App() {
   const [cardConfig, setCardConfig] = useState({});
 
   useEffect(() => {
-    if (!token) return;
+  if (!token) return;
 
-    // 1. Trello render lifecycle — fires on every iframe re-render
-    const t = window.TrelloPowerUp?.iframe?.();
-    if (t) {
-      t.render(() => {
-        fetchData();
-      });
+  const t = window.TrelloPowerUp?.iframe?.();
+  let intervalId;
+  let isFetching = false;
+
+  async function loadData() {
+    if (isFetching) return; // prevent duplicate calls
+    isFetching = true;
+    try {
+      await fetchData();
+    } finally {
+      isFetching = false;
     }
+  }
 
-    // 2. Initial fetch
-    fetchData();
+  // initial load
+  loadData();
 
-    // 3. Polling every 5 seconds
-    const intervalId = setInterval(() => {
-      fetchData();
-    }, 3000);
+  // Trello re-render trigger
+  if (t) {
+    t.render(() => {
+      loadData();
+    });
+  }
 
-    // 4. Cleanup on unmount or token change
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [token]);
+  // polling
+  intervalId = setInterval(loadData, 5000);
 
+  // cleanup
+  return () => {
+    clearInterval(intervalId);
+  };
+}, [token]);
   if (!token)
     return (
       <LoginScreen
@@ -1050,21 +1061,33 @@ export default function App() {
         const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
         const cover = saved?.cover || defaults.cover;
 
-        const coverImageDataUrl = await generateStatCoverImage(
-          count,
-          cover,
-          saved?.coverImage || null,
-        );
+        const existingCards = await getListCards(key, token, targetListId);
 
-        await createCard(
-          key,
-          token,
-          targetListId,
-          cardName,
-          desc,
-          cover,
-          coverImageDataUrl,
-        );
+const existing = existingCards.find(c =>
+  c.desc?.includes(`statType:${stat}`)
+);
+
+const coverImageDataUrl = await generateStatCoverImage(
+  count,
+  cover,
+  saved?.coverImage || null
+);
+
+if (existing) {
+  // ✅ UPDATE EXISTING CARD
+  await updateCardCover(key, token, existing.id, coverImageDataUrl, desc);
+} else {
+  // ✅ CREATE NEW CARD
+  await createCard(
+    key,
+    token,
+    targetListId,
+    cardName,
+    desc,
+    cover,
+    coverImageDataUrl
+  );
+}
       }
 
       showToast(

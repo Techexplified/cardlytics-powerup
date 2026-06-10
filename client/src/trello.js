@@ -202,4 +202,26 @@ export async function createList(key, token, boardId, name) {
   );
   if (!res.ok) throw new Error("Failed to create list");
   return res.json();
+} 
+
+export async function updateCardCover(key, token, cardId, coverImageDataUrl, desc) {
+  const blob = dataUrlToBlob(coverImageDataUrl);
+
+  const formData = new FormData();
+  formData.append("key", key);
+  formData.append("token", token);
+  formData.append("file", blob, "cover.jpg");
+  formData.append("setCover", "true");
+
+  await fetch(`https://api.trello.com/1/cards/${cardId}/attachments`, {
+    method: "POST",
+    body: formData,
+  });
+
+  // ✅ ALSO update description
+  await fetch(`https://api.trello.com/1/cards/${cardId}?key=${key}&token=${token}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ desc }),
+  });
 }
