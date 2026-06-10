@@ -263,7 +263,7 @@ export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
     // Step 3: upload new cover
     const uniqueFilename = `cover_${Date.now()}.jpg`;
     const blob = dataUrlToBlob(coverImageDataUrl);
-    console.log("Uploading cover for card:", cardId, "size:", blob.size);
+    alert("Uploading cover for card: " + cardId + " size: " + blob.size);
 
     const form = new FormData();
     form.append("file", blob, uniqueFilename);
@@ -281,7 +281,7 @@ export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
     }
 
     const attachment = await attachRes.json();
-    console.log("Uploaded attachment:", attachment.id, attachment.url);
+    alert("Uploaded attachment: " + attachment.id + " | " + attachment.url);
 
     // Step 4: set cover, retry once after 1.2s if it fails
     const trySetCover = () =>
