@@ -1141,17 +1141,11 @@ export default function App() {
           );
         }
 
-        await updateCard(key, tok, card.id, { desc: updatedDesc });
-
-        // ── Regenerate cover with the new count ───────────────────────────
-        // cardConfigRef.current is always the latest value (no stale closure)
-        const saved = cardConfigRef.current[statType];
-        const coverDataUrl = await generateStatCoverImage(
-          count,
-          saved?.cover || inferColorFromStatType(statType),
-          saved?.coverImage || null,
-        );
-        await updateCardCover(key, tok, card.id, coverDataUrl);
+        const baseName = card.name.replace(/\s*\(\d+\)$/, "");
+        await updateCard(key, tok, card.id, {
+          desc: updatedDesc,
+          name: `${baseName} (${count})`,
+        });
       }
 
       setStats((prev) => ({ ...prev, ...freshStats }));
