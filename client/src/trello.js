@@ -235,29 +235,35 @@ export async function updateCard(key, token, cardId, updates) {
 /**
  * updateCardCover — replaces the cover image on a tracker card.
  *
- * Strategy:
- *  1. Fetch all existing uploaded attachments on the card.
- *  2. Delete ALL previously uploaded attachments (old cover images).
- *  3. Upload the new cover image with a unique timestamped filename.
- *     Using a unique name every time bypasses Trello's CDN cache,
- *     which would otherwise serve the old image even after re-upload.
+ * Step order matters:
+ *  1. Clear the cover first (set cover to {}) so Trello releases its hold
+ *     on the current attachment. Without this, Trello rejects DELETE on
+ *     an attachment that is actively set as the card cover.
+ *  2. Delete ALL previously uploaded attachments.
+ *  3. Upload the new cover image with a unique timestamped filename so
+ *     Trello's CDN serves the fresh image immediately (cache-busting).
  *  4. Set the new attachment as the card cover.
  */
 export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
   try {
-    // Step 1: fetch existing attachments
+    // Step 1: clear the current cover so the active attachment is no longer
+    // "in use" — this makes the subsequent DELETE succeed.
+    await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cover: {} }),
+    });
+
+    // Step 2: fetch and delete ALL previously uploaded attachments
     const existing = await getCardAttachments(key, token, cardId);
-
-    // Step 2: delete ALL previously uploaded attachments (any filename)
-    // This prevents unbounded growth and ensures no stale image is cached.
     const oldUploads = existing.filter((a) => a.isUpload);
-    await Promise.all(
-      oldUploads.map((a) => deleteAttachment(key, token, cardId, a.id))
-    );
+    // Delete sequentially to avoid Trello rate-limit rejections
+    for (const a of oldUploads) {
+      await deleteAttachment(key, token, cardId, a.id);
+    }
 
-    // Step 3: upload the new cover image with a unique timestamped filename.
-    // Trello's CDN caches by filename — a unique name forces a cache miss
-    // so the board immediately shows the updated number.
+    // Step 3: upload new cover with a unique timestamped filename.
+    // Trello CDN caches by URL/filename — unique name = guaranteed cache miss.
     const uniqueFilename = `cover_${Date.now()}.jpg`;
     const blob = dataUrlToBlob(coverImageDataUrl);
     const form = new FormData();
@@ -277,7 +283,7 @@ export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
 
     const attachment = await attachRes.json();
 
-    // Step 4: set it as the card cover
+    // Step 4: set the new attachment as the card cover
     await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
