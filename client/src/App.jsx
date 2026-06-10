@@ -9,11 +9,28 @@ import {
   getBoardLists,
   createCard,
   createList,
-  updateCard,
-  updateCardCover,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
+import LoginScreen from "./components/LoginScreen";
+import {
+  TRELLO_API_KEY,
+  getStoredToken,
+  storeToken,
+} from "./utils/auth";
 import "./index.css";
+
+const TRELLO_BASE = "https://api.trello.com/1";
+
+// ── Initialize Trello iframe context ONCE at module level ─────────────────────
+// Must be called before React mounts so the Trello SDK handshake completes
+// in time. Calling iframe() inside useEffect or a component is too late.
+const trelloT = (() => {
+  try {
+    return window.TrelloPowerUp?.iframe?.() ?? null;
+  } catch {
+    return null;
+  }
+})();
 
 // ─── TRELLO LABEL COLOR MAP ───────────────────────────────────────────────────
 const LABEL_COLORS = {
@@ -100,8 +117,6 @@ const STAT_LABELS = {
 };
 
 // ─── Default stat config (cover colors + card names) ─────────────────────────
-// These are the baseline values. If the user customizes via the modal,
-// their saved config (cardConfig state) overrides name and cover.
 const DEFAULT_STAT_CONFIG = {
   assigned: { name: "📌 Assigned to Me", cover: "blue" },
   dueThisWeek: { name: "📅 Due This Week", cover: "yellow" },
@@ -138,20 +153,16 @@ const TRACKER_PREFIXES = [
 ];
 
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
+// Uses module-level trelloT — no local iframe() call needed
 function CardBackView() {
-  const t = window.TrelloPowerUp?.iframe?.();
   const [isTracker, setIsTracker] = useState(false);
 
   useEffect(() => {
-    if (!t) return;
-    t.card("name", "idList", "desc").then((card) => {
-      // 1. Check prefix match (emoji tracker cards)
+    if (!trelloT) return;
+    trelloT.card("name", "idList", "desc").then((card) => {
       const matchesPrefix = TRACKER_PREFIXES.some((p) =>
         card.name.toLowerCase().startsWith(p.toLowerCase()),
       );
-
-      // 2. Check description for Cardlytics meta tag (covers ALL tracker cards
-      //    including custom-named ones like "Assigned to me on all Workspace boards")
       const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
 
       if (matchesPrefix || hasMetaTag) {
@@ -159,12 +170,11 @@ function CardBackView() {
         return;
       }
 
-      // 3. Fallback: check if card lives in a list named "Cardlytics"
-      t.board("id").then((board) => {
-        const key = import.meta.env.VITE_TRELLO_API_KEY;
-        const token = import.meta.env.VITE_TRELLO_TOKEN;
+      trelloT.board("id").then((board) => {
+        const key = TRELLO_API_KEY;
+        const token = getStoredToken();
         fetch(
-          `https://api.trello.com/1/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
+          `${TRELLO_BASE}/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
         )
           .then((r) => r.json())
           .then((lists) => {
@@ -179,9 +189,8 @@ function CardBackView() {
   }, []);
 
   function handleOpenDetails() {
-    if (!t) return;
-    t.card("id", "idList", "name", "desc").then((card) => {
-      // First try to get everything from meta tag
+    if (!trelloT) return;
+    trelloT.card("id", "idList", "name", "desc").then((card) => {
       const statMatch = card.desc?.match(
         /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
       );
@@ -195,7 +204,6 @@ function CardBackView() {
         resolvedListId = statMatch[2] || card.idList;
         statType = statMatch[3];
       } else {
-        // Fallback for old cards that don't have statType in meta
         const nameMap = [
           { prefix: "📌 Assigned to Me", type: "assigned" },
           { prefix: "📅 Due This Week", type: "dueThisWeek" },
@@ -218,8 +226,8 @@ function CardBackView() {
         resolvedListId = metaMatch ? metaMatch[2] || card.idList : card.idList;
       }
 
-      t.board("id").then((board) => {
-        t.modal({
+      trelloT.board("id").then((board) => {
+        trelloT.modal({
           title: "Cardlytics",
           url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
           fullscreen: true,
@@ -229,9 +237,9 @@ function CardBackView() {
   }
 
   function handleStartTracking() {
-    if (!t) return;
-    t.board("id").then((board) => {
-      t.modal({
+    if (!trelloT) return;
+    trelloT.board("id").then((board) => {
+      trelloT.modal({
         title: "Cardlytics",
         url: `./index.html?boardId=${board.id}`,
         fullscreen: false,
@@ -276,6 +284,7 @@ function CardBackView() {
 }
 
 // ─── CARD DETAILS VIEW ────────────────────────────────────────────────────────
+// Uses module-level trelloT — no local iframe() call needed
 function CardDetailsView() {
   const params = new URLSearchParams(window.location.search);
   const listId = params.get("listId");
@@ -309,8 +318,8 @@ function CardDetailsView() {
   const [sortCol, setSortCol] = useState("name");
   const [sortAsc, setSortAsc] = useState(true);
 
-  const key = import.meta.env.VITE_TRELLO_API_KEY;
-  const token = import.meta.env.VITE_TRELLO_TOKEN;
+  const key = TRELLO_API_KEY;
+  const token = getStoredToken();
 
   useEffect(() => {
     async function load() {
@@ -329,11 +338,7 @@ function CardDetailsView() {
         }
 
         const mid = await getMemberId(key, token);
-        const allBoardLists = await getBoardLists(
-          key,
-          token,
-          boardId || "p8fosANE",
-        );
+        const allBoardLists = await getBoardLists(key, token, boardId);
         const cardlyticsListIds = allBoardLists
           .filter((l) => l.name.toLowerCase() === "cardlytics")
           .map((l) => l.id);
@@ -382,26 +387,25 @@ function CardDetailsView() {
 
         if (listId) {
           const listRes = await fetch(
-            `${BASE_URL}/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`,
+            `${TRELLO_BASE}/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`,
           );
           if (listRes.ok) {
             const listData = await listRes.json();
             setListName(listData.name);
             const resolvedBoardId = boardId || listData.idBoard;
             const boardRes = await fetch(
-              `${BASE_URL}/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`,
+              `${TRELLO_BASE}/boards/${resolvedBoardId}?key=${key}&token=${token}&fields=name`,
             );
             if (boardRes.ok) setBoardName((await boardRes.json()).name);
           }
         } else if (boardId) {
           const boardRes = await fetch(
-            `${BASE_URL}/boards/${boardId}?key=${key}&token=${token}&fields=name`,
+            `${TRELLO_BASE}/boards/${boardId}?key=${key}&token=${token}&fields=name`,
           );
           if (boardRes.ok) setBoardName((await boardRes.json()).name);
         }
 
-        const resolvedBoardId = boardId || "p8fosANE";
-        const boardLists = await getBoardLists(key, token, resolvedBoardId);
+        const boardLists = await getBoardLists(key, token, boardId);
         const lmap = {};
         boardLists.forEach((l) => (lmap[l.id] = l.name));
         setListMap(lmap);
@@ -505,26 +509,10 @@ function CardDetailsView() {
     { value: fullStats.assigned, label: "Assigned to me", accent: "#4ea1ff" },
     { value: fullStats.dueThisWeek, label: "Due this week", accent: "#f9c74f" },
     { value: fullStats.overdue, label: "Overdue cards", accent: "#ff5252" },
-    {
-      value: fullStats.unassigned,
-      label: "Unassigned cards",
-      accent: "#ab47bc",
-    },
-    {
-      value: fullStats.withLabel,
-      label: "Cards with a label",
-      accent: "#ff9800",
-    },
-    {
-      value: fullStats.stale,
-      label: "Stale (14+ days inactive)",
-      accent: "#888",
-    },
-    {
-      value: fullStats.createdToday,
-      label: "Created today",
-      accent: "#2ec4b6",
-    },
+    { value: fullStats.unassigned, label: "Unassigned cards", accent: "#ab47bc" },
+    { value: fullStats.withLabel, label: "Cards with a label", accent: "#ff9800" },
+    { value: fullStats.stale, label: "Stale (14+ days inactive)", accent: "#888" },
+    { value: fullStats.createdToday, label: "Created today", accent: "#2ec4b6" },
   ];
 
   return (
@@ -784,8 +772,6 @@ function CardDetailsView() {
   );
 }
 
-const BASE_URL = "https://api.trello.com/1";
-
 // ── Generate a cover image with the big number overlaid ──────────────────────
 const COVER_BG_COLORS = {
   blue: "#1565c0",
@@ -808,7 +794,6 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
     const ctx = canvas.getContext("2d");
 
     function drawNumber() {
-      // Dark scrim so the number is readable over any background
       ctx.fillStyle = "rgba(0,0,0,0.45)";
       ctx.fillRect(0, 0, W, H);
 
@@ -826,10 +811,8 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
     }
 
     if (bgImageDataUrl) {
-      // Draw user's custom image as background, then overlay the number
       const img = new Image();
       img.onload = () => {
-        // Cover-fit: fill canvas, center crop
         const scale = Math.max(W / img.width, H / img.height);
         const sw = img.width * scale,
           sh = img.height * scale;
@@ -837,14 +820,12 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
         drawNumber();
       };
       img.onerror = () => {
-        // Fallback to color background if image fails
         ctx.fillStyle = COVER_BG_COLORS[colorName] || "#1565c0";
         ctx.fillRect(0, 0, W, H);
         drawNumber();
       };
       img.src = bgImageDataUrl;
     } else {
-      // Solid color background + subtle gradient
       const bg = COVER_BG_COLORS[colorName] || "#1565c0";
       ctx.fillStyle = bg;
       ctx.fillRect(0, 0, W, H);
@@ -865,8 +846,7 @@ export default function App() {
   const view = params.get("view");
   const listId = params.get("listId");
 
-  if (view === "card") return <CardBackView />;
-  if (view === "card-details") return <CardDetailsView />;
+  const [token, setToken] = useState(() => getStoredToken());
 
   const [stats, setStats] = useState({
     assigned: 0,
@@ -889,12 +869,50 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
 
-  // ── Customize state ──────────────────────────────────────────────────────
   const [showCustomize, setShowCustomize] = useState(false);
   const [customizeStat, setCustomizeStat] = useState(null);
-  // cardConfig stores per-stat overrides saved from the Customize modal
-  // shape: { [statType]: { cardName: string, cover: string, ... } }
   const [cardConfig, setCardConfig] = useState({});
+
+  // ── LIVE DATA: Trello render lifecycle + polling ────────────────────────────
+  useEffect(() => {
+    if (!token) return;
+
+    // Register Trello render callback — fires every time the Power-Up iframe
+    // is re-shown (e.g. user opens a card, navigates back to the board).
+    // trelloT is the module-level instance, already initialized before React.
+    if (trelloT) {
+      trelloT.render(() => {
+        fetchData();
+      });
+    }
+
+    // Initial fetch on mount
+    fetchData();
+
+    // Poll every 5 seconds to keep stats live
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 5000);
+
+    // Cleanup: stop polling when component unmounts or token changes
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!token)
+    return (
+      <LoginScreen
+        onAuth={async (t) => {
+          storeToken(t);
+          setToken(t);
+          // Use module-level trelloT, not a local iframe() call
+          if (trelloT) await trelloT.set("member", "private", "token", t);
+        }}
+      />
+    );
+  if (view === "card") return <CardBackView />;
+  if (view === "card-details") return <CardDetailsView />;
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -908,9 +926,15 @@ export default function App() {
 
   async function fetchData() {
     try {
-      const key = import.meta.env.VITE_TRELLO_API_KEY;
-      const token = import.meta.env.VITE_TRELLO_TOKEN;
-      const boardId = "p8fosANE";
+      const key = TRELLO_API_KEY;
+      const token = getStoredToken();
+      if (!token) return;
+
+      // Use module-level trelloT — no local iframe() call
+      const boardId = trelloT
+        ? (await trelloT.board("id")).id
+        : new URLSearchParams(window.location.search).get("boardId");
+      if (!boardId) return;
 
       const cards =
         mode === "list" && listId
@@ -927,7 +951,12 @@ export default function App() {
       );
       const memberId = await getMemberId(key, token);
 
-      // Fetch member full name for Customize modal avatar
+      if (trelloT) {
+        trelloT
+          .set("member", "private", "cardlyticsConnected", true)
+          .catch(() => {});
+      }
+
       if (memberId) {
         const memberDetails = await getMemberDetails(key, token, memberId);
         setMemberFullName(memberDetails?.fullName || "");
@@ -937,71 +966,6 @@ export default function App() {
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
       setStats(computed);
 
-      // ── Auto-sync tracker cards ─────────────────────────────
-      try {
-        const allLists = await getBoardLists(key, token, boardId);
-        const cardlyticsList = allLists.find((l) => l.name === "Cardlytics");
-
-        if (cardlyticsList) {
-          const trackerCards = (
-            await getListCards(key, token, cardlyticsList.id)
-          ).filter((c) => /cardlytics:mode:/.test(c.desc || ""));
-
-          for (const card of trackerCards) {
-            // Get statType directly from the meta tag instead of parsing the name
-            const statMatch = card.desc?.match(/cardlytics:.*statType:(\w+)/);
-            if (!statMatch) continue; // Skip old cards that don't have the new meta format
-
-            const type = statMatch[1]; // This will be "overdue", "assigned", etc.
-
-            // 🔥 Detect board/list mode from meta
-            const metaMatch = card.desc?.match(
-              /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?/,
-            );
-
-            const cardMode = metaMatch ? metaMatch[1] : "board";
-            const cardListId = metaMatch ? metaMatch[2] : null;
-
-            let newCount = 0;
-
-            // ✅ Handle LIST vs BOARD correctly
-            if (cardMode === "list" && cardListId) {
-              const listCards = await getListCards(key, token, cardListId);
-              const listStats = computeStats(
-                listCards.filter((c) => !isTrackerCard(c.name)),
-                memberId,
-              );
-              newCount = listStats[type] ?? 0;
-            } else {
-              newCount = computed[type] ?? 0;
-            }
-
-            // Skip if same count
-            const oldCount = parseInt(card.desc?.match(/^(\d+)/)?.[1] ?? "-1");
-            if (oldCount === newCount) continue;
-
-            // Update description
-            const metaTag =
-              card.desc?.match(/\[_\]: cardlytics:mode:[^\n]+/)?.[0] || "";
-
-            const defaults = DEFAULT_STAT_CONFIG[type];
-            const newCardName = `${defaults.name} — ${newCount}`;
-
-            await updateCard(key, token, card.id, {
-              name: newCardName,
-              desc: `${newCount} card(s) tracked by Cardlytics.${metaTag ? `\n\n${metaTag}` : ""}`,
-            });
-
-            // 🔥 Generate NEW image with updated count
-            const statColor = DEFAULT_STAT_CONFIG[type]?.cover || "blue";
-            const newCover = await generateStatCoverImage(newCount, statColor);
-            await updateCardCover(key, token, card.id, newCover);
-          }
-        }
-      } catch (err) {
-        console.warn("Sync failed:", err);
-      }
-
       setLastUpdated(new Date().toLocaleTimeString());
 
       const boardLists = await getBoardLists(key, token, boardId);
@@ -1009,7 +973,7 @@ export default function App() {
 
       if (mode === "list" && listId) {
         const listRes = await fetch(
-          `${BASE_URL}/lists/${listId}?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${import.meta.env.VITE_TRELLO_TOKEN}&fields=name`,
+          `${TRELLO_BASE}/lists/${listId}?key=${key}&token=${token}&fields=name`,
         );
         if (listRes.ok) setTrackingListName((await listRes.json()).name);
       } else {
@@ -1030,19 +994,13 @@ export default function App() {
       setSelectedListCount(null);
       return;
     }
-    const key = import.meta.env.VITE_TRELLO_API_KEY;
-    const token = import.meta.env.VITE_TRELLO_TOKEN;
+    const key = TRELLO_API_KEY;
+    const token = getStoredToken();
+    if (!token) return;
     const cards = await getListCards(key, token, id);
     setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
   }
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // ── TRACK ────────────────────────────────────────────────────────────────
-  // statsOverride and configOverride let onSave call this directly with fresh
-  // values, bypassing the stale-closure problem with React state.
   const handleTrack = async (statsOverride, configOverride) => {
     const statsToTrack = statsOverride ?? selectedStats;
     const configToUse = configOverride ?? cardConfig;
@@ -1052,9 +1010,17 @@ export default function App() {
       return;
     }
     try {
-      const key = import.meta.env.VITE_TRELLO_API_KEY;
-      const token = import.meta.env.VITE_TRELLO_TOKEN;
-      const boardId = "p8fosANE";
+      const key = TRELLO_API_KEY;
+      const token = getStoredToken();
+      if (!token) {
+        showToast("Not authorized", "error");
+        return;
+      }
+
+      // Use module-level trelloT
+      if (!trelloT) return;
+      const board = await trelloT.board("id");
+      const boardId = board.id;
 
       let targetListId;
       if (mode === "list" && listId) {
@@ -1083,16 +1049,10 @@ export default function App() {
             ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
             : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
 
-        // Card name has NO count — the count is shown as a big number on the cover image
         const cardName = saved?.cardName || defaults.name;
-
         const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
-
         const cover = saved?.cover || defaults.cover;
 
-        // Always generate a cover image with the big count number.
-        // If the user uploaded a custom image, use it as the background and
-        // draw the number on top of it.
         const coverImageDataUrl = await generateStatCoverImage(
           count,
           cover,
@@ -1124,7 +1084,6 @@ export default function App() {
     <div className="popup">
       <Toast toast={toast} />
 
-      {/* ── Customize modal (two-step: stat picker → card config) ── */}
       <CustomizeFlow
         show={showCustomize}
         lists={lists}
@@ -1133,13 +1092,10 @@ export default function App() {
         customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
         onSave={async (type, cfg) => {
-          // Build the new config synchronously so handleTrack gets fresh values
-          // (setState is async — can't rely on cardConfig being updated yet)
           const newConfig = { ...cardConfig, [type]: cfg };
           setCardConfig(newConfig);
           setShowCustomize(false);
           setCustomizeStat(null);
-          // Track immediately — no need to go back and click Track
           await handleTrack([type], newConfig);
         }}
         onClose={() => {
@@ -1157,10 +1113,9 @@ export default function App() {
           <button
             className="btn-customize"
             onClick={() => {
-              const t = window.TrelloPowerUp?.iframe?.();
-              if (t) {
-                t.board("id").then((board) => {
-                  t.modal({
+              if (trelloT) {
+                trelloT.board("id").then((board) => {
+                  trelloT.modal({
                     title: "Cardlytics — All Cards",
                     url: `./index.html?view=card-details&boardId=${board.id}&statType=all&mode=board`,
                     fullscreen: true,
@@ -1291,7 +1246,7 @@ export default function App() {
             />
           )}
 
-          {/* <div className="add-filter-card">+ Add filter</div> */}
+          <div className="add-filter-card">+ Add filter</div>
         </Section>
       </div>
 

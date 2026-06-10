@@ -3,6 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <title>Cardlytics – Connector</title>
+    <!--
+      power-up.min.js MUST be the first script loaded.
+      It synchronously defines window.TrelloPowerUp and runs
+      TrelloPowerUp.initialize(), which sets up the iframe handshake
+      that App.jsx's module-level trelloT = TrelloPowerUp.iframe()
+      depends on. Do not defer or async this script.
+    -->
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
   </head>
   <body>
@@ -12,6 +19,7 @@
 
       TrelloPowerUp.initialize(
         {
+          // ── Board-level button ────────────────────────────────────────────
           "board-buttons": function (t) {
             return [
               {
@@ -31,6 +39,8 @@
               },
             ];
           },
+
+          // ── List-level action ─────────────────────────────────────────────
           "list-actions": function (t) {
             return [
               {
@@ -48,17 +58,24 @@
               },
             ];
           },
+
+          // ── Card back section ─────────────────────────────────────────────
+          // t.signUrl() signs the iframe URL so the child page's
+          // TrelloPowerUp.iframe() call can complete the handshake.
+          // Without signing, iframe() throws "Client must be initialized".
           "card-back-section": function (t) {
             return {
               title: "Cardlytics",
               icon: BASE_URL + "/logo.png",
               content: {
                 type: "iframe",
-                url: t.signUrl(BASE_URL + "/index.html?view=card&ts=" + Date.now()),
+                url: t.signUrl(BASE_URL + "/index.html?view=card"),
                 height: 44,
               },
             };
           },
+
+          // ── First-run onboarding ──────────────────────────────────────────
           "on-enable": function (t) {
             return t.modal({
               title: "Welcome to Cardlytics 👋",
@@ -67,11 +84,14 @@
               height: 500,
             });
           },
+
+          // ── Auth / token management ───────────────────────────────────────
           "remove-data": function (t) {
             return t.set("member", "private", "token", null).then(function () {
               localStorage.removeItem("cardlytics_trello_token");
             });
           },
+
           "authorization-status": function (t) {
             var token = localStorage.getItem("cardlytics_trello_token");
             return { authorized: !!token };
@@ -89,7 +109,7 @@
         {
           appKey: KEY,
           appName: "Cardlytics",
-        },
+        }
       );
     </script>
   </body>
