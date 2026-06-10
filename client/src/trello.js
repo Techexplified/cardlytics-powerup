@@ -246,26 +246,25 @@ export async function updateCard(key, token, cardId, updates) {
  */
 export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
   try {
-    // Step 1: clear the current cover so the active attachment is no longer
-    // "in use" — this makes the subsequent DELETE succeed.
+    // Step 1: clear cover
     await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cover: {} }),
     });
 
-    // Step 2: fetch and delete ALL previously uploaded attachments
+    // Step 2: delete old attachments
     const existing = await getCardAttachments(key, token, cardId);
     const oldUploads = existing.filter((a) => a.isUpload);
-    // Delete sequentially to avoid Trello rate-limit rejections
     for (const a of oldUploads) {
       await deleteAttachment(key, token, cardId, a.id);
     }
 
-    // Step 3: upload new cover with a unique timestamped filename.
-    // Trello CDN caches by URL/filename — unique name = guaranteed cache miss.
+    // Step 3: upload new cover
     const uniqueFilename = `cover_${Date.now()}.jpg`;
     const blob = dataUrlToBlob(coverImageDataUrl);
+    console.log("Uploading cover for card:", cardId, "size:", blob.size);
+
     const form = new FormData();
     form.append("file", blob, uniqueFilename);
     form.append("key", key);
@@ -282,19 +281,24 @@ export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
     }
 
     const attachment = await attachRes.json();
+    console.log("Uploaded attachment:", attachment.id, attachment.url);
 
-    // Step 4: set the new attachment as the card cover
-    await fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cover: {
-          idAttachment: attachment.id,
-          size: "full",
-          brightness: "dark",
-        },
-      }),
-    });
+    // Step 4: set cover, retry once after 1.2s if it fails
+    const trySetCover = () =>
+      fetch(`${BASE}/cards/${cardId}?key=${key}&token=${token}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cover: { idAttachment: attachment.id, size: "full", brightness: "dark" },
+        }),
+      });
+
+    const r1 = await trySetCover();
+    if (!r1.ok) {
+      await new Promise(r => setTimeout(r, 1200));
+      await trySetCover();
+    }
+
   } catch (err) {
     console.warn("updateCardCover error:", err);
   }
