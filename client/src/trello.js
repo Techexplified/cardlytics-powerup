@@ -162,7 +162,7 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
       const formData = new FormData();
       formData.append("key", key);
       formData.append("token", token);
-      formData.append("file", blob, "cover.jpg");
+      formData.append("file", blob, `cover_${Date.now()}.jpg`);
       formData.append("setCover", "false");
 
       const attachRes = await fetch(`${BASE}/cards/${card.id}/attachments`, {
@@ -237,30 +237,31 @@ export async function updateCard(key, token, cardId, updates) {
  *
  * Strategy:
  *  1. Fetch all existing uploaded attachments on the card.
- *  2. Delete every previously uploaded cover attachment (named "cover.jpg").
- *  3. Upload the new cover image.
+ *  2. Delete ALL previously uploaded attachments (old cover images).
+ *  3. Upload the new cover image with a unique timestamped filename.
+ *     Using a unique name every time bypasses Trello's CDN cache,
+ *     which would otherwise serve the old image even after re-upload.
  *  4. Set the new attachment as the card cover.
- *
- * This avoids unbounded attachment growth and ensures the displayed
- * number is always the freshest value.
  */
 export async function updateCardCover(key, token, cardId, coverImageDataUrl) {
   try {
     // Step 1: fetch existing attachments
     const existing = await getCardAttachments(key, token, cardId);
 
-    // Step 2: delete all previous cover uploads (file named cover.jpg)
-    const oldCovers = existing.filter(
-      (a) => a.isUpload && a.name === "cover.jpg"
-    );
+    // Step 2: delete ALL previously uploaded attachments (any filename)
+    // This prevents unbounded growth and ensures no stale image is cached.
+    const oldUploads = existing.filter((a) => a.isUpload);
     await Promise.all(
-      oldCovers.map((a) => deleteAttachment(key, token, cardId, a.id))
+      oldUploads.map((a) => deleteAttachment(key, token, cardId, a.id))
     );
 
-    // Step 3: upload the new cover image
+    // Step 3: upload the new cover image with a unique timestamped filename.
+    // Trello's CDN caches by filename — a unique name forces a cache miss
+    // so the board immediately shows the updated number.
+    const uniqueFilename = `cover_${Date.now()}.jpg`;
     const blob = dataUrlToBlob(coverImageDataUrl);
     const form = new FormData();
-    form.append("file", blob, "cover.jpg");
+    form.append("file", blob, uniqueFilename);
     form.append("key", key);
     form.append("token", token);
 
