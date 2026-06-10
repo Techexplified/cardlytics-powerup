@@ -894,6 +894,24 @@ export default function App() {
     const next = typeof cfg === "function" ? cfg(cardConfigRef.current) : cfg;
     cardConfigRef.current = next;
     setCardConfig(next);
+    const t = window.TrelloPowerUp?.iframe?.();
+    if (!t) return;
+    const configWithoutImages = Object.fromEntries(
+      Object.entries(next).map(([k, v]) => [
+        k,
+        { ...v, coverImage: undefined },
+      ]),
+    );
+    t.set("board", "private", "cardlyticsConfig", configWithoutImages).catch(
+      () => {},
+    );
+    Object.entries(next).forEach(([k, v]) => {
+      if (v?.coverImage) {
+        t.set("board", "private", `cardlyticsImg_${k}`, v.coverImage).catch(
+          () => {},
+        );
+      }
+    });
   };
 
   useEffect(() => {
@@ -904,9 +922,12 @@ export default function App() {
   // registered once. boardIdRef / cardConfigRef provide fresh values inside.
   useEffect(() => {
     if (!token) return;
-    const interval = setInterval(() => {
-      syncTrackerCards();
-    }, 5 * 60 * 1000);
+    const interval = setInterval(
+      () => {
+        syncTrackerCards();
+      },
+      5 * 60 * 1000,
+    );
     return () => clearInterval(interval);
   }, [token]);
 
@@ -985,6 +1006,22 @@ export default function App() {
       const boardLists = await getBoardLists(key, tok, resolvedBoardId);
       setLists(boardLists);
 
+      const tInst = window.TrelloPowerUp?.iframe?.();
+      if (tInst) {
+        const savedConfig = await tInst
+          .get("board", "private", "cardlyticsConfig")
+          .catch(() => null);
+        if (savedConfig) {
+          for (const key of Object.keys(savedConfig)) {
+            const img = await tInst
+              .get("board", "private", `cardlyticsImg_${key}`)
+              .catch(() => null);
+            if (img) savedConfig[key].coverImage = img;
+          }
+          setCardConfigSynced(savedConfig);
+        }
+      }
+
       if (mode === "list" && listId) {
         const listRes = await fetch(
           `${BASE_URL}/lists/${listId}?key=${key}&token=${tok}&fields=name`,
@@ -1017,7 +1054,7 @@ export default function App() {
 
   // ── SYNC ─────────────────────────────────────────────────────────────────
   const syncTrackerCards = async () => {
-      alert("sync started");
+    alert("sync started");
     try {
       const key = TRELLO_API_KEY;
       const tok = getStoredToken();
@@ -1040,8 +1077,7 @@ export default function App() {
         .map((l) => l.id);
 
       const cleanCards = allCardsRaw.filter(
-        (c) =>
-          !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
+        (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
       );
       const memberId = await getMemberId(key, tok);
       const freshStats = computeStats(cleanCards, memberId);
@@ -1055,8 +1091,7 @@ export default function App() {
 
       const trackerCards = allBoardCards.filter(
         (c) =>
-          /\[_\]: cardlytics:mode:(board|list)/.test(c.desc || "") &&
-          !c.closed,
+          /\[_\]: cardlytics:mode:(board|list)/.test(c.desc || "") && !c.closed,
       );
 
       alert("tracker cards found: " + trackerCards.length);
