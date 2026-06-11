@@ -321,6 +321,7 @@ function CardBackView() {
 
           // Only try to preserve background if card was created with a custom image
           // Read custom bg from plugin data (avoids CORS fetch)
+          // Read custom bg from plugin data, fallback to attachment fetch for older cards
           let existingBgDataUrl = null;
           try {
             existingBgDataUrl = await trelloT.get(
@@ -329,6 +330,41 @@ function CardBackView() {
               `customBg:${card.id}`,
             );
           } catch (_) {}
+
+          if (!existingBgDataUrl && /customImage:true/.test(card.desc || "")) {
+            try {
+              const attachRes = await fetch(
+                `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
+              );
+              if (attachRes.ok) {
+                const attachments = await attachRes.json();
+                if (attachments.length > 0) {
+                  const preview = attachments[0].previews?.sort(
+                    (a, b) => b.width - a.width,
+                  )[0];
+                  const fetchUrl = preview?.url || attachments[0].url;
+                  const imgRes = await fetch(fetchUrl);
+                  if (imgRes.ok) {
+                    const blob = await imgRes.blob();
+                    existingBgDataUrl = await new Promise((resolve) => {
+                      const reader = new FileReader();
+                      reader.onload = (e) => resolve(e.target.result);
+                      reader.readAsDataURL(blob);
+                    });
+                    // Also save it to plugin data for next time
+                    await trelloT
+                      .set(
+                        "board",
+                        "shared",
+                        `customBg:${card.id}`,
+                        existingBgDataUrl,
+                      )
+                      .catch(() => {});
+                  }
+                }
+              }
+            } catch (_) {}
+          }
 
           // Delete old attachments
           const attachRes2 = await fetch(
@@ -1080,6 +1116,7 @@ export default function App() {
 
         // Only try to preserve background if card was created with a custom image
         // Read custom bg from plugin data (avoids CORS fetch)
+        // Read custom bg from plugin data, fallback to attachment fetch for older cards
         let existingBgDataUrl = null;
         try {
           existingBgDataUrl = await trelloT.get(
@@ -1088,6 +1125,41 @@ export default function App() {
             `customBg:${card.id}`,
           );
         } catch (_) {}
+
+        if (!existingBgDataUrl && /customImage:true/.test(card.desc || "")) {
+          try {
+            const attachRes = await fetch(
+              `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
+            );
+            if (attachRes.ok) {
+              const attachments = await attachRes.json();
+              if (attachments.length > 0) {
+                const preview = attachments[0].previews?.sort(
+                  (a, b) => b.width - a.width,
+                )[0];
+                const fetchUrl = preview?.url || attachments[0].url;
+                const imgRes = await fetch(fetchUrl);
+                if (imgRes.ok) {
+                  const blob = await imgRes.blob();
+                  existingBgDataUrl = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(blob);
+                  });
+                  // Also save it to plugin data for next time
+                  await trelloT
+                    .set(
+                      "board",
+                      "shared",
+                      `customBg:${card.id}`,
+                      existingBgDataUrl,
+                    )
+                    .catch(() => {});
+                }
+              }
+            }
+          } catch (_) {}
+        }
 
         // Delete old attachments
         const attachRes2 = await fetch(
