@@ -318,17 +318,44 @@ function CardBackView() {
           if (oldCount === newCount) continue;
 
           const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
-          const newCoverDataUrl = await generateStatCoverImage(
-            newCount,
-            coverColor,
-          );
+
+          // Only try to preserve background if card was created with a custom image
+          const hasCustomImage = /customImage:true/.test(card.desc || "");
+          let existingBgDataUrl = null;
+
+          if (hasCustomImage) {
+            try {
+              const attachRes = await fetch(
+                `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
+              );
+              if (attachRes.ok) {
+                const attachments = await attachRes.json();
+                if (attachments.length > 0) {
+                  // Use the smallest preview to avoid CORS issues with the main URL
+                  const preview = attachments[0].previews?.sort(
+                    (a, b) => b.width - a.width,
+                  )[0];
+                  const fetchUrl = preview?.url || attachments[0].url;
+                  const imgRes = await fetch(fetchUrl);
+                  if (imgRes.ok) {
+                    const blob = await imgRes.blob();
+                    existingBgDataUrl = await new Promise((resolve) => {
+                      const reader = new FileReader();
+                      reader.onload = (e) => resolve(e.target.result);
+                      reader.readAsDataURL(blob);
+                    });
+                  }
+                }
+              }
+            } catch (_) {}
+          }
 
           // Delete old attachments
-          const attachRes = await fetch(
+          const attachRes2 = await fetch(
             `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
           );
-          if (attachRes.ok) {
-            const attachments = await attachRes.json();
+          if (attachRes2.ok) {
+            const attachments = await attachRes2.json();
             for (const att of attachments) {
               await fetch(
                 `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${tkn}`,
@@ -336,6 +363,12 @@ function CardBackView() {
               );
             }
           }
+
+          const newCoverDataUrl = await generateStatCoverImage(
+            newCount,
+            coverColor,
+            existingBgDataUrl,
+          );
 
           // Upload new cover
           const blob = dataUrlToBlob(newCoverDataUrl);
@@ -1064,17 +1097,44 @@ export default function App() {
         if (oldCount === newCount) continue;
 
         const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
-        const newCoverDataUrl = await generateStatCoverImage(
-          newCount,
-          coverColor,
-        );
+
+        // Only try to preserve background if card was created with a custom image
+        const hasCustomImage = /customImage:true/.test(card.desc || "");
+        let existingBgDataUrl = null;
+
+        if (hasCustomImage) {
+          try {
+            const attachRes = await fetch(
+              `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
+            );
+            if (attachRes.ok) {
+              const attachments = await attachRes.json();
+              if (attachments.length > 0) {
+                // Use the smallest preview to avoid CORS issues with the main URL
+                const preview = attachments[0].previews?.sort(
+                  (a, b) => b.width - a.width,
+                )[0];
+                const fetchUrl = preview?.url || attachments[0].url;
+                const imgRes = await fetch(fetchUrl);
+                if (imgRes.ok) {
+                  const blob = await imgRes.blob();
+                  existingBgDataUrl = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(blob);
+                  });
+                }
+              }
+            }
+          } catch (_) {}
+        }
 
         // Delete old attachments
-        const attachRes = await fetch(
+        const attachRes2 = await fetch(
           `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
         );
-        if (attachRes.ok) {
-          const attachments = await attachRes.json();
+        if (attachRes2.ok) {
+          const attachments = await attachRes2.json();
           for (const att of attachments) {
             await fetch(
               `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${tkn}`,
@@ -1082,6 +1142,12 @@ export default function App() {
             );
           }
         }
+
+        const newCoverDataUrl = await generateStatCoverImage(
+          newCount,
+          coverColor,
+          existingBgDataUrl,
+        );
 
         // Upload new cover image
         const blob = dataUrlToBlob(newCoverDataUrl);
@@ -1119,7 +1185,7 @@ export default function App() {
 
       if (trelloT) {
         console.log("🔥 Triggering refresh");
-        await new Promise(res => setTimeout(res, 1200));  // wait 800ms
+        await new Promise((res) => setTimeout(res, 1200)); // wait 800ms
         await trelloT.set("board", "shared", "refreshTrigger", Date.now());
       }
     } catch (err) {
@@ -1197,10 +1263,10 @@ export default function App() {
     if (!token) return;
 
     if (trelloT) {
-  trelloT.render(() => {
-    fetchData(); // ✅ KEEP THIS
-  });
-}
+      trelloT.render(() => {
+        fetchData(); // ✅ KEEP THIS
+      });
+    }
 
     fetchData();
 
@@ -1292,10 +1358,11 @@ export default function App() {
         const saved = configToUse[stat];
         const count = stats[stat];
 
+        const hasCustomImage = !!saved?.coverImage;
         const metaTag =
           mode === "list" && listId
-            ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
-            : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
+            ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}:customImage:${hasCustomImage}`
+            : `\n\n[_]: cardlytics:mode:board:statType:${stat}:customImage:${hasCustomImage}`;
 
         const cardName = saved?.cardName || defaults.name;
         const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
