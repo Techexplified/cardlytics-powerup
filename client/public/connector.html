@@ -59,6 +59,13 @@
             ];
           },
 
+          "card-badges": function (t) {
+            return t.render(async function () {
+              await t.get("board", "shared", "refreshTrigger");
+              return [];
+            });
+          },
+
           // ── Card back section ─────────────────────────────────────────────
           // t.signUrl() signs the iframe URL so the child page's
           // TrelloPowerUp.iframe() call can complete the handshake.
@@ -109,7 +116,7 @@
         {
           appKey: KEY,
           appName: "Cardlytics",
-        }
+        },
       );
     </script>
   </body>

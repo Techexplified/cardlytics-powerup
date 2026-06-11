@@ -12,11 +12,7 @@ import {
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
-import {
-  TRELLO_API_KEY,
-  getStoredToken,
-  storeToken,
-} from "./utils/auth";
+import { TRELLO_API_KEY, getStoredToken, storeToken } from "./utils/auth";
 import "./index.css";
 
 const TRELLO_BASE = "https://api.trello.com/1";
@@ -163,7 +159,8 @@ const STAT_COVER_COLOR_MAP = {
 // ── Generate cover image canvas ───────────────────────────────────────────────
 function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
   return new Promise((resolve) => {
-    const W = 800, H = 320;
+    const W = 800,
+      H = 320;
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
@@ -188,7 +185,8 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
       const img = new Image();
       img.onload = () => {
         const scale = Math.max(W / img.width, H / img.height);
-        const sw = img.width * scale, sh = img.height * scale;
+        const sw = img.width * scale,
+          sh = img.height * scale;
         ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
         drawNumber();
       };
@@ -216,7 +214,9 @@ function Toast({ toast }) {
   if (!toast) return null;
   return (
     <div className={`toast toast-${toast.type}`}>
-      <span className="toast-icon">{toast.type === "success" ? "✅" : "❌"}</span>
+      <span className="toast-icon">
+        {toast.type === "success" ? "✅" : "❌"}
+      </span>
       <span className="toast-msg">{toast.message}</span>
     </div>
   );
@@ -253,7 +253,9 @@ function CardBackView() {
       trelloT.board("id").then((board) => {
         const key = TRELLO_API_KEY;
         const token = getStoredToken();
-        fetch(`${TRELLO_BASE}/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`)
+        fetch(
+          `${TRELLO_BASE}/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
+        )
           .then((r) => r.json())
           .then((lists) => {
             const cardlyticsListIds = lists
@@ -278,7 +280,7 @@ function CardBackView() {
 
         const allLists = await getBoardLists(key, tkn, boardId);
         const cardlyticsList = allLists.find(
-          (l) => l.name.toLowerCase() === "cardlytics"
+          (l) => l.name.toLowerCase() === "cardlytics",
         );
         if (!cardlyticsList) return;
 
@@ -287,7 +289,7 @@ function CardBackView() {
         const memberId = await getMemberId(key, tkn);
 
         const filteredCards = allBoardCards.filter(
-          (c) => !isTrackerCard(c.name) && c.idList !== cardlyticsList.id
+          (c) => !isTrackerCard(c.name) && c.idList !== cardlyticsList.id,
         );
         const freshStats = computeStats(filteredCards, memberId);
 
@@ -303,7 +305,7 @@ function CardBackView() {
 
         for (const card of trackerCards) {
           const statMatch = card.desc?.match(
-            /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/
+            /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
           );
           if (!statMatch) continue;
 
@@ -316,18 +318,21 @@ function CardBackView() {
           if (oldCount === newCount) continue;
 
           const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
-          const newCoverDataUrl = await generateStatCoverImage(newCount, coverColor);
+          const newCoverDataUrl = await generateStatCoverImage(
+            newCount,
+            coverColor,
+          );
 
           // Delete old attachments
           const attachRes = await fetch(
-            `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`
+            `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
           );
           if (attachRes.ok) {
             const attachments = await attachRes.json();
             for (const att of attachments) {
               await fetch(
                 `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${tkn}`,
-                { method: "DELETE" }
+                { method: "DELETE" },
               );
             }
           }
@@ -342,25 +347,31 @@ function CardBackView() {
 
           const uploadRes = await fetch(
             `${TRELLO_BASE}/cards/${card.id}/attachments`,
-            { method: "POST", body: formData }
+            { method: "POST", body: formData },
           );
           if (!uploadRes.ok) continue;
           const newAttachment = await uploadRes.json();
 
           // Update desc count + set cover
-          const newDesc = card.desc.replace(/\d+ card\(s\) tracked/, `${newCount} card(s) tracked`);
-          await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              desc: newDesc,
-              cover: {
-                idAttachment: newAttachment.id,
-                brightness: "dark",
-                size: "full",
-              },
-            }),
-          });
+          const newDesc = card.desc.replace(
+            /\d+ card\(s\) tracked/,
+            `${newCount} card(s) tracked`,
+          );
+          await fetch(
+            `${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                desc: newDesc,
+                cover: {
+                  idAttachment: newAttachment.id,
+                  brightness: "dark",
+                  size: "full",
+                },
+              }),
+            },
+          );
         }
       } catch (err) {
         console.error("CardBackView cover refresh error:", err);
@@ -368,7 +379,7 @@ function CardBackView() {
     };
 
     run();
-  }, []); 
+  }, []);
 
   function handleOpenDetails() {
     if (!trelloT) return;
@@ -432,8 +443,13 @@ function CardBackView() {
   }
 
   return (
-    <div className="cb-root" style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-      <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>Cardlytics</span>
+    <div
+      className="cb-root"
+      style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}
+    >
+      <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>
+        Cardlytics
+      </span>
       {isTracker ? (
         <button
           className="cb-btn-primary"
@@ -445,7 +461,12 @@ function CardBackView() {
       ) : (
         <button
           className="cb-btn-primary"
-          style={{ width: "auto", padding: "7px 16px", flexShrink: 0, background: "#0052cc" }}
+          style={{
+            width: "auto",
+            padding: "7px 16px",
+            flexShrink: 0,
+            background: "#0052cc",
+          }}
           onClick={handleStartTracking}
         >
           Start Tracking
@@ -467,8 +488,21 @@ function CardDetailsView() {
   const [listName, setListName] = useState("List");
   const [boardName, setBoardName] = useState("Board");
   const [listMap, setListMap] = useState({});
-  const [detailStats, setDetailStats] = useState({ labelCounts: {}, dueThisWeek: 0, withLabel: 0, total: 0 });
-  const [fullStats, setFullStats] = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0 });
+  const [detailStats, setDetailStats] = useState({
+    labelCounts: {},
+    dueThisWeek: 0,
+    withLabel: 0,
+    total: 0,
+  });
+  const [fullStats, setFullStats] = useState({
+    assigned: 0,
+    dueThisWeek: 0,
+    overdue: 0,
+    unassigned: 0,
+    withLabel: 0,
+    stale: 0,
+    createdToday: 0,
+  });
   const [memberMap, setMemberMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("table");
@@ -502,7 +536,9 @@ function CardDetailsView() {
           .map((l) => l.id);
 
         allCards = allCards.filter(
-          (c) => !isTrackerCardDisplay(c.name) && !cardlyticsListIds.includes(c.idList),
+          (c) =>
+            !isTrackerCardDisplay(c.name) &&
+            !cardlyticsListIds.includes(c.idList),
         );
 
         const now = new Date();
@@ -513,23 +549,30 @@ function CardDetailsView() {
 
         const filterMap = {
           assigned: (c) => c.idMembers?.includes(mid),
-          dueThisWeek: (c) => c.due && new Date(c.due) >= now && new Date(c.due) <= weekFromNow,
+          dueThisWeek: (c) =>
+            c.due && new Date(c.due) >= now && new Date(c.due) <= weekFromNow,
           overdue: (c) => c.due && new Date(c.due) < now && !c.dueComplete,
           unassigned: (c) => !c.idMembers || c.idMembers.length === 0,
           withLabel: (c) => c.labels?.length > 0,
-          stale: (c) => c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
+          stale: (c) =>
+            c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
           createdToday: (c) => cardCreatedDate(c.id) >= todayStart,
           cardsInList: () => true,
           all: () => true,
         };
 
         const fn = filterMap[statType] || (() => true);
-        const filteredCards = allCards.filter((c) => !isTrackerCard(c.name)).filter(fn);
+        const filteredCards = allCards
+          .filter((c) => !isTrackerCard(c.name))
+          .filter(fn);
 
         setCards(filteredCards);
         setDetailStats(computeDetailStats(filteredCards));
 
-        const computed = computeStats(allCards.filter((c) => !isTrackerCard(c.name)), mid);
+        const computed = computeStats(
+          allCards.filter((c) => !isTrackerCard(c.name)),
+          mid,
+        );
         computed.cardsInList = isListScoped
           ? allCards.filter((c) => !isTrackerCard(c.name)).length
           : 0;
@@ -560,7 +603,9 @@ function CardDetailsView() {
         boardLists.forEach((l) => (lmap[l.id] = l.name));
         setListMap(lmap);
 
-        const allMemberIds = [...new Set(filteredCards.flatMap((c) => c.idMembers || []))];
+        const allMemberIds = [
+          ...new Set(filteredCards.flatMap((c) => c.idMembers || [])),
+        ];
         const details = {};
         await Promise.all(
           allMemberIds.map(async (id) => {
@@ -582,11 +627,22 @@ function CardDetailsView() {
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       let va, vb;
-      if (sortCol === "name") { va = a.name; vb = b.name; }
-      else if (sortCol === "due") { va = a.due || ""; vb = b.due || ""; }
-      else if (sortCol === "created") { va = cardCreatedDate(a.id).getTime(); vb = cardCreatedDate(b.id).getTime(); }
-      else if (sortCol === "modified") { va = a.dateLastActivity || ""; vb = b.dateLastActivity || ""; }
-      else { va = ""; vb = ""; }
+      if (sortCol === "name") {
+        va = a.name;
+        vb = b.name;
+      } else if (sortCol === "due") {
+        va = a.due || "";
+        vb = b.due || "";
+      } else if (sortCol === "created") {
+        va = cardCreatedDate(a.id).getTime();
+        vb = cardCreatedDate(b.id).getTime();
+      } else if (sortCol === "modified") {
+        va = a.dateLastActivity || "";
+        vb = b.dateLastActivity || "";
+      } else {
+        va = "";
+        vb = "";
+      }
       if (va < vb) return sortAsc ? -1 : 1;
       if (va > vb) return sortAsc ? 1 : -1;
       return 0;
@@ -594,12 +650,20 @@ function CardDetailsView() {
 
   function handleSort(col) {
     if (sortCol === col) setSortAsc((s) => !s);
-    else { setSortCol(col); setSortAsc(true); }
+    else {
+      setSortCol(col);
+      setSortAsc(true);
+    }
   }
 
   function SortArrow({ col }) {
-    if (sortCol !== col) return <span style={{ color: "#444", marginLeft: 3 }}>↕</span>;
-    return <span style={{ color: "#4ea1ff", marginLeft: 3 }}>{sortAsc ? "↑" : "↓"}</span>;
+    if (sortCol !== col)
+      return <span style={{ color: "#444", marginLeft: 3 }}>↕</span>;
+    return (
+      <span style={{ color: "#4ea1ff", marginLeft: 3 }}>
+        {sortAsc ? "↑" : "↓"}
+      </span>
+    );
   }
 
   function DueChip({ due, dueComplete }) {
@@ -612,7 +676,20 @@ function CardDetailsView() {
 
   if (loading) {
     return (
-      <div style={{ width: "100%", height: "100%", background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Sans', sans-serif", gap: 10, color: "#666", fontSize: 13 }}>
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          background: "#1a1a1a",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "'DM Sans', sans-serif",
+          gap: 10,
+          color: "#666",
+          fontSize: 13,
+        }}
+      >
         <div className="cb-spinner" />
         <span>Loading...</span>
       </div>
@@ -625,39 +702,78 @@ function CardDetailsView() {
     { value: fullStats.assigned, label: "Assigned to me", accent: "#4ea1ff" },
     { value: fullStats.dueThisWeek, label: "Due this week", accent: "#f9c74f" },
     { value: fullStats.overdue, label: "Overdue cards", accent: "#ff5252" },
-    { value: fullStats.unassigned, label: "Unassigned cards", accent: "#ab47bc" },
-    { value: fullStats.withLabel, label: "Cards with a label", accent: "#ff9800" },
-    { value: fullStats.stale, label: "Stale (14+ days inactive)", accent: "#888" },
-    { value: fullStats.createdToday, label: "Created today", accent: "#2ec4b6" },
+    {
+      value: fullStats.unassigned,
+      label: "Unassigned cards",
+      accent: "#ab47bc",
+    },
+    {
+      value: fullStats.withLabel,
+      label: "Cards with a label",
+      accent: "#ff9800",
+    },
+    {
+      value: fullStats.stale,
+      label: "Stale (14+ days inactive)",
+      accent: "#888",
+    },
+    {
+      value: fullStats.createdToday,
+      label: "Created today",
+      accent: "#2ec4b6",
+    },
   ];
 
   return (
     <div className="cd-root">
       <div className="cd-left">
-        <div className="cd-list-label">{isListScoped ? listName : boardName}</div>
+        <div className="cd-list-label">
+          {isListScoped ? listName : boardName}
+        </div>
         {leftStats.map((s, i) => (
-          <div key={i} className="cd-stat-card" style={{ borderLeft: `3px solid ${s.accent}` }}>
-            <div className="cd-stat-num" style={{ color: s.value > 0 ? s.accent : "#666" }}>{s.value}</div>
+          <div
+            key={i}
+            className="cd-stat-card"
+            style={{ borderLeft: `3px solid ${s.accent}` }}
+          >
+            <div
+              className="cd-stat-num"
+              style={{ color: s.value > 0 ? s.accent : "#666" }}
+            >
+              {s.value}
+            </div>
             <div className="cd-stat-lbl">{s.label}</div>
           </div>
         ))}
-        <div className="add-filter-card" style={{ marginTop: 4 }}>+ Add filter</div>
+        <div className="add-filter-card" style={{ marginTop: 4 }}>
+          + Add filter
+        </div>
       </div>
 
       <div className="cd-right">
         <div className="cd-banner">
           <div className="cd-banner-count">{detailStats.total}</div>
           <div>
-            <div className="cd-banner-title">{STAT_LABELS[statType] || "Cards"}</div>
-            <div className="cd-banner-sub">{isListScoped ? `In list: ${listName}` : `Board: ${boardName}`}</div>
+            <div className="cd-banner-title">
+              {STAT_LABELS[statType] || "Cards"}
+            </div>
+            <div className="cd-banner-sub">
+              {isListScoped ? `In list: ${listName}` : `Board: ${boardName}`}
+            </div>
           </div>
         </div>
 
         <div className="cd-tabs">
           {["table", "metrics", "history", "alerts"].map((tab) => (
-            <div key={tab} className={`cd-tab ${activeTab === tab ? "active" : ""}`} onClick={() => setActiveTab(tab)}>
+            <div
+              key={tab}
+              className={`cd-tab ${activeTab === tab ? "active" : ""}`}
+              onClick={() => setActiveTab(tab)}
+            >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              {tab === "table" && <span className="cd-tab-count">{detailStats.total}</span>}
+              {tab === "table" && (
+                <span className="cd-tab-count">{detailStats.total}</span>
+              )}
             </div>
           ))}
         </div>
@@ -682,17 +798,28 @@ function CardDetailsView() {
           </div>
         </div>
 
-        <div className="cd-toolbar" style={{ borderTop: "none", paddingTop: 6 }}>
+        <div
+          className="cd-toolbar"
+          style={{ borderTop: "none", paddingTop: 6 }}
+        >
           <div className="cd-search">
             <span style={{ color: "#555", fontSize: 13 }}>🔍</span>
-            <input type="text" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} className="cd-search-input" />
+            <input
+              type="text"
+              placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="cd-search-input"
+            />
           </div>
           <button className="cd-action-btn">Columns</button>
           <button className="cd-action-btn">Export</button>
         </div>
 
         <div className="cd-created-by">
-          <div className="cd-mini-avatar" style={{ background: "#e85d2e" }}>SR</div>
+          <div className="cd-mini-avatar" style={{ background: "#e85d2e" }}>
+            SR
+          </div>
           <span>Created by</span>
           <span className="cd-created-name">Cardlytics</span>
         </div>
@@ -702,29 +829,62 @@ function CardDetailsView() {
             <table className="cd-table">
               <thead>
                 <tr>
-                  <th onClick={() => handleSort("name")}>Name <SortArrow col="name" /></th>
+                  <th onClick={() => handleSort("name")}>
+                    Name <SortArrow col="name" />
+                  </th>
                   <th>Assigned</th>
                   <th>Board</th>
                   <th>Done</th>
-                  <th onClick={() => handleSort("created")}>Created <SortArrow col="created" /></th>
-                  <th onClick={() => handleSort("due")}>Due <SortArrow col="due" /></th>
-                  <th onClick={() => handleSort("modified")}>Last Modified <SortArrow col="modified" /></th>
+                  <th onClick={() => handleSort("created")}>
+                    Created <SortArrow col="created" />
+                  </th>
+                  <th onClick={() => handleSort("due")}>
+                    Due <SortArrow col="due" />
+                  </th>
+                  <th onClick={() => handleSort("modified")}>
+                    Last Modified <SortArrow col="modified" />
+                  </th>
                   <th>List</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", color: "#555", padding: "20px" }}>No cards found</td>
+                    <td
+                      colSpan={8}
+                      style={{
+                        textAlign: "center",
+                        color: "#555",
+                        padding: "20px",
+                      }}
+                    >
+                      No cards found
+                    </td>
                   </tr>
                 )}
                 {filtered.map((card) => (
                   <tr key={card.id}>
                     <td className="td-name">
                       {card.labels?.length > 0 && (
-                        <span style={{ display: "inline-flex", gap: 3, marginRight: 6 }}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            gap: 3,
+                            marginRight: 6,
+                          }}
+                        >
                           {card.labels.map((lbl, i) => (
-                            <span key={i} style={{ width: 10, height: 10, borderRadius: 2, background: LABEL_COLORS[lbl.color] || "#888", display: "inline-block", verticalAlign: "middle" }} />
+                            <span
+                              key={i}
+                              style={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: 2,
+                                background: LABEL_COLORS[lbl.color] || "#888",
+                                display: "inline-block",
+                                verticalAlign: "middle",
+                              }}
+                            />
                           ))}
                         </span>
                       )}
@@ -736,7 +896,11 @@ function CardDetailsView() {
                           {card.idMembers.map((mid) => {
                             const m = memberMap[mid];
                             return (
-                              <div key={mid} className="cd-mini-avatar" style={{ background: memberColor(mid) }}>
+                              <div
+                                key={mid}
+                                className="cd-mini-avatar"
+                                style={{ background: memberColor(mid) }}
+                              >
                                 {m?.initials || mid.slice(0, 2).toUpperCase()}
                               </div>
                             );
@@ -748,14 +912,41 @@ function CardDetailsView() {
                     </td>
                     <td className="td-board">● {boardName}</td>
                     <td>
-                      <span style={{ width: 14, height: 14, border: "1px solid #444", borderRadius: 3, display: "inline-flex", alignItems: "center", justifyContent: "center", background: card.dueComplete ? "#0a3d0a" : "transparent" }}>
-                        {card.dueComplete && <span style={{ color: "#4caf50", fontSize: 10 }}>✓</span>}
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          border: "1px solid #444",
+                          borderRadius: 3,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: card.dueComplete
+                            ? "#0a3d0a"
+                            : "transparent",
+                        }}
+                      >
+                        {card.dueComplete && (
+                          <span style={{ color: "#4caf50", fontSize: 10 }}>
+                            ✓
+                          </span>
+                        )}
                       </span>
                     </td>
-                    <td className="td-date">{formatDate(cardCreatedDate(card.id).toISOString())}</td>
-                    <td><DueChip due={card.due} dueComplete={card.dueComplete} /></td>
-                    <td className="td-date">{formatDate(card.dateLastActivity)}</td>
-                    <td><span className="td-list-tag">{listMap[card.idList] || listName}</span></td>
+                    <td className="td-date">
+                      {formatDate(cardCreatedDate(card.id).toISOString())}
+                    </td>
+                    <td>
+                      <DueChip due={card.due} dueComplete={card.dueComplete} />
+                    </td>
+                    <td className="td-date">
+                      {formatDate(card.dateLastActivity)}
+                    </td>
+                    <td>
+                      <span className="td-list-tag">
+                        {listMap[card.idList] || listName}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -764,8 +955,18 @@ function CardDetailsView() {
         )}
 
         {activeTab !== "table" && (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#555", fontSize: 13 }}>
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} — coming soon
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#555",
+              fontSize: 13,
+            }}
+          >
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} — coming
+            soon
           </div>
         )}
 
@@ -788,9 +989,20 @@ export default function App() {
   const listId = params.get("listId");
 
   const [token, setToken] = useState(() => getStoredToken());
-  const [stats, setStats] = useState({ assigned: 0, dueThisWeek: 0, overdue: 0, unassigned: 0, withLabel: 0, stale: 0, createdToday: 0, cardsInList: 0 });
+  const [stats, setStats] = useState({
+    assigned: 0,
+    dueThisWeek: 0,
+    overdue: 0,
+    unassigned: 0,
+    withLabel: 0,
+    stale: 0,
+    createdToday: 0,
+    cardsInList: 0,
+  });
   const [selectedStats, setSelectedStats] = useState([]);
-  const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString());
+  const [lastUpdated, setLastUpdated] = useState(
+    new Date().toLocaleTimeString(),
+  );
   const [lists, setLists] = useState([]);
   const [selectedListId, setSelectedListId] = useState("");
   const [selectedListCount, setSelectedListCount] = useState(null);
@@ -812,7 +1024,9 @@ export default function App() {
       const boardId = board.id;
 
       const allLists = await getBoardLists(key, tkn, boardId);
-      const cardlyticsList = allLists.find((l) => l.name.toLowerCase() === "cardlytics");
+      const cardlyticsList = allLists.find(
+        (l) => l.name.toLowerCase() === "cardlytics",
+      );
       if (!cardlyticsList) return;
 
       const trackerCards = await getListCards(key, tkn, cardlyticsList.id);
@@ -820,7 +1034,7 @@ export default function App() {
       const memberId = await getMemberId(key, tkn);
 
       const filteredCards = allBoardCards.filter(
-        (c) => !isTrackerCard(c.name) && c.idList !== cardlyticsList.id
+        (c) => !isTrackerCard(c.name) && c.idList !== cardlyticsList.id,
       );
       const freshStats = computeStats(filteredCards, memberId);
 
@@ -836,7 +1050,7 @@ export default function App() {
 
       for (const card of trackerCards) {
         const statMatch = card.desc?.match(
-          /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/
+          /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
         );
         if (!statMatch) continue;
 
@@ -850,18 +1064,21 @@ export default function App() {
         if (oldCount === newCount) continue;
 
         const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
-        const newCoverDataUrl = await generateStatCoverImage(newCount, coverColor);
+        const newCoverDataUrl = await generateStatCoverImage(
+          newCount,
+          coverColor,
+        );
 
         // Delete old attachments
         const attachRes = await fetch(
-          `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`
+          `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
         );
         if (attachRes.ok) {
           const attachments = await attachRes.json();
           for (const att of attachments) {
             await fetch(
               `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${tkn}`,
-              { method: "DELETE" }
+              { method: "DELETE" },
             );
           }
         }
@@ -876,13 +1093,16 @@ export default function App() {
 
         const uploadRes = await fetch(
           `${TRELLO_BASE}/cards/${card.id}/attachments`,
-          { method: "POST", body: formData }
+          { method: "POST", body: formData },
         );
         if (!uploadRes.ok) continue;
         const newAttachment = await uploadRes.json();
 
         // Update cover + description count
-        const newDesc = card.desc.replace(/\d+ card\(s\) tracked/, `${newCount} card(s) tracked`);
+        const newDesc = card.desc.replace(
+          /\d+ card\(s\) tracked/,
+          `${newCount} card(s) tracked`,
+        );
         await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -895,6 +1115,10 @@ export default function App() {
             },
           }),
         });
+      }
+
+      if (trelloT) {
+        await trelloT.set("board", "shared", "refreshTrigger", Date.now());
       }
     } catch (err) {
       console.error("refreshTrackerCards error:", err);
@@ -929,7 +1153,9 @@ export default function App() {
       const memberId = await getMemberId(key, tkn);
 
       if (trelloT) {
-        trelloT.set("member", "private", "cardlyticsConnected", true).catch(() => {});
+        trelloT
+          .set("member", "private", "cardlyticsConnected", true)
+          .catch(() => {});
       }
 
       if (memberId) {
@@ -951,13 +1177,14 @@ export default function App() {
         );
         if (listRes.ok) setTrackingListName((await listRes.json()).name);
       } else {
-        const existing = boardLists.find((l) => l.name.toLowerCase() === "cardlytics");
+        const existing = boardLists.find(
+          (l) => l.name.toLowerCase() === "cardlytics",
+        );
         setTrackingListName(existing?.name || boardLists[0]?.name || "");
       }
 
       // ── Refresh board tracker card covers with updated counts ─────────────
       await refreshTrackerCards();
-
     } catch (err) {
       console.error(err);
     }
@@ -1010,7 +1237,10 @@ export default function App() {
   async function handleListChange(e) {
     const id = e.target.value;
     setSelectedListId(id);
-    if (!id) { setSelectedListCount(null); return; }
+    if (!id) {
+      setSelectedListCount(null);
+      return;
+    }
     const key = TRELLO_API_KEY;
     const tkn = getStoredToken();
     if (!tkn) return;
@@ -1029,7 +1259,10 @@ export default function App() {
     try {
       const key = TRELLO_API_KEY;
       const tkn = getStoredToken();
-      if (!tkn) { showToast("Not authorized", "error"); return; }
+      if (!tkn) {
+        showToast("Not authorized", "error");
+        return;
+      }
       if (!trelloT) return;
 
       const board = await trelloT.board("id");
@@ -1047,7 +1280,10 @@ export default function App() {
         targetListId = cardlyticsList.id;
         setTrackingListName("Cardlytics");
       }
-      if (!targetListId) { showToast("List not found", "error"); return; }
+      if (!targetListId) {
+        showToast("List not found", "error");
+        return;
+      }
 
       for (const stat of statsToTrack) {
         const defaults = DEFAULT_STAT_CONFIG[stat];
@@ -1063,11 +1299,25 @@ export default function App() {
         const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
         const cover = saved?.cover || defaults.cover;
 
-        const coverImageDataUrl = await generateStatCoverImage(count, cover, saved?.coverImage || null);
-        await createCard(key, tkn, targetListId, cardName, desc, cover, coverImageDataUrl);
+        const coverImageDataUrl = await generateStatCoverImage(
+          count,
+          cover,
+          saved?.coverImage || null,
+        );
+        await createCard(
+          key,
+          tkn,
+          targetListId,
+          cardName,
+          desc,
+          cover,
+          coverImageDataUrl,
+        );
       }
 
-      showToast(`${statsToTrack.length} card(s) added to "${trackingListName}" ✅`);
+      showToast(
+        `${statsToTrack.length} card(s) added to "${trackingListName}" ✅`,
+      );
       setSelectedStats([]);
     } catch (err) {
       console.error("Trello API Error:", err);
@@ -1093,7 +1343,10 @@ export default function App() {
           setCustomizeStat(null);
           await handleTrack([type], newConfig);
         }}
-        onClose={() => { setShowCustomize(false); setCustomizeStat(null); }}
+        onClose={() => {
+          setShowCustomize(false);
+          setCustomizeStat(null);
+        }}
       />
 
       <div className="header">
@@ -1118,7 +1371,10 @@ export default function App() {
           >
             All Cards
           </button>
-          <button className="btn-customize" onClick={() => setShowCustomize(true)}>
+          <button
+            className="btn-customize"
+            onClick={() => setShowCustomize(true)}
+          >
             Customize
           </button>
         </div>
@@ -1134,45 +1390,118 @@ export default function App() {
         )}
 
         <Section title="MY WORK">
-          <StatCard value={stats.assigned} label="Assigned to me across workspace" tag="live" type="assigned" onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.dueThisWeek} label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="dueThisWeek" onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.overdue} label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} tag="hot" type="overdue" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard
+            value={stats.assigned}
+            label="Assigned to me across workspace"
+            tag="live"
+            type="assigned"
+            onClick={handleStatClick}
+            selected={selectedStats}
+          />
+          <StatCard
+            value={stats.dueThisWeek}
+            label={`Due this week · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            type="dueThisWeek"
+            onClick={handleStatClick}
+            selected={selectedStats}
+          />
+          <StatCard
+            value={stats.overdue}
+            label={`Overdue · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            tag="hot"
+            type="overdue"
+            onClick={handleStatClick}
+            selected={selectedStats}
+          />
         </Section>
 
         <Section title="BOARD INSIGHTS">
-          <StatCard value={stats.unassigned} label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="unassigned" onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.withLabel} label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="withLabel" onClick={handleStatClick} selected={selectedStats} />
-          <StatCard value={stats.stale} label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="stale" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard
+            value={stats.unassigned}
+            label={`Unassigned · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            type="unassigned"
+            onClick={handleStatClick}
+            selected={selectedStats}
+          />
+          <StatCard
+            value={stats.withLabel}
+            label={`With a label · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            type="withLabel"
+            onClick={handleStatClick}
+            selected={selectedStats}
+          />
+          <StatCard
+            value={stats.stale}
+            label={`Stale · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            type="stale"
+            onClick={handleStatClick}
+            selected={selectedStats}
+          />
         </Section>
 
         <Section title="ACTIVITY">
-          <StatCard value={stats.createdToday} label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`} type="createdToday" onClick={handleStatClick} selected={selectedStats} />
+          <StatCard
+            value={stats.createdToday}
+            label={`Created today · ${mode === "list" && trackingListName ? trackingListName : "this board"}`}
+            type="createdToday"
+            onClick={handleStatClick}
+            selected={selectedStats}
+          />
 
           {mode === "board" && (
             <div
               className={`card list-picker ${selectedListId && selectedStats.includes("cardsInList") ? "selected" : ""}`}
-              onClick={() => { if (selectedListId) handleStatClick("cardsInList"); }}
+              onClick={() => {
+                if (selectedListId) handleStatClick("cardsInList");
+              }}
             >
               <div className="list-picker-top">
-                {selectedListCount !== null && <div className="card-value">{selectedListCount}</div>}
-                <select className="list-dropdown" value={selectedListId} onChange={handleListChange} onClick={(e) => e.stopPropagation()}>
+                {selectedListCount !== null && (
+                  <div className="card-value">{selectedListCount}</div>
+                )}
+                <select
+                  className="list-dropdown"
+                  value={selectedListId}
+                  onChange={handleListChange}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <option value="">Select a list</option>
-                  {lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  {lists.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <div className="card-label">{selectedListId ? "Click to select · Cards in list" : "Select a list first"}</div>
+              <div className="card-label">
+                {selectedListId
+                  ? "Click to select · Cards in list"
+                  : "Select a list first"}
+              </div>
             </div>
           )}
 
           {mode === "list" && (
-            <StatCard value={stats.cardsInList} label="Cards in this list" type="cardsInList" onClick={handleStatClick} selected={selectedStats} />
+            <StatCard
+              value={stats.cardsInList}
+              label="Cards in this list"
+              type="cardsInList"
+              onClick={handleStatClick}
+              selected={selectedStats}
+            />
           )}
 
           <div className="add-filter-card">+ Add filter</div>
         </Section>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 12px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          padding: "8px 12px",
+        }}
+      >
         <button
           className="btn-customize"
           onClick={() => handleTrack()}
@@ -1200,7 +1529,9 @@ export default function App() {
         </div>
         <div className="footer-right">
           <span className="footer-text">Updated: {lastUpdated}</span>
-          <button className="btn-refresh" onClick={fetchData}>↻</button>
+          <button className="btn-refresh" onClick={fetchData}>
+            ↻
+          </button>
         </div>
       </div>
     </div>
@@ -1218,7 +1549,10 @@ function Section({ title, children }) {
 
 function StatCard({ value, label, tag, type, onClick, selected }) {
   return (
-    <div className={`card ${selected.includes(type) ? "selected" : ""}`} onClick={() => onClick(type)}>
+    <div
+      className={`card ${selected.includes(type) ? "selected" : ""}`}
+      onClick={() => onClick(type)}
+    >
       {tag === "live" && <span className="tag live">Live</span>}
       {tag === "hot" && <span className="tag hot">Hot</span>}
       <div className="card-value">{value}</div>
