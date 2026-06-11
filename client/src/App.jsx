@@ -331,41 +331,6 @@ function CardBackView() {
             );
           } catch (_) {}
 
-          if (!existingBgDataUrl && /customImage:true/.test(card.desc || "")) {
-            try {
-              const attachRes = await fetch(
-                `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
-              );
-              if (attachRes.ok) {
-                const attachments = await attachRes.json();
-                if (attachments.length > 0) {
-                  const preview = attachments[0].previews?.sort(
-                    (a, b) => b.width - a.width,
-                  )[0];
-                  const fetchUrl = preview?.url || attachments[0].url;
-                  const imgRes = await fetch(fetchUrl);
-                  if (imgRes.ok) {
-                    const blob = await imgRes.blob();
-                    existingBgDataUrl = await new Promise((resolve) => {
-                      const reader = new FileReader();
-                      reader.onload = (e) => resolve(e.target.result);
-                      reader.readAsDataURL(blob);
-                    });
-                    // Also save it to plugin data for next time
-                    await trelloT
-                      .set(
-                        "board",
-                        "shared",
-                        `customBg:${card.id}`,
-                        existingBgDataUrl,
-                      )
-                      .catch(() => {});
-                  }
-                }
-              }
-            } catch (_) {}
-          }
-
           // Delete old attachments
           const attachRes2 = await fetch(
             `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
@@ -1126,41 +1091,6 @@ export default function App() {
           );
         } catch (_) {}
 
-        if (!existingBgDataUrl && /customImage:true/.test(card.desc || "")) {
-          try {
-            const attachRes = await fetch(
-              `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
-            );
-            if (attachRes.ok) {
-              const attachments = await attachRes.json();
-              if (attachments.length > 0) {
-                const preview = attachments[0].previews?.sort(
-                  (a, b) => b.width - a.width,
-                )[0];
-                const fetchUrl = preview?.url || attachments[0].url;
-                const imgRes = await fetch(fetchUrl);
-                if (imgRes.ok) {
-                  const blob = await imgRes.blob();
-                  existingBgDataUrl = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.readAsDataURL(blob);
-                  });
-                  // Also save it to plugin data for next time
-                  await trelloT
-                    .set(
-                      "board",
-                      "shared",
-                      `customBg:${card.id}`,
-                      existingBgDataUrl,
-                    )
-                    .catch(() => {});
-                }
-              }
-            }
-          } catch (_) {}
-        }
-
         // Delete old attachments
         const attachRes2 = await fetch(
           `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
@@ -1390,11 +1320,10 @@ export default function App() {
         const saved = configToUse[stat];
         const count = stats[stat];
 
-        const hasCustomImage = !!saved?.coverImage;
         const metaTag =
           mode === "list" && listId
-            ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}:customImage:${hasCustomImage}`
-            : `\n\n[_]: cardlytics:mode:board:statType:${stat}:customImage:${hasCustomImage}`;
+            ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
+            : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
 
         const cardName = saved?.cardName || defaults.name;
         const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
