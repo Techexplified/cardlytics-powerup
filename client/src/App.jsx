@@ -1273,6 +1273,11 @@ export default function App() {
   }
 
   const handleTrack = async (statsOverride, configOverride) => {
+    console.log("handleTrack called", {
+      trelloT: !!trelloT,
+      statsOverride,
+      configOverride,
+    });
     const statsToTrack = statsOverride ?? selectedStats;
     const configToUse = configOverride ?? cardConfig;
 
@@ -1313,6 +1318,14 @@ export default function App() {
         const defaults = DEFAULT_STAT_CONFIG[stat];
         const saved = configToUse[stat];
         const count = stats[stat];
+        console.log(
+          "stat:",
+          stat,
+          "saved:",
+          saved,
+          "coverImage:",
+          !!saved?.coverImage,
+        );
 
         const metaTag =
           mode === "list" && listId
