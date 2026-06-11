@@ -266,6 +266,110 @@ function CardBackView() {
     });
   }, []);
 
+  useEffect(() => {
+    const key = TRELLO_API_KEY;
+    const tkn = getStoredToken();
+    if (!tkn || !trelloT) return;
+
+    const run = async () => {
+      try {
+        const board = await trelloT.board("id");
+        const boardId = board.id;
+
+        const allLists = await getBoardLists(key, tkn, boardId);
+        const cardlyticsList = allLists.find(
+          (l) => l.name.toLowerCase() === "cardlytics"
+        );
+        if (!cardlyticsList) return;
+
+        const trackerCards = await getListCards(key, tkn, cardlyticsList.id);
+        const allBoardCards = await getBoardCards(key, tkn, boardId);
+        const memberId = await getMemberId(key, tkn);
+
+        const filteredCards = allBoardCards.filter(
+          (c) => !isTrackerCard(c.name) && c.idList !== cardlyticsList.id
+        );
+        const freshStats = computeStats(filteredCards, memberId);
+
+        const statCountMap = {
+          assigned: freshStats.assigned,
+          dueThisWeek: freshStats.dueThisWeek,
+          overdue: freshStats.overdue,
+          unassigned: freshStats.unassigned,
+          withLabel: freshStats.withLabel,
+          stale: freshStats.stale,
+          createdToday: freshStats.createdToday,
+        };
+
+        for (const card of trackerCards) {
+          const statMatch = card.desc?.match(
+            /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/
+          );
+          if (!statMatch) continue;
+
+          const statType = statMatch[3];
+          const newCount = statCountMap[statType];
+          if (newCount === undefined) continue;
+
+          const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
+          const oldCount = oldCountMatch ? parseInt(oldCountMatch[1]) : null;
+          if (oldCount === newCount) continue;
+
+          const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
+          const newCoverDataUrl = await generateStatCoverImage(newCount, coverColor);
+
+          // Delete old attachments
+          const attachRes = await fetch(
+            `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`
+          );
+          if (attachRes.ok) {
+            const attachments = await attachRes.json();
+            for (const att of attachments) {
+              await fetch(
+                `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${tkn}`,
+                { method: "DELETE" }
+              );
+            }
+          }
+
+          // Upload new cover
+          const blob = dataUrlToBlob(newCoverDataUrl);
+          const formData = new FormData();
+          formData.append("key", key);
+          formData.append("token", tkn);
+          formData.append("file", blob, "cover.jpg");
+          formData.append("setCover", "false");
+
+          const uploadRes = await fetch(
+            `${TRELLO_BASE}/cards/${card.id}/attachments`,
+            { method: "POST", body: formData }
+          );
+          if (!uploadRes.ok) continue;
+          const newAttachment = await uploadRes.json();
+
+          // Update desc count + set cover
+          const newDesc = card.desc.replace(/\d+ card\(s\) tracked/, `${newCount} card(s) tracked`);
+          await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              desc: newDesc,
+              cover: {
+                idAttachment: newAttachment.id,
+                brightness: "dark",
+                size: "full",
+              },
+            }),
+          });
+        }
+      } catch (err) {
+        console.error("CardBackView cover refresh error:", err);
+      }
+    };
+
+    run();
+  }, []); 
+
   function handleOpenDetails() {
     if (!trelloT) return;
     trelloT.card("id", "idList", "name", "desc").then((card) => {
@@ -741,7 +845,7 @@ export default function App() {
         if (newCount === undefined) continue;
 
         // Only update if count changed — avoids unnecessary uploads
-        const oldCountMatch = card.desc?.match(/^(\d+) card\(s\)/);
+        const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
         const oldCount = oldCountMatch ? parseInt(oldCountMatch[1]) : null;
         if (oldCount === newCount) continue;
 
@@ -778,7 +882,7 @@ export default function App() {
         const newAttachment = await uploadRes.json();
 
         // Update cover + description count
-        const newDesc = card.desc.replace(/^\d+/, String(newCount));
+        const newDesc = card.desc.replace(/\d+ card\(s\) tracked/, `${newCount} card(s) tracked`);
         await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
