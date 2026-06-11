@@ -1197,16 +1197,16 @@ export default function App() {
     if (!token) return;
 
     if (trelloT) {
-      trelloT.render(() => {
-        fetchData();
-      });
-    }
+  trelloT.render(() => {
+    fetchData(); // ✅ KEEP THIS
+  });
+}
 
     fetchData();
 
     const intervalId = setInterval(() => {
       fetchData();
-    }, 5000);
+    }, 15000);
 
     return () => {
       clearInterval(intervalId);
