@@ -323,14 +323,20 @@ function CardBackView() {
           // Read custom bg from plugin data (avoids CORS fetch)
           // Read custom bg from plugin data, fallback to attachment fetch for older cards
           let existingBgDataUrl = null;
-try {
-  const local = localStorage.getItem(`cardlytics:customBg:${card.id}`);
-  if (local) {
-    existingBgDataUrl = local;
-  } else {
-    existingBgDataUrl = await trelloT.get("board", "shared", `customBg:${card.id}`);
-  }
-} catch (_) {}
+          try {
+            const local = localStorage.getItem(
+              `cardlytics:customBg:${card.id}`,
+            );
+            if (local) {
+              existingBgDataUrl = local;
+            } else {
+              existingBgDataUrl = await trelloT.get(
+                "board",
+                "shared",
+                `customBg:${card.id}`,
+              );
+            }
+          } catch (_) {}
 
           // Delete old attachments
           const attachRes2 = await fetch(
@@ -1084,14 +1090,18 @@ export default function App() {
         // Read custom bg from plugin data (avoids CORS fetch)
         // Read custom bg from plugin data, fallback to attachment fetch for older cards
         let existingBgDataUrl = null;
-try {
-  const local = localStorage.getItem(`cardlytics:customBg:${card.id}`);
-  if (local) {
-    existingBgDataUrl = local;
-  } else {
-    existingBgDataUrl = await trelloT.get("board", "shared", `customBg:${card.id}`);
-  }
-} catch (_) {}
+        try {
+          const local = localStorage.getItem(`cardlytics:customBg:${card.id}`);
+          if (local) {
+            existingBgDataUrl = local;
+          } else {
+            existingBgDataUrl = await trelloT.get(
+              "board",
+              "shared",
+              `customBg:${card.id}`,
+            );
+          }
+        } catch (_) {}
 
         // Delete old attachments
         const attachRes2 = await fetch(
@@ -1356,28 +1366,43 @@ try {
 
         // Store custom bg image in plugin data so refresh can reuse it without CORS fetch
         if (saved?.coverImage && trelloT) {
-  try {
-    // Store full image in localStorage for this browser (primary)
-    localStorage.setItem(`cardlytics:customBg:${newCard.id}`, saved.coverImage);
+          try {
+            // Store full image in localStorage for this browser (primary)
+            localStorage.setItem(
+              `cardlytics:customBg:${newCard.id}`,
+              saved.coverImage,
+            );
 
-    // Store tiny thumbnail in Trello plugin data as cross-device fallback
-    const tiny = await new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = 60;
-        canvas.height = 24;
-        canvas.getContext("2d").drawImage(img, 0, 0, 60, 24);
-        resolve(canvas.toDataURL("image/jpeg", 0.5));
-      };
-      img.src = saved.coverImage;
-    });
-    await trelloT.set("board", "shared", `customBg:${newCard.id}`, tiny);
-    console.log("✅ customBg saved — localStorage:", saved.coverImage.length, "chars | plugin fallback:", tiny.length, "chars");
-  } catch (err) {
-    console.error("❌ customBg save failed", err);
-  }
-}
+            // Store tiny thumbnail in Trello plugin data as cross-device fallback
+            const tiny = await new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = 60;
+                canvas.height = 24;
+                canvas.getContext("2d").drawImage(img, 0, 0, 60, 24);
+                resolve(canvas.toDataURL("image/jpeg", 0.5));
+              };
+              img.src = saved.coverImage;
+            });
+            await trelloT.set(
+              "board",
+              "shared",
+              `customBg:${newCard.id}`,
+              tiny,
+            );
+            console.log(
+              "✅ customBg saved — localStorage:",
+              saved.coverImage.length,
+              "chars | plugin fallback:",
+              tiny.length,
+              "chars",
+            );
+          } catch (err) {
+            console.error("❌ customBg save failed", err);
+          }
+        }
+      }
 
       showToast(
         `${statsToTrack.length} card(s) added to "${trackingListName}" ✅`,
