@@ -1355,13 +1355,24 @@ export default function App() {
         // Store custom bg image in plugin data so refresh can reuse it without CORS fetch
         if (saved?.coverImage && trelloT) {
           try {
+            const tiny = await new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => {
+                const canvas = document.createElement("canvas");
+                canvas.width = 60;
+                canvas.height = 24;
+                canvas.getContext("2d").drawImage(img, 0, 0, 60, 24);
+                resolve(canvas.toDataURL("image/jpeg", 0.5));
+              };
+              img.src = saved.coverImage;
+            });
             await trelloT.set(
               "board",
               "shared",
               `customBg:${newCard.id}`,
-              saved.coverImage,
+              tiny,
             );
-            console.log("✅ customBg saved for", newCard.id);
+            console.log("✅ customBg saved, size:", tiny.length);
           } catch (err) {
             console.error("❌ customBg save failed", err);
           }
