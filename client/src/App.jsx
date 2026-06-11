@@ -320,35 +320,15 @@ function CardBackView() {
           const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
 
           // Only try to preserve background if card was created with a custom image
-          const hasCustomImage = /customImage:true/.test(card.desc || "");
+          // Read custom bg from plugin data (avoids CORS fetch)
           let existingBgDataUrl = null;
-
-          if (hasCustomImage) {
-            try {
-              const attachRes = await fetch(
-                `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
-              );
-              if (attachRes.ok) {
-                const attachments = await attachRes.json();
-                if (attachments.length > 0) {
-                  // Use the smallest preview to avoid CORS issues with the main URL
-                  const preview = attachments[0].previews?.sort(
-                    (a, b) => b.width - a.width,
-                  )[0];
-                  const fetchUrl = preview?.url || attachments[0].url;
-                  const imgRes = await fetch(fetchUrl);
-                  if (imgRes.ok) {
-                    const blob = await imgRes.blob();
-                    existingBgDataUrl = await new Promise((resolve) => {
-                      const reader = new FileReader();
-                      reader.onload = (e) => resolve(e.target.result);
-                      reader.readAsDataURL(blob);
-                    });
-                  }
-                }
-              }
-            } catch (_) {}
-          }
+          try {
+            existingBgDataUrl = await trelloT.get(
+              "board",
+              "shared",
+              `customBg:${card.id}`,
+            );
+          } catch (_) {}
 
           // Delete old attachments
           const attachRes2 = await fetch(
@@ -1099,35 +1079,15 @@ export default function App() {
         const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
 
         // Only try to preserve background if card was created with a custom image
-        const hasCustomImage = /customImage:true/.test(card.desc || "");
+        // Read custom bg from plugin data (avoids CORS fetch)
         let existingBgDataUrl = null;
-
-        if (hasCustomImage) {
-          try {
-            const attachRes = await fetch(
-              `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
-            );
-            if (attachRes.ok) {
-              const attachments = await attachRes.json();
-              if (attachments.length > 0) {
-                // Use the smallest preview to avoid CORS issues with the main URL
-                const preview = attachments[0].previews?.sort(
-                  (a, b) => b.width - a.width,
-                )[0];
-                const fetchUrl = preview?.url || attachments[0].url;
-                const imgRes = await fetch(fetchUrl);
-                if (imgRes.ok) {
-                  const blob = await imgRes.blob();
-                  existingBgDataUrl = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target.result);
-                    reader.readAsDataURL(blob);
-                  });
-                }
-              }
-            }
-          } catch (_) {}
-        }
+        try {
+          existingBgDataUrl = await trelloT.get(
+            "board",
+            "shared",
+            `customBg:${card.id}`,
+          );
+        } catch (_) {}
 
         // Delete old attachments
         const attachRes2 = await fetch(
@@ -1368,12 +1328,13 @@ export default function App() {
         const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
         const cover = saved?.cover || defaults.cover;
 
+        // AFTER
         const coverImageDataUrl = await generateStatCoverImage(
           count,
           cover,
           saved?.coverImage || null,
         );
-        await createCard(
+        const newCard = await createCard(
           key,
           tkn,
           targetListId,
@@ -1382,6 +1343,13 @@ export default function App() {
           cover,
           coverImageDataUrl,
         );
+
+        // Store custom bg image in plugin data so refresh can reuse it without CORS fetch
+        if (saved?.coverImage && trelloT) {
+          await trelloT
+            .set("board", "shared", `customBg:${newCard.id}`, saved.coverImage)
+            .catch(() => {});
+        }
       }
 
       showToast(
