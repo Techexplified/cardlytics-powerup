@@ -59,11 +59,14 @@
             ];
           },
 
-          "card-badges": function (t) {
-            return t.render(async function () {
-              await t.get("board", "shared", "refreshTrigger");
+          "card-badges": async function (t) {
+            try {
+              const val = await t.get("board", "shared", "refreshTrigger");
+              console.log("🔥 card-badges triggered:", val);
               return [];
-            });
+            } catch (e) {
+              return [];
+            }
           },
 
           // ── Card back section ─────────────────────────────────────────────

@@ -1118,6 +1118,7 @@ export default function App() {
       }
 
       if (trelloT) {
+        console.log("🔥 Triggering refresh");
         await trelloT.set("board", "shared", "refreshTrigger", Date.now());
       }
     } catch (err) {
