@@ -1144,12 +1144,6 @@ export default function App() {
           }),
         });
       }
-
-      if (trelloT) {
-        console.log("🔥 Triggering refresh");
-        await new Promise((res) => setTimeout(res, 1200)); // wait 800ms
-        await trelloT.set("board", "shared", "refreshTrigger", Date.now());
-      }
     } catch (err) {
       console.error("refreshTrackerCards error:", err);
     }
@@ -1347,9 +1341,17 @@ export default function App() {
 
         // Store custom bg image in plugin data so refresh can reuse it without CORS fetch
         if (saved?.coverImage && trelloT) {
-          await trelloT
-            .set("board", "shared", `customBg:${newCard.id}`, saved.coverImage)
-            .catch(() => {});
+          try {
+            await trelloT.set(
+              "board",
+              "shared",
+              `customBg:${newCard.id}`,
+              saved.coverImage,
+            );
+            console.log("✅ customBg saved for", newCard.id);
+          } catch (err) {
+            console.error("❌ customBg save failed", err);
+          }
         }
       }
 

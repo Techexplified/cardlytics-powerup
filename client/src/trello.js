@@ -6,7 +6,7 @@ export function buildAuth(key, token) {
 
 export async function getBoard(key, token, boardId) {
   const res = await fetch(
-    `${BASE}/boards/${boardId}?${buildAuth(key, token)}&fields=name`
+    `${BASE}/boards/${boardId}?${buildAuth(key, token)}&fields=name`,
   );
   if (!res.ok) throw new Error(`Trello error ${res.status}`);
   return res.json();
@@ -14,7 +14,7 @@ export async function getBoard(key, token, boardId) {
 
 export async function getBoardCards(key, token, boardId) {
   const res = await fetch(
-    `${BASE}/boards/${boardId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList`
+    `${BASE}/boards/${boardId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList`,
   );
   if (!res.ok) throw new Error(`Trello error ${res.status}`);
   return res.json();
@@ -29,7 +29,7 @@ export async function getMemberId(key, token) {
 
 export async function getMemberDetails(key, token, memberId) {
   const res = await fetch(
-    `${BASE}/members/${memberId}?${buildAuth(key, token)}&fields=fullName,initials,avatarHash`
+    `${BASE}/members/${memberId}?${buildAuth(key, token)}&fields=fullName,initials,avatarHash`,
   );
   if (!res.ok) return null;
   return res.json();
@@ -37,7 +37,7 @@ export async function getMemberDetails(key, token, memberId) {
 
 export async function getListCards(key, token, listId) {
   const res = await fetch(
-    `${BASE}/lists/${listId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList,desc`
+    `${BASE}/lists/${listId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList,desc`,
   );
   if (!res.ok) return [];
   return res.json();
@@ -51,8 +51,13 @@ export function computeStats(cards, memberId) {
   const staleThreshold = new Date(now);
   staleThreshold.setDate(now.getDate() - 14);
 
-  let assigned = 0, dueThisWeek = 0, overdue = 0,
-      unassigned = 0, withLabel = 0, stale = 0, createdToday = 0;
+  let assigned = 0,
+    dueThisWeek = 0,
+    overdue = 0,
+    unassigned = 0,
+    withLabel = 0,
+    stale = 0,
+    createdToday = 0;
 
   for (const card of cards) {
     if (memberId && card.idMembers?.includes(memberId)) assigned++;
@@ -72,7 +77,15 @@ export function computeStats(cards, memberId) {
     if (createdDate >= startOfDay) createdToday++;
   }
 
-  return { assigned, dueThisWeek, overdue, unassigned, withLabel, stale, createdToday };
+  return {
+    assigned,
+    dueThisWeek,
+    overdue,
+    unassigned,
+    withLabel,
+    stale,
+    createdToday,
+  };
 }
 
 export function computeDetailStats(cards) {
@@ -82,14 +95,16 @@ export function computeDetailStats(cards) {
   endOfWeek.setDate(startOfDay.getDate() + 7);
 
   const labelCounts = {};
-  let dueThisWeek = 0, withLabel = 0;
+  let dueThisWeek = 0,
+    withLabel = 0;
 
   for (const card of cards) {
     if (card.labels && card.labels.length > 0) {
       withLabel++;
       for (const lbl of card.labels) {
         const key = lbl.color || "none";
-        labelCounts[key] = (labelCounts[key] || { count: 0, name: lbl.color, color: lbl.color });
+        if (!labelCounts[key])
+          labelCounts[key] = { count: 0, name: lbl.color, color: lbl.color };
         labelCounts[key].count++;
       }
     }
@@ -104,7 +119,7 @@ export function computeDetailStats(cards) {
 
 export async function getBoardLists(key, token, boardId) {
   const res = await fetch(
-    `${BASE}/boards/${boardId}/lists?${buildAuth(key, token)}&fields=id,name`
+    `${BASE}/boards/${boardId}/lists?${buildAuth(key, token)}&fields=id,name`,
   );
   if (!res.ok) return [];
   return res.json();
@@ -112,19 +127,34 @@ export async function getBoardLists(key, token, boardId) {
 
 // ── Convert base64 data URL to Blob without fetch (avoids CSP issues) ────────
 function dataUrlToBlob(dataUrl) {
-  const base64Data = dataUrl.split(',')[1];
+  const base64Data = dataUrl.split(",")[1];
   const byteCharacters = atob(base64Data);
   const byteArray = new Uint8Array(byteCharacters.length);
   for (let i = 0; i < byteCharacters.length; i++) {
     byteArray[i] = byteCharacters.charCodeAt(i);
   }
-  return new Blob([byteArray], { type: 'image/jpeg' });
+  return new Blob([byteArray], { type: "image/jpeg" });
 }
 
 // ── Create a Cardlytics tracker card ─────────────────────────────────────────
-export async function createCard(key, token, listId, name, desc, coverColor = "blue", coverImageDataUrl = null) {
+export async function createCard(
+  key,
+  token,
+  listId,
+  name,
+  desc,
+  coverColor = "blue",
+  coverImageDataUrl = null,
+) {
   // Step 1: create the card
-  const createParams = new URLSearchParams({ key, token, idList: listId, name, desc, pos: "top" });
+  const createParams = new URLSearchParams({
+    key,
+    token,
+    idList: listId,
+    name,
+    desc,
+    pos: "top",
+  });
   const createRes = await fetch(`${BASE}/cards`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -175,17 +205,20 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
     }
   } else {
     // Step 2b: apply cover color via JSON body
-    const coverRes = await fetch(`${BASE}/cards/${card.id}?key=${key}&token=${token}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cover: {
-          color: coverColor,
-          brightness: "dark",
-          size: "full",
-        },
-      }),
-    });
+    const coverRes = await fetch(
+      `${BASE}/cards/${card.id}?key=${key}&token=${token}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cover: {
+            color: coverColor,
+            brightness: "dark",
+            size: "full",
+          },
+        }),
+      },
+    );
     if (!coverRes.ok) {
       console.warn("Cover color apply failed:", await coverRes.text());
     }
@@ -198,7 +231,7 @@ export async function createCard(key, token, listId, name, desc, coverColor = "b
 export async function createList(key, token, boardId, name) {
   const res = await fetch(
     `${BASE}/lists?${buildAuth(key, token)}&idBoard=${boardId}&name=${encodeURIComponent(name)}`,
-    { method: "POST" }
+    { method: "POST" },
   );
   if (!res.ok) throw new Error("Failed to create list");
   return res.json();
