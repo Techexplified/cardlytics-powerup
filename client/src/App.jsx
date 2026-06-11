@@ -1119,7 +1119,7 @@ export default function App() {
 
       if (trelloT) {
         console.log("🔥 Triggering refresh");
-        await new Promise((res) => setTimeout(res, 800)); // wait 800ms
+        await new Promise(res => setTimeout(res, 1200));  // wait 800ms
         await trelloT.set("board", "shared", "refreshTrigger", Date.now());
       }
     } catch (err) {

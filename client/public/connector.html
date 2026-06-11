@@ -62,7 +62,12 @@
           "card-badges": async function (t) {
             try {
               const val = await t.get("board", "shared", "refreshTrigger");
-              console.log("🔥 card-badges triggered:", val);
+
+              // 👇 force re-render cycle
+              if (!val) {
+                return [];
+              }
+
               return [];
             } catch (e) {
               return [];
