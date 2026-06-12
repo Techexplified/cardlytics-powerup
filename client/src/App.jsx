@@ -1244,7 +1244,12 @@ function CardDetailsView() {
             📅 Planner
           </button>
           <button className="cd-nav-btn active">⊞ Board</button>
-          <button className="cd-nav-btn switch">⇄ Switch boards</button>
+          <button
+            className="cd-nav-btn switch"
+            onClick={() => comingSoon("Switch boards")}
+          >
+            ⇄ Switch boards
+          </button>
         </div>
       </div>
     </div>
@@ -1662,6 +1667,9 @@ export default function App() {
         `${statsToTrack.length} card(s) added to "${trackingListName}" ✅`,
       );
       setSelectedStats([]);
+      setTimeout(() => {
+        if (trelloT) trelloT.closeModal();
+      }, 1500);
     } catch (err) {
       console.error("Trello API Error:", err);
       showToast("Something went wrong. Please try again.", "error");
