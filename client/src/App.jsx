@@ -734,6 +734,10 @@ function CardDetailsView() {
       a.click();
       URL.revokeObjectURL(url);
     } else if (format === "pdf") {
+
+      // Hide the dropdown before capturing
+  document.getElementById("export-menu").style.display = "none";
+
   const target = document.querySelector(".cd-right");
   if (!target) return;
 
