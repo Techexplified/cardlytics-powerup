@@ -14,6 +14,8 @@ import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
 import { TRELLO_API_KEY, getStoredToken, storeToken } from "./utils/auth";
 import "./index.css";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const TRELLO_BASE = "https://api.trello.com/1";
 
@@ -669,7 +671,7 @@ function CardDetailsView() {
       return 0;
     });
 
-  function handleExport(format) {
+  async function handleExport(format) {
     const rows = filtered; // uses current filtered + sorted cards
 
     if (format === "csv") {
@@ -732,52 +734,26 @@ function CardDetailsView() {
       a.click();
       URL.revokeObjectURL(url);
     } else if (format === "pdf") {
-      const printWindow = window.open("", "_blank");
-      const tableRows = rows
-        .map(
-          (c) => `
-      <tr>
-        <td>${c.name}</td>
-        <td>${(c.idMembers || []).map((mid) => memberMap[mid]?.fullName || mid).join(", ") || "—"}</td>
-        <td>${boardName}</td>
-        <td>${c.dueComplete ? "✓" : ""}</td>
-        <td>${formatDate(cardCreatedDate(c.id).toISOString())}</td>
-        <td>${c.due ? formatDate(c.due) : "—"}</td>
-        <td>${formatDate(c.dateLastActivity)}</td>
-        <td>${listMap[c.idList] || listName}</td>
-      </tr>`,
-        )
-        .join("");
+  const target = document.querySelector(".cd-right");
+  if (!target) return;
 
-      printWindow.document.write(`
-      <html>
-        <head>
-          <title>Cardlytics — ${STAT_LABELS[statType] || "Cards"}</title>
-          <style>
-            body { font-family: -apple-system, sans-serif; font-size: 12px; color: #111; padding: 24px; }
-            h2 { margin-bottom: 4px; }
-            p { color: #666; margin: 0 0 16px; font-size: 11px; }
-            table { width: 100%; border-collapse: collapse; }
-            th { background: #f0f0f0; text-align: left; padding: 6px 8px; font-size: 11px; border-bottom: 2px solid #ddd; }
-            td { padding: 5px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
-            tr:nth-child(even) td { background: #fafafa; }
-          </style>
-        </head>
-        <body>
-          <h2>Cardlytics — ${STAT_LABELS[statType] || "Cards"}</h2>
-          <p>${boardName} · ${rows.length} cards · Exported ${new Date().toLocaleString()}</p>
-          <table>
-            <thead><tr>
-              <th>Name</th><th>Assigned</th><th>Board</th><th>Done</th>
-              <th>Created</th><th>Due</th><th>Last Modified</th><th>List</th>
-            </tr></thead>
-            <tbody>${tableRows}</tbody>
-          </table>
-          <script>window.onload = () => { window.print(); window.close(); }<\/script>
-        </body>
-      </html>`);
-      printWindow.document.close();
-    }
+  const canvas = await html2canvas(target, {
+    backgroundColor: "#111111",
+    scale: 2,
+    useCORS: true,
+    scrollY: -window.scrollY,
+  });
+
+  const imgData = canvas.toDataURL("image/png");
+  const pdf = new jsPDF({
+    orientation: "landscape",
+    unit: "px",
+    format: [canvas.width / 2, canvas.height / 2],
+  });
+
+  pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+  pdf.save(`cardlytics-${statType}-${Date.now()}.pdf`);
+}
   }
 
   function handleSort(col) {
