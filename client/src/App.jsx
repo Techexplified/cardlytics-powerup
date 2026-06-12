@@ -542,15 +542,17 @@ function CardDetailsView() {
       setLoading(true);
       try {
         const isListScoped = mode === "list" || statType === "cardsInList";
+
+        // Always fetch full board cards upfront — used for allCards stat + avoids a second fetch later
+        const rawBoardCards = boardId
+          ? await getBoardCards(key, token, boardId)
+          : [];
+
         let allCards;
         if (isListScoped && listId) {
           allCards = await getListCards(key, token, listId);
-        } else if (boardId) {
-          allCards = await getBoardCards(key, token, boardId);
-        } else if (listId) {
-          allCards = await getListCards(key, token, listId);
         } else {
-          allCards = [];
+          allCards = rawBoardCards;
         }
 
         const mid = await getMemberId(key, token);
@@ -602,14 +604,13 @@ function CardDetailsView() {
           : 0;
 
         // Always fetch full board cards so "All cards" stat is never scoped
-        const boardWideCards = boardId
-          ? (await getBoardCards(key, token, boardId)).filter(
-              (c) =>
-                !isTrackerCardDisplay(c.name) &&
-                !cardlyticsListIds.includes(c.idList) &&
-                !isTrackerCard(c.name),
-            )
-          : [];
+        // Reuse already-fetched rawBoardCards — no extra API call needed
+        const boardWideCards = rawBoardCards.filter(
+          (c) =>
+            !isTrackerCardDisplay(c.name) &&
+            !cardlyticsListIds.includes(c.idList) &&
+            !isTrackerCard(c.name),
+        );
         computed.allCards = boardWideCards.length;
 
         setFullStats(computed);
