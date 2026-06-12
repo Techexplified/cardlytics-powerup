@@ -1560,9 +1560,11 @@ export default function App() {
 
     setIsTracking(true);
     if (trelloT) {
-      trelloT.set("member", "private", "cardlyticsTrackingInProgress", true).catch(() => {});
+      trelloT
+        .set("member", "private", "cardlyticsTrackingInProgress", true)
+        .catch(() => {});
     }
-    
+
     try {
       const key = TRELLO_API_KEY;
       const tkn = getStoredToken();
@@ -1716,9 +1718,21 @@ export default function App() {
       />
 
       <div className="header">
-        <div className="header-left">
-          <div className="trello-icon">T</div>
-          <h3 style={{ whiteSpace: "nowrap" }}>Cardlytics — Track</h3>
+        <div
+          className="header-left"
+          style={{ flexDirection: "column", alignItems: "flex-start", gap: 4 }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="trello-icon">T</div>
+            <div>
+              <h3 style={{ whiteSpace: "nowrap", margin: 0, lineHeight: 1.2 }}>
+                Cardlytics
+              </h3>
+              <div style={{ fontSize: 11, color: "#9fadbc", lineHeight: 1.2 }}>
+                Card analytics for Trello
+              </div>
+            </div>
+          </div>
           <select
             value={scopeListId}
             onChange={(e) => {
