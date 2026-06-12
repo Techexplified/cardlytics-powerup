@@ -1307,18 +1307,19 @@ export default function App() {
   }
 
   // ── 2. fetchData — calls refreshTrackerCards at the end ───────────────────
-  async function fetchData() {
-    try {
-      const key = TRELLO_API_KEY;
-      const tkn = getStoredToken();
-      if (!tkn) return;
+  async function fetchData(overrideScope) {
+  try {
+    const key = TRELLO_API_KEY;
+    const tkn = getStoredToken();
+    if (!tkn) return;
 
       const boardId = trelloT
         ? (await trelloT.board("id")).id
         : new URLSearchParams(window.location.search).get("boardId");
       if (!boardId) return;
 
-      const activeScope = scopeListId !== "board" ? scopeListId : null;
+      const resolvedScope = overrideScope ?? scopeListId;
+const activeScope = resolvedScope !== "board" ? resolvedScope : null;
       const cards =
         mode === "list" && listId
           ? await getListCards(key, tkn, listId)
@@ -1593,8 +1594,9 @@ export default function App() {
           <select
             value={scopeListId}
             onChange={(e) => {
-              setScopeListId(e.target.value);
-              fetchData();
+              const newScope = e.target.value;
+              setScopeListId(newScope);
+              fetchData(newScope);
             }}
             className="list-dropdown"
             style={{ fontSize: 11, padding: "3px 8px", maxWidth: 140 }}
