@@ -1717,67 +1717,60 @@ export default function App() {
         }}
       />
 
-      <div className="header">
-        <div
-          className="header-left"
-          style={{ flexDirection: "column", alignItems: "flex-start", gap: 4 }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div className="trello-icon">T</div>
-            <div>
-              <h3 style={{ whiteSpace: "nowrap", margin: 0, lineHeight: 1.2 }}>
-                Cardlytics
-              </h3>
-              <div style={{ fontSize: 11, color: "#9fadbc", lineHeight: 1.2 }}>
-                Card analytics for Trello
-              </div>
-            </div>
-          </div>
-          <select
-            value={scopeListId}
-            onChange={(e) => {
-              const newScope = e.target.value;
-              setScopeListId(newScope);
-              fetchData(newScope);
-            }}
-            className="list-dropdown"
-            style={{ fontSize: 11, padding: "3px 8px", maxWidth: 140 }}
-          >
-            <option value="board">Through the board</option>
-            {lists
-              .filter((l) => l.name.toLowerCase() !== "cardlytics")
-              .map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-          </select>
-        </div>
-        <div className="header-actions">
-          <button
-            className="btn-customize"
-            onClick={() => {
-              if (trelloT) {
-                trelloT.board("id").then((board) => {
-                  trelloT.modal({
-                    title: "Cardlytics — All Cards",
-                    url: `./index.html?view=card-details&boardId=${board.id}&statType=all&mode=board`,
-                    fullscreen: true,
-                  });
-                });
-              }
-            }}
-          >
-            All Cards
-          </button>
-          <button
-            className="btn-customize"
-            onClick={() => setShowCustomize(true)}
-          >
-            Customize
-          </button>
-        </div>
-      </div>
+     <div className="header" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+    <div className="header-left">
+      <div className="trello-icon">T</div>
+      <h3 style={{ whiteSpace: "nowrap" }}>Cardlytics — Track</h3>
+    </div>
+    <div className="header-actions">
+      <button
+        className="btn-customize"
+        onClick={() => {
+          if (trelloT) {
+            trelloT.board("id").then((board) => {
+              trelloT.modal({
+                title: "Cardlytics — All Cards",
+                url: `./index.html?view=card-details&boardId=${board.id}&statType=all&mode=board`,
+                fullscreen: true,
+              });
+            });
+          }
+        }}
+      >
+        All Cards
+      </button>
+      <button
+        className="btn-customize"
+        onClick={() => setShowCustomize(true)}
+      >
+        Customize
+      </button>
+    </div>
+  </div>
+  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <span style={{ fontSize: 11, color: "#9fadbc" }}>Board</span>
+    <select
+      value={scopeListId}
+      onChange={(e) => {
+        const newScope = e.target.value;
+        setScopeListId(newScope);
+        fetchData(newScope);
+      }}
+      className="list-dropdown"
+      style={{ fontSize: 11, padding: "3px 8px", maxWidth: 140 }}
+    >
+      <option value="board">Through the board</option>
+      {lists
+        .filter((l) => l.name.toLowerCase() !== "cardlytics")
+        .map((l) => (
+          <option key={l.id} value={l.id}>
+            {l.name}
+          </option>
+        ))}
+    </select>
+  </div>
+</div>
 
       <div className="body">
         {mode === "list" && trackingListName && (
