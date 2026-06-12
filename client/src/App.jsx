@@ -809,29 +809,59 @@ function CardDetailsView() {
 
   const isListScoped = mode === "list" || statType === "cardsInList";
   const leftStats = [
-    { value: detailStats.total, label: "In this view", accent: "#4caf50" },
-    { value: fullStats.assigned, label: "Assigned to me", accent: "#4ea1ff" },
-    { value: fullStats.dueThisWeek, label: "Due this week", accent: "#f9c74f" },
-    { value: fullStats.overdue, label: "Overdue cards", accent: "#ff5252" },
+    {
+      value: detailStats.total,
+      label: "All cards",
+      accent: "#4ea1ff",
+      statType: "all",
+    },
+    {
+      value: detailStats.total,
+      label: "In this view",
+      accent: "#4caf50",
+      statType: null,
+    },
+    {
+      value: fullStats.assigned,
+      label: "Assigned to me",
+      accent: "#4ea1ff",
+      statType: "assigned",
+    },
+    {
+      value: fullStats.dueThisWeek,
+      label: "Due this week",
+      accent: "#f9c74f",
+      statType: "dueThisWeek",
+    },
+    {
+      value: fullStats.overdue,
+      label: "Overdue cards",
+      accent: "#ff5252",
+      statType: "overdue",
+    },
     {
       value: fullStats.unassigned,
       label: "Unassigned cards",
       accent: "#ab47bc",
+      statType: "unassigned",
     },
     {
       value: fullStats.withLabel,
       label: "Cards with a label",
       accent: "#ff9800",
+      statType: "withLabel",
     },
     {
       value: fullStats.stale,
       label: "Stale (14+ days inactive)",
       accent: "#888",
+      statType: "stale",
     },
     {
       value: fullStats.createdToday,
       label: "Created today",
       accent: "#2ec4b6",
+      statType: "createdToday",
     },
   ];
 
@@ -845,7 +875,22 @@ function CardDetailsView() {
           <div
             key={i}
             className="cd-stat-card"
-            style={{ borderLeft: `3px solid ${s.accent}` }}
+            style={{
+              borderLeft: `3px solid ${s.accent}`,
+              cursor: s.statType ? "pointer" : "default",
+              opacity: statType === s.statType ? 1 : 0.85,
+              background: statType === s.statType ? "#1e1e1e" : "transparent",
+            }}
+            onClick={() => {
+              if (!s.statType || !trelloT) return;
+              trelloT.board("id").then((board) => {
+                trelloT.modal({
+                  title: `Cardlytics — ${s.label}`,
+                  url: `./index.html?view=card-details&boardId=${board.id}&statType=${s.statType}&mode=board`,
+                  fullscreen: true,
+                });
+              });
+            }}
           >
             <div
               className="cd-stat-num"
@@ -1308,10 +1353,10 @@ export default function App() {
 
   // ── 2. fetchData — calls refreshTrackerCards at the end ───────────────────
   async function fetchData(overrideScope) {
-  try {
-    const key = TRELLO_API_KEY;
-    const tkn = getStoredToken();
-    if (!tkn) return;
+    try {
+      const key = TRELLO_API_KEY;
+      const tkn = getStoredToken();
+      if (!tkn) return;
 
       const boardId = trelloT
         ? (await trelloT.board("id")).id
@@ -1319,7 +1364,7 @@ export default function App() {
       if (!boardId) return;
 
       const resolvedScope = overrideScope ?? scopeListId;
-const activeScope = resolvedScope !== "board" ? resolvedScope : null;
+      const activeScope = resolvedScope !== "board" ? resolvedScope : null;
       const cards =
         mode === "list" && listId
           ? await getListCards(key, tkn, listId)
@@ -1590,7 +1635,7 @@ const activeScope = resolvedScope !== "board" ? resolvedScope : null;
       <div className="header">
         <div className="header-left">
           <div className="trello-icon">T</div>
-          <h3>Cardlytics — Track</h3>
+          <h3 style={{ whiteSpace: "nowrap" }}>Cardlytics — Track</h3>
           <select
             value={scopeListId}
             onChange={(e) => {
