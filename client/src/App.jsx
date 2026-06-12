@@ -528,6 +528,7 @@ function CardDetailsView() {
   });
   const [memberMap, setMemberMap] = useState({});
   const [loading, setLoading] = useState(true);
+  const [totalBoardCards, setTotalBoardCards] = useState(0);
   const [activeTab, setActiveTab] = useState("table");
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState("name");
@@ -553,10 +554,18 @@ function CardDetailsView() {
         }
 
         const mid = await getMemberId(key, token);
-        const allBoardLists = await getBoardLists(key, token, boardId);
+
         const cardlyticsListIds = allBoardLists
           .filter((l) => l.name.toLowerCase() === "cardlytics")
           .map((l) => l.id);
+
+        const boardWideCards = await getBoardCards(key, token, boardId);
+        const allNonTrackerBoardCards = boardWideCards.filter(
+          (c) =>
+            !isTrackerCardDisplay(c.name) &&
+            !cardlyticsListIds.includes(c.idList),
+        );
+        setTotalBoardCards(allNonTrackerBoardCards.length);
 
         allCards = allCards.filter(
           (c) =>
@@ -810,7 +819,7 @@ function CardDetailsView() {
   const isListScoped = mode === "list" || statType === "cardsInList";
   const leftStats = [
     {
-      value: detailStats.total,
+      value: totalBoardCards,
       label: "All cards",
       accent: "#4ea1ff",
       statType: "all",
