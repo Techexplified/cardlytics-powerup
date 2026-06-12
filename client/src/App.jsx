@@ -1585,7 +1585,7 @@ export default function App() {
         return;
       }
 
-      for (const stat of statsToTrack) {
+      await Promise.all(statsToTrack.map(async (stat) => {
         const defaults = DEFAULT_STAT_CONFIG[stat];
         const saved = configToUse[stat];
         const count = stats[stat];
@@ -1661,7 +1661,7 @@ export default function App() {
             console.error("❌ customBg save failed", err);
           }
         }
-      }
+      }));
 
       showToast(
         `${statsToTrack.length} card(s) added to "${trackingListName}" ✅`,
