@@ -773,6 +773,29 @@ function CardDetailsView() {
     }
   }
 
+  function comingSoon(label = "") {
+    const msg = label
+      ? `${label} — coming soon! Stay tuned 🚧`
+      : "Coming soon! Stay tuned 🚧";
+    const existing = document.getElementById("cs-toast");
+    if (existing) existing.remove();
+    const el = document.createElement("div");
+    el.id = "cs-toast";
+    el.style.cssText = `
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: #1e1e1e; border: 1px solid #333; color: #ccc;
+    padding: 9px 18px; border-radius: 8px; font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 9999;
+    display: flex; align-items: center; gap: 8px;
+    animation: fadeInUp 0.2s ease; white-space: nowrap;
+  `;
+    el.innerHTML = `<span>🚧</span><span>${msg}</span>`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+  }
+
   function handleSort(col) {
     if (sortCol === col) setSortAsc((s) => !s);
     else {
@@ -915,7 +938,11 @@ function CardDetailsView() {
             <div className="cd-stat-lbl">{s.label}</div>
           </div>
         ))}
-        <div className="add-filter-card" style={{ marginTop: 4 }}>
+        <div
+          className="add-filter-card"
+          style={{ marginTop: 4 }}
+          onClick={() => comingSoon("Add filter")}
+        >
           + Add filter
         </div>
       </div>
@@ -963,8 +990,18 @@ function CardDetailsView() {
             </div>
           )}
           <div className="cd-toolbar-actions">
-            <button className="cd-action-btn">✏ Edit filters</button>
-            <button className="cd-action-btn">⊡ Clone</button>
+            <button
+              className="cd-action-btn"
+              onClick={() => comingSoon("Edit filters")}
+            >
+              ✏ Edit filters
+            </button>
+            <button
+              className="cd-action-btn"
+              onClick={() => comingSoon("Clone")}
+            >
+              ⊡ Clone
+            </button>
           </div>
         </div>
 
@@ -982,7 +1019,12 @@ function CardDetailsView() {
               className="cd-search-input"
             />
           </div>
-          <button className="cd-action-btn">Columns</button>
+          <button
+            className="cd-action-btn"
+            onClick={() => comingSoon("Columns")}
+          >
+            Columns
+          </button>
           <div style={{ position: "relative", display: "inline-block" }}>
             <button
               className="cd-action-btn"
@@ -1195,8 +1237,12 @@ function CardDetailsView() {
         )}
 
         <div className="cd-bottom-nav">
-          <button className="cd-nav-btn">📥 Inbox</button>
-          <button className="cd-nav-btn">📅 Planner</button>
+          <button className="cd-nav-btn" onClick={() => comingSoon("Inbox")}>
+            📥 Inbox
+          </button>
+          <button className="cd-nav-btn" onClick={() => comingSoon("Planner")}>
+            📅 Planner
+          </button>
           <button className="cd-nav-btn active">⊞ Board</button>
           <button className="cd-nav-btn switch">⇄ Switch boards</button>
         </div>
