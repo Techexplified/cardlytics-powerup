@@ -669,6 +669,117 @@ function CardDetailsView() {
       return 0;
     });
 
+  function handleExport(format) {
+    const rows = filtered; // uses current filtered + sorted cards
+
+    if (format === "csv") {
+      const headers = [
+        "Name",
+        "Assigned",
+        "Board",
+        "Done",
+        "Created",
+        "Due",
+        "Last Modified",
+        "List",
+      ];
+      const csvRows = [
+        headers.join(","),
+        ...rows.map((c) =>
+          [
+            `"${c.name.replace(/"/g, '""')}"`,
+            `"${(c.idMembers || []).map((mid) => memberMap[mid]?.fullName || mid).join("; ")}"`,
+            `"${boardName}"`,
+            c.dueComplete ? "Yes" : "No",
+            formatDate(cardCreatedDate(c.id).toISOString()),
+            c.due ? formatDate(c.due) : "",
+            formatDate(c.dateLastActivity),
+            `"${listMap[c.idList] || listName}"`,
+          ].join(","),
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csvRows], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cardlytics-${statType}-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (format === "json") {
+      const data = rows.map((c) => ({
+        id: c.id,
+        name: c.name,
+        assigned: (c.idMembers || []).map(
+          (mid) => memberMap[mid]?.fullName || mid,
+        ),
+        board: boardName,
+        list: listMap[c.idList] || listName,
+        done: c.dueComplete || false,
+        created: cardCreatedDate(c.id).toISOString(),
+        due: c.due || null,
+        lastModified: c.dateLastActivity || null,
+        labels: (c.labels || []).map((l) => ({ name: l.name, color: l.color })),
+      }));
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cardlytics-${statType}-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (format === "pdf") {
+      const printWindow = window.open("", "_blank");
+      const tableRows = rows
+        .map(
+          (c) => `
+      <tr>
+        <td>${c.name}</td>
+        <td>${(c.idMembers || []).map((mid) => memberMap[mid]?.fullName || mid).join(", ") || "—"}</td>
+        <td>${boardName}</td>
+        <td>${c.dueComplete ? "✓" : ""}</td>
+        <td>${formatDate(cardCreatedDate(c.id).toISOString())}</td>
+        <td>${c.due ? formatDate(c.due) : "—"}</td>
+        <td>${formatDate(c.dateLastActivity)}</td>
+        <td>${listMap[c.idList] || listName}</td>
+      </tr>`,
+        )
+        .join("");
+
+      printWindow.document.write(`
+      <html>
+        <head>
+          <title>Cardlytics — ${STAT_LABELS[statType] || "Cards"}</title>
+          <style>
+            body { font-family: -apple-system, sans-serif; font-size: 12px; color: #111; padding: 24px; }
+            h2 { margin-bottom: 4px; }
+            p { color: #666; margin: 0 0 16px; font-size: 11px; }
+            table { width: 100%; border-collapse: collapse; }
+            th { background: #f0f0f0; text-align: left; padding: 6px 8px; font-size: 11px; border-bottom: 2px solid #ddd; }
+            td { padding: 5px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+            tr:nth-child(even) td { background: #fafafa; }
+          </style>
+        </head>
+        <body>
+          <h2>Cardlytics — ${STAT_LABELS[statType] || "Cards"}</h2>
+          <p>${boardName} · ${rows.length} cards · Exported ${new Date().toLocaleString()}</p>
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Assigned</th><th>Board</th><th>Done</th>
+              <th>Created</th><th>Due</th><th>Last Modified</th><th>List</th>
+            </tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+          <script>window.onload = () => { window.print(); window.close(); }<\/script>
+        </body>
+      </html>`);
+      printWindow.document.close();
+    }
+  }
+
   function handleSort(col) {
     if (sortCol === col) setSortAsc((s) => !s);
     else {
@@ -834,7 +945,61 @@ function CardDetailsView() {
             />
           </div>
           <button className="cd-action-btn">Columns</button>
-          <button className="cd-action-btn">Export</button>
+          <div style={{ position: "relative", display: "inline-block" }}>
+            <button
+              className="cd-action-btn"
+              onClick={() => {
+                const menu = document.getElementById("export-menu");
+                menu.style.display =
+                  menu.style.display === "block" ? "none" : "block";
+              }}
+            >
+              Export ▾
+            </button>
+            <div
+              id="export-menu"
+              style={{
+                display: "none",
+                position: "absolute",
+                top: "100%",
+                right: 0,
+                marginTop: 4,
+                background: "#1e1e1e",
+                border: "1px solid #333",
+                borderRadius: 6,
+                zIndex: 100,
+                minWidth: 120,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+              }}
+            >
+              {["csv", "json", "pdf"].map((fmt) => (
+                <div
+                  key={fmt}
+                  onClick={() => {
+                    handleExport(fmt);
+                    document.getElementById("export-menu").style.display =
+                      "none";
+                  }}
+                  style={{
+                    padding: "8px 14px",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    color: "#ccc",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "#2a2a2a")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "transparent")
+                  }
+                >
+                  {fmt.toUpperCase()}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="cd-created-by">
