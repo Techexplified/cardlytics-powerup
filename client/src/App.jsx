@@ -1564,6 +1564,7 @@ export default function App() {
         return;
       }
       if (!trelloT) return;
+      trelloT.closeModal();
 
       const board = await trelloT.board("id");
       const boardId = board.id;
