@@ -734,30 +734,29 @@ function CardDetailsView() {
       a.click();
       URL.revokeObjectURL(url);
     } else if (format === "pdf") {
-
       // Hide the dropdown before capturing
-  document.getElementById("export-menu").style.display = "none";
+      document.getElementById("export-menu").style.display = "none";
 
-  const target = document.querySelector(".cd-right");
-  if (!target) return;
+      const target = document.querySelector(".cd-right");
+      if (!target) return;
 
-  const canvas = await html2canvas(target, {
-    backgroundColor: "#111111",
-    scale: 2,
-    useCORS: true,
-    scrollY: -window.scrollY,
-  });
+      const canvas = await html2canvas(target, {
+        backgroundColor: "#111111",
+        scale: 2,
+        useCORS: true,
+        scrollY: -window.scrollY,
+      });
 
-  const imgData = canvas.toDataURL("image/png");
-  const pdf = new jsPDF({
-    orientation: "landscape",
-    unit: "px",
-    format: [canvas.width / 2, canvas.height / 2],
-  });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "px",
+        format: [canvas.width / 2, canvas.height / 2],
+      });
 
-  pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
-  pdf.save(`cardlytics-${statType}-${Date.now()}.pdf`);
-}
+      pdf.addImage(imgData, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save(`cardlytics-${statType}-${Date.now()}.pdf`);
+    }
   }
 
   function handleSort(col) {
@@ -1176,6 +1175,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
   const [showCustomize, setShowCustomize] = useState(false);
+  const [scopeListId, setScopeListId] = useState("board");
   const [customizeStat, setCustomizeStat] = useState(null);
   const [cardConfig, setCardConfig] = useState({});
 
@@ -1318,10 +1318,13 @@ export default function App() {
         : new URLSearchParams(window.location.search).get("boardId");
       if (!boardId) return;
 
+      const activeScope = scopeListId !== "board" ? scopeListId : null;
       const cards =
         mode === "list" && listId
           ? await getListCards(key, tkn, listId)
-          : await getBoardCards(key, tkn, boardId);
+          : activeScope
+            ? await getListCards(key, tkn, activeScope)
+            : await getBoardCards(key, tkn, boardId);
 
       const allLists = await getBoardLists(key, tkn, boardId);
       const cardlyticsListIds = allLists
@@ -1390,7 +1393,7 @@ export default function App() {
     return () => {
       clearInterval(intervalId);
     };
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token, scopeListId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!token)
     return (
@@ -1587,6 +1590,24 @@ export default function App() {
         <div className="header-left">
           <div className="trello-icon">T</div>
           <h3>Cardlytics — Track</h3>
+          <select
+            value={scopeListId}
+            onChange={(e) => {
+              setScopeListId(e.target.value);
+              fetchData();
+            }}
+            className="list-dropdown"
+            style={{ fontSize: 11, padding: "3px 8px", maxWidth: 140 }}
+          >
+            <option value="board">Through the board</option>
+            {lists
+              .filter((l) => l.name.toLowerCase() !== "cardlytics")
+              .map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+          </select>
         </div>
         <div className="header-actions">
           <button
@@ -1681,39 +1702,6 @@ export default function App() {
             onClick={handleStatClick}
             selected={selectedStats}
           />
-
-          {mode === "board" && (
-            <div
-              className={`card list-picker ${selectedListId && selectedStats.includes("cardsInList") ? "selected" : ""}`}
-              onClick={() => {
-                if (selectedListId) handleStatClick("cardsInList");
-              }}
-            >
-              <div className="list-picker-top">
-                {selectedListCount !== null && (
-                  <div className="card-value">{selectedListCount}</div>
-                )}
-                <select
-                  className="list-dropdown"
-                  value={selectedListId}
-                  onChange={handleListChange}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <option value="">Select a list</option>
-                  {lists.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="card-label">
-                {selectedListId
-                  ? "Click to select · Cards in list"
-                  : "Select a list first"}
-              </div>
-            </div>
-          )}
 
           {mode === "list" && (
             <StatCard
