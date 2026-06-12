@@ -525,6 +525,7 @@ function CardDetailsView() {
     withLabel: 0,
     stale: 0,
     createdToday: 0,
+    allCards: 0,
   });
   const [memberMap, setMemberMap] = useState({});
   const [loading, setLoading] = useState(true);
@@ -599,6 +600,18 @@ function CardDetailsView() {
         computed.cardsInList = isListScoped
           ? allCards.filter((c) => !isTrackerCard(c.name)).length
           : 0;
+
+        // Always fetch full board cards so "All cards" stat is never scoped
+        const boardWideCards = boardId
+          ? (await getBoardCards(key, token, boardId)).filter(
+              (c) =>
+                !isTrackerCardDisplay(c.name) &&
+                !cardlyticsListIds.includes(c.idList) &&
+                !isTrackerCard(c.name),
+            )
+          : [];
+        computed.allCards = boardWideCards.length;
+
         setFullStats(computed);
 
         if (listId) {
@@ -810,7 +823,7 @@ function CardDetailsView() {
   const isListScoped = mode === "list" || statType === "cardsInList";
   const leftStats = [
     {
-      value: detailStats.total,
+      value: fullStats.allCards,
       label: "All cards",
       accent: "#4ea1ff",
       statType: "all",
