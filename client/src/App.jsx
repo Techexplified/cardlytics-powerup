@@ -1717,7 +1717,7 @@ export default function App() {
         }}
       />
 
-     <div className="header" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+     <div className="header" style={{ flexDirection: "column", alignItems: "stretch", gap: 6, paddingBottom: 10, borderBottom: "1px solid #333" }}>
   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
     <div className="header-left">
       <div className="trello-icon">T</div>
@@ -1749,27 +1749,38 @@ export default function App() {
     </div>
   </div>
   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-    <span style={{ fontSize: 11, color: "#9fadbc" }}>Board</span>
-    <select
-      value={scopeListId}
-      onChange={(e) => {
-        const newScope = e.target.value;
-        setScopeListId(newScope);
-        fetchData(newScope);
-      }}
-      className="list-dropdown"
-      style={{ fontSize: 11, padding: "3px 8px", maxWidth: 140 }}
-    >
-      <option value="board">Through the board</option>
-      {lists
-        .filter((l) => l.name.toLowerCase() !== "cardlytics")
-        .map((l) => (
-          <option key={l.id} value={l.id}>
-            {l.name}
-          </option>
-        ))}
-    </select>
-  </div>
+  <span style={{
+    fontSize: 11,
+    color: "#8c9bab",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    fontWeight: 600,
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+  }}>
+    📋 Board
+  </span>
+  <select
+    value={scopeListId}
+    onChange={(e) => {
+      const newScope = e.target.value;
+      setScopeListId(newScope);
+      fetchData(newScope);
+    }}
+    className="list-dropdown"
+    style={{ fontSize: 12, padding: "4px 10px", maxWidth: 160, borderRadius: 6 }}
+  >
+    <option value="board">Through the board</option>
+    {lists
+      .filter((l) => l.name.toLowerCase() !== "cardlytics")
+      .map((l) => (
+        <option key={l.id} value={l.id}>
+          {l.name}
+        </option>
+      ))}
+  </select>
+</div>
 </div>
 
       <div className="body">
