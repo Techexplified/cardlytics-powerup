@@ -544,9 +544,11 @@ function CardDetailsView() {
         const isListScoped = mode === "list" || statType === "cardsInList";
 
         // Always fetch full board cards upfront — used for allCards stat + avoids a second fetch later
-        const rawBoardCards = boardId
-          ? await getBoardCards(key, token, boardId)
-          : [];
+        const [rawBoardCards, mid, allBoardLists] = await Promise.all([
+          boardId ? getBoardCards(key, token, boardId) : Promise.resolve([]),
+          getMemberId(key, token),
+          getBoardLists(key, token, boardId),
+        ]);
 
         let allCards;
         if (isListScoped && listId) {
@@ -554,9 +556,6 @@ function CardDetailsView() {
         } else {
           allCards = rawBoardCards;
         }
-
-        const mid = await getMemberId(key, token);
-        const allBoardLists = await getBoardLists(key, token, boardId);
         const cardlyticsListIds = allBoardLists
           .filter((l) => l.name.toLowerCase() === "cardlytics")
           .map((l) => l.id);
@@ -635,9 +634,8 @@ function CardDetailsView() {
           if (boardRes.ok) setBoardName((await boardRes.json()).name);
         }
 
-        const boardLists = await getBoardLists(key, token, boardId);
         const lmap = {};
-        boardLists.forEach((l) => (lmap[l.id] = l.name));
+        allBoardLists.forEach((l) => (lmap[l.id] = l.name));
         setListMap(lmap);
 
         const allMemberIds = [
@@ -1765,7 +1763,7 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ borderTop: "1px solid #333", margin: "8px 0" }} />
+        <div style={{ borderTop: "1px solid #333", margin: "8px 16px" }} />
 
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
