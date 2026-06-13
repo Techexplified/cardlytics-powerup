@@ -254,34 +254,37 @@ function MultiSelect({ options, selected, onChange, placeholder, chipLabel, foot
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-                padding: "8px 12px",
+                padding: "9px 12px",
                 cursor: "pointer",
                 fontSize: 12,
                 color: "#bbb",
                 background: "transparent",
+                transition: "background 0.12s",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "#252525")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
               <div
                 style={{
-                  width: 15,
-                  height: 15,
+                  width: 16,
+                  height: 16,
                   borderRadius: 3,
-                  border: selected.includes(opt.value) ? "1.5px solid #0052cc" : "1.5px solid #444",
-                  background: selected.includes(opt.value) ? "#0052cc" : "transparent",
+                  border: selected.includes(opt.value) ? "1.5px solid #0052cc" : "1.5px solid #5a5a5a",
+                  background: selected.includes(opt.value) ? "#0052cc" : "#1e1e1e",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  fontSize: 9,
+                  fontSize: 10,
                   color: "#fff",
                   fontWeight: 700,
                 }}
               >
                 {selected.includes(opt.value) && "✓"}
               </div>
-              {opt.render ? opt.render() : <span>{opt.label}</span>}
+              {opt.render
+                ? opt.render()
+                : <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{opt.label}</span>}
             </div>
           ))}
           {footer && (
@@ -548,7 +551,7 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
         .toUpperCase()
         .slice(0, 2);
       return (
-        <>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minWidth: 0 }}>
           <div
             style={{
               width: 22,
@@ -566,8 +569,10 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
           >
             {initials}
           </div>
-          <span>{m.fullName}</span>
-        </>
+          <span style={{ fontSize: 12, color: "#ccc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {m.fullName}
+          </span>
+        </div>
       );
     },
   }));
@@ -628,7 +633,7 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
       value: lbl.id,
       label: displayName,
       render: () => (
-        <>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", minWidth: 0 }}>
           <span
             style={{
               width: 28,
@@ -639,10 +644,10 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
               flexShrink: 0,
             }}
           />
-          <span style={{ color: displayName === lbl.color ? "#888" : "#ccc" }}>
+          <span style={{ color: displayName === lbl.color ? "#888" : "#ccc", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {displayName}
           </span>
-        </>
+        </div>
       ),
     };
   });
