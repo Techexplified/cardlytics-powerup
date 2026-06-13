@@ -3,83 +3,83 @@ import { createPortal } from "react-dom";
 
 // ── Cover color palette ───────────────────────────────────────────────────────
 const COVER_COLORS = [
-  { id: "blue", hex: "#0052cc", label: "Blue" },
-  { id: "sky", hex: "#29b6f6", label: "Sky" },
-  { id: "green", hex: "#1a7a4a", label: "Green" },
+  { id: "blue",   hex: "#0052cc", label: "Blue" },
+  { id: "sky",    hex: "#29b6f6", label: "Sky" },
+  { id: "green",  hex: "#1a7a4a", label: "Green" },
   { id: "yellow", hex: "#e6a817", label: "Yellow" },
   { id: "orange", hex: "#e67e22", label: "Orange" },
-  { id: "red", hex: "#c0392b", label: "Red" },
+  { id: "red",    hex: "#c0392b", label: "Red" },
   { id: "purple", hex: "#7e57c2", label: "Purple" },
-  { id: "pink", hex: "#e91e8c", label: "Pink" },
-  { id: "black", hex: "#374151", label: "Slate" },
+  { id: "pink",   hex: "#e91e8c", label: "Pink" },
+  { id: "black",  hex: "#374151", label: "Slate" },
 ];
 
 // Trello's label color name → display hex
 // Used as fallback when a board label has a color but no custom name.
 const TRELLO_LABEL_COLORS = {
-  red: "#c0392b",
-  orange: "#e67e22",
-  yellow: "#e6a817",
-  green: "#1a7a4a",
-  blue: "#0052cc",
-  purple: "#7e57c2",
-  pink: "#e91e8c",
-  sky: "#29b6f6",
-  lime: "#51e898",
-  black: "#374151",
-  null: "#888888", // labels with no color
+  red:       "#c0392b",
+  orange:    "#e67e22",
+  yellow:    "#e6a817",
+  green:     "#1a7a4a",
+  blue:      "#0052cc",
+  purple:    "#7e57c2",
+  pink:      "#e91e8c",
+  sky:       "#29b6f6",
+  lime:      "#51e898",
+  black:     "#374151",
+  null:      "#888888", // labels with no color
 };
 
 const STAT_EMOJIS = {
-  assigned: "📌",
+  assigned:    "📌",
   dueThisWeek: "📅",
-  overdue: "⚠️",
-  unassigned: "👤",
-  withLabel: "🏷️",
-  stale: "💤",
-  createdToday: "✨",
+  overdue:     "⚠️",
+  unassigned:  "👤",
+  withLabel:   "🏷️",
+  stale:       "💤",
+  createdToday:"✨",
   cardsInList: "📋",
 };
 
 const DEFAULT_COVER = {
-  assigned: "blue",
+  assigned:    "blue",
   dueThisWeek: "yellow",
-  overdue: "red",
-  unassigned: "purple",
-  withLabel: "orange",
-  stale: "black",
-  createdToday: "green",
+  overdue:     "red",
+  unassigned:  "purple",
+  withLabel:   "orange",
+  stale:       "black",
+  createdToday:"green",
   cardsInList: "sky",
 };
 
 const DEFAULT_NAMES = {
-  assigned: "Assigned to me on all Workspace boards",
+  assigned:    "Assigned to me on all Workspace boards",
   dueThisWeek: "Due this week",
-  overdue: "Overdue cards",
-  unassigned: "Unassigned cards",
-  withLabel: "Cards with a label",
-  stale: "Stale cards (14+ days)",
-  createdToday: "Created today",
+  overdue:     "Overdue cards",
+  unassigned:  "Unassigned cards",
+  withLabel:   "Cards with a label",
+  stale:       "Stale cards (14+ days)",
+  createdToday:"Created today",
   cardsInList: "Cards in list",
 };
 
 const STAT_LIST = [
-  { type: "assigned", label: "Assigned to Me", emoji: "📌" },
-  { type: "dueThisWeek", label: "Due This Week", emoji: "📅" },
-  { type: "overdue", label: "Overdue Cards", emoji: "⚠️" },
-  { type: "unassigned", label: "Unassigned Cards", emoji: "👤" },
-  { type: "withLabel", label: "Cards With Label", emoji: "🏷️" },
-  { type: "stale", label: "Stale Cards", emoji: "💤" },
-  { type: "createdToday", label: "Created Today", emoji: "✨" },
-  { type: "cardsInList", label: "Cards in List", emoji: "📋" },
+  { type: "assigned",    label: "Assigned to Me",   emoji: "📌" },
+  { type: "dueThisWeek",label: "Due This Week",     emoji: "📅" },
+  { type: "overdue",     label: "Overdue Cards",     emoji: "⚠️" },
+  { type: "unassigned",  label: "Unassigned Cards",  emoji: "👤" },
+  { type: "withLabel",   label: "Cards With Label",  emoji: "🏷️" },
+  { type: "stale",       label: "Stale Cards",       emoji: "💤" },
+  { type: "createdToday",label: "Created Today",     emoji: "✨" },
+  { type: "cardsInList", label: "Cards in List",     emoji: "📋" },
 ];
 
 const DUE_OPTIONS = [
-  { value: "2days", label: "Due in 2 days" },
-  { value: "1week", label: "Due in 1 week" },
+  { value: "2days",  label: "Due in 2 days" },
+  { value: "1week",  label: "Due in 1 week" },
   { value: "2weeks", label: "Due in 2 weeks" },
   { value: "1month", label: "Due in 1 month" },
-  { value: "overdue", label: "Overdue" },
+  { value: "overdue",label: "Overdue" },
   { value: "nodate", label: "No due date" },
   { value: "custom", label: "Custom range…" },
 ];
@@ -89,137 +89,197 @@ const DUE_OPTIONS = [
 
 // Which filter is shown first for each stat type
 const PRIMARY_FILTER = {
-  assigned: "assigned",
+  assigned:    "assigned",
   dueThisWeek: "due",
-  overdue: "due",
-  unassigned: "assigned",
-  withLabel: "labels",
-  stale: "activity",
-  createdToday: "activity",
+  overdue:     "due",
+  unassigned:  "assigned",
+  withLabel:   "labels",
+  stale:       "activity",
+  createdToday:"activity",
   cardsInList: "list",
 };
 
+// ── Portal dropdown ───────────────────────────────────────────────────────────
+// Renders children into document.body so overflow:hidden parents can't clip it.
+// Falls back gracefully if ReactDOM.createPortal isn't available.
+import { createPortal } from "react-dom";
+
+function PortalDropdown({ anchorRef, open, children }) {
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    if (!open || !anchorRef.current) return;
+
+    function measure() {
+      const rect = anchorRef.current.getBoundingClientRect();
+      // Flip upward if too close to bottom of viewport
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropdownEstHeight = 280;
+      const top = spaceBelow < dropdownEstHeight
+        ? rect.top - dropdownEstHeight - 4
+        : rect.bottom + 4;
+      setCoords({ top, left: rect.left, width: rect.width });
+    }
+
+    measure();
+    window.addEventListener("scroll", measure, true);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("resize", measure);
+    };
+  }, [open, anchorRef]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      style={{
+        position: "fixed",
+        top: coords.top,
+        left: coords.left,
+        width: coords.width,
+        background: "#1a1a1a",
+        border: "1px solid #3a3a3a",
+        borderRadius: 8,
+        zIndex: 9999,
+        boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+        overflow: "hidden",
+        maxHeight: 280,
+        overflowY: "auto",
+      }}
+    >
+      {children}
+    </div>,
+    document.body
+  );
+}
+
 // ── MultiSelect dropdown ──────────────────────────────────────────────────────
-// Generic multi-select with checkbox options.
 // Props:
-//   options: [{ value, label, render? }]  — render() overrides label for the row
+//   options: [{ value, label, render? }]
 //   selected: string[]
 //   onChange: (newSelected: string[]) => void
 //   placeholder: string
-//   chipLabel: (value) => string | ReactNode   — label shown inside a chip
-//   footer?: ReactNode                         — extra content below options (e.g. date pickers)
+//   chipLabel: (value) => string | ReactNode
+//   footer?: ReactNode  — rendered below options (e.g. date range inputs)
 function MultiSelect({ options, selected, onChange, placeholder, chipLabel, footer }) {
   const [open, setOpen] = useState(false);
-  const wrapperRef = useRef();
   const triggerRef = useRef();
-  const dropdownRef = useRef();
-  const [dropdownStyle, setDropdownStyle] = useState({});
+  const containerRef = useRef();
 
+  // Close on outside click — must check both trigger and the portalled dropdown
   useEffect(() => {
+    if (!open) return;
     function handleClick(e) {
-      const inTrigger = wrapperRef.current?.contains(e.target);
-      const inDropdown = dropdownRef.current?.contains(e.target);
-      if (!inTrigger && !inDropdown) setOpen(false);
+      // containerRef covers the trigger; portalled dropdown is in document.body
+      // so we check by class name sentinel on the portal root
+      const portalEl = document.getElementById("ms-portal-open");
+      if (
+        containerRef.current?.contains(e.target) ||
+        portalEl?.contains(e.target)
+      ) return;
+      setOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  useEffect(() => {
-    function calcPosition() {
-      if (!open || !triggerRef.current) return;
-      const rect = triggerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const dropdownHeight = 220;
-      setDropdownStyle({
-        position: "fixed",
-        top: spaceBelow > dropdownHeight ? rect.bottom + 6 : rect.top - dropdownHeight - 6,
-        left: rect.left,
-        width: Math.max(rect.width, 180),
-        zIndex: 99999,
-      });
-    }
-    calcPosition();
-    window.addEventListener("scroll", calcPosition, true);
-    window.addEventListener("resize", calcPosition);
-    return () => {
-      window.removeEventListener("scroll", calcPosition, true);
-      window.removeEventListener("resize", calcPosition);
-    };
   }, [open]);
 
   function toggle(value) {
-    onChange(
-      selected.includes(value)
-        ? selected.filter((v) => v !== value)
-        : [...selected, value]
-    );
+    const next = selected.includes(value)
+      ? selected.filter((v) => v !== value)
+      : [...selected, value];
+    onChange(next);
   }
 
   return (
-    <div ref={wrapperRef} style={{ position: "relative", flex: 1 }}>
+    <div ref={containerRef} style={{ flex: 1 }}>
+      {/* Trigger */}
       <div
         ref={triggerRef}
         onClick={() => setOpen((o) => !o)}
         style={{
-          display: "flex", alignItems: "center", flexWrap: "wrap", gap: 5,
+          display: "flex",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: 5,
           background: "#1e1e1e",
           border: `1px solid ${open ? "#555" : "#3a3a3a"}`,
-          borderRadius: 6, padding: "5px 9px", cursor: "pointer", minHeight: 32,
+          borderRadius: 6,
+          padding: "5px 9px",
+          cursor: "pointer",
+          minHeight: 32,
         }}
       >
         {selected.length === 0 ? (
           <span style={{ fontSize: 12, color: "#555" }}>{placeholder}</span>
         ) : (
           selected.map((v) => (
-            <span key={v} style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              background: "#2a2a2a", border: "1px solid #3a3a3a",
-              borderRadius: 4, padding: "1px 6px", fontSize: 11, color: "#d0d0d0",
-            }}>
+            <span
+              key={v}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                background: "#2a2a2a",
+                border: "1px solid #3a3a3a",
+                borderRadius: 4,
+                padding: "1px 6px",
+                fontSize: 11,
+                color: "#d0d0d0",
+              }}
+            >
               {chipLabel ? chipLabel(v) : v}
               <span
                 onClick={(e) => { e.stopPropagation(); toggle(v); }}
                 style={{ color: "#555", cursor: "pointer", fontSize: 10 }}
-              >✕</span>
+              >
+                ✕
+              </span>
             </span>
           ))
         )}
-        <span style={{ marginLeft: "auto", color: "#444", fontSize: 10 }}>▼</span>
+        <span style={{ marginLeft: "auto", color: "#444", fontSize: 10 }}>
+          {open ? "▲" : "▼"}
+        </span>
       </div>
 
-      {open && createPortal(
-        <div
-          ref={dropdownRef}
-          style={{
-            ...dropdownStyle,
-            background: "#1a1a1a",
-            border: "1px solid #3a3a3a",
-            borderRadius: 8,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-            maxHeight: 220,
-            overflowY: "auto",
-          }}
-        >
+      {/* Portalled dropdown — escapes all overflow:hidden parents */}
+      <PortalDropdown anchorRef={triggerRef} open={open}>
+        <div id={open ? "ms-portal-open" : undefined}>
           {options.map((opt) => (
             <div
               key={opt.value}
               onClick={() => toggle(opt.value)}
               style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "8px 12px", cursor: "pointer",
-                fontSize: 12, color: "#bbb", background: "transparent",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 12px",
+                cursor: "pointer",
+                fontSize: 12,
+                color: "#bbb",
+                background: "transparent",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "#252525")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <div style={{
-                width: 15, height: 15, borderRadius: 3, flexShrink: 0,
-                border: selected.includes(opt.value) ? "1.5px solid #0052cc" : "1.5px solid #444",
-                background: selected.includes(opt.value) ? "#0052cc" : "transparent",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 9, color: "#fff", fontWeight: 700,
-              }}>
+              <div
+                style={{
+                  width: 15,
+                  height: 15,
+                  borderRadius: 3,
+                  border: selected.includes(opt.value) ? "1.5px solid #0052cc" : "1.5px solid #444",
+                  background: selected.includes(opt.value) ? "#0052cc" : "transparent",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  fontSize: 9,
+                  color: "#fff",
+                  fontWeight: 700,
+                }}
+              >
                 {selected.includes(opt.value) && "✓"}
               </div>
               {opt.render ? opt.render() : <span>{opt.label}</span>}
@@ -231,9 +291,8 @@ function MultiSelect({ options, selected, onChange, placeholder, chipLabel, foot
               {footer}
             </>
           )}
-        </div>,
-        document.body
-      )}
+        </div>
+      </PortalDropdown>
     </div>
   );
 }
@@ -244,14 +303,7 @@ function MemberBadges({ memberIds, allMembers }) {
   if (!memberIds || memberIds.length === 0) return null;
   const visible = memberIds.slice(0, 3);
   const overflow = memberIds.length - visible.length;
-  const MEMBER_COLORS = [
-    "#0052cc",
-    "#7e57c2",
-    "#1a7a4a",
-    "#e67e22",
-    "#c0392b",
-    "#e91e8c",
-  ];
+  const MEMBER_COLORS = ["#0052cc", "#7e57c2", "#1a7a4a", "#e67e22", "#c0392b", "#e91e8c"];
 
   return (
     <div
@@ -273,8 +325,7 @@ function MemberBadges({ memberIds, allMembers }) {
               .toUpperCase()
               .slice(0, 2)
           : id.slice(0, 2).toUpperCase();
-        const color =
-          m?.avatarColor || MEMBER_COLORS[idx % MEMBER_COLORS.length];
+        const color = m?.avatarColor || MEMBER_COLORS[idx % MEMBER_COLORS.length];
         return (
           <div
             key={id}
@@ -335,9 +386,7 @@ function StatPicker({ onSelect, onClose }) {
       >
         <div className="customize-header">
           <span>Customize a stat card</span>
-          <button className="customize-close" onClick={onClose}>
-            ✕
-          </button>
+          <button className="customize-close" onClick={onClose}>✕</button>
         </div>
         <p className="customize-sub">Select a stat to configure</p>
         {STAT_LIST.map(({ type, label, emoji }) => (
@@ -360,14 +409,7 @@ function StatPicker({ onSelect, onClose }) {
 // ── Color Swatch Picker ───────────────────────────────────────────────────────
 function ColorSwatchPicker({ selected, onChange }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 8,
-        padding: "10px 0 4px",
-      }}
-    >
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 0 4px" }}>
       {COVER_COLORS.map(({ id, hex, label }) => (
         <button
           key={id}
@@ -378,8 +420,7 @@ function ColorSwatchPicker({ selected, onChange }) {
             height: 28,
             borderRadius: 6,
             background: hex,
-            border:
-              selected === id ? "2px solid #fff" : "2px solid transparent",
+            border: selected === id ? "2px solid #fff" : "2px solid transparent",
             outline: selected === id ? `2px solid ${hex}` : "none",
             cursor: "pointer",
             padding: 0,
@@ -423,13 +464,7 @@ function ImageUpload({ imageUrl, onImageChange }) {
   }
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        style={{ display: "none" }}
-        onChange={handleFile}
-      />
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button
           onClick={() => fileRef.current?.click()}
@@ -468,20 +503,8 @@ function ImageUpload({ imageUrl, onImageChange }) {
         )}
       </div>
       {imageUrl && (
-        <div
-          style={{
-            width: "100%",
-            height: 48,
-            borderRadius: 6,
-            overflow: "hidden",
-            border: "1px solid #3a3a3a",
-          }}
-        >
-          <img
-            src={imageUrl}
-            alt="Cover preview"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
+        <div style={{ width: "100%", height: 48, borderRadius: 6, overflow: "hidden", border: "1px solid #3a3a3a" }}>
+          <img src={imageUrl} alt="Cover preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </div>
       )}
     </div>
@@ -489,33 +512,18 @@ function ImageUpload({ imageUrl, onImageChange }) {
 }
 
 // ── Card Config Modal ─────────────────────────────────────────────────────────
-function CardConfigModal({
-  statType,
-  statValue,
-  lists,
-  memberName,
-  members,
-  boardLabels,
-  onSave,
-  onBack,
-  onClose,
-}) {
+function CardConfigModal({ statType, statValue, lists, memberName, members, boardLabels, onSave, onBack, onClose }) {
   const [cardName, setCardName] = useState(DEFAULT_NAMES[statType] || "");
-  const [coverColor, setCoverColor] = useState(
-    DEFAULT_COVER[statType] || "blue",
-  );
+  const [coverColor, setCoverColor] = useState(DEFAULT_COVER[statType] || "blue");
   const [coverImage, setCoverImage] = useState(null);
 
   // ── Multi-select filter state (all arrays now) ───────────────────────────
-  const [selectedDue, setSelectedDue] = useState(
-  statType === "dueThisWeek" ? ["1week"] : 
-  statType === "overdue" ? ["overdue"] : []
-);// e.g. ["1week", "overdue"]
+  const [selectedDue, setSelectedDue] = useState([]);          // e.g. ["1week", "overdue"]
   const [customDateFrom, setCustomDateFrom] = useState("");
   const [customDateTo, setCustomDateTo] = useState("");
-  const [selectedMembers, setSelectedMembers] = useState([]); // member ids
-  const [selectedLabels, setSelectedLabels] = useState([]); // color names
-  const [selectedLists, setSelectedLists] = useState([]); // list ids
+  const [selectedMembers, setSelectedMembers] = useState([]);  // member ids
+  const [selectedLabels, setSelectedLabels] = useState([]);    // color names
+  const [selectedLists, setSelectedLists] = useState([]);      // list ids
 
   const resolvedCoverHex = coverImage
     ? null
@@ -525,12 +533,11 @@ function CardConfigModal({
   const primary = PRIMARY_FILTER[statType];
 
   // ── Build member options from prop (falls back to memberName if no list) ──
-  const memberOptions = (
-    members && members.length > 0
-      ? members
-      : memberName
-        ? [{ id: "me", fullName: memberName, avatarColor: "#0052cc" }]
-        : []
+  const memberOptions = (members && members.length > 0
+    ? members
+    : memberName
+      ? [{ id: "me", fullName: memberName, avatarColor: "#0052cc" }]
+      : []
   ).map((m) => ({
     value: m.id,
     label: m.fullName,
@@ -581,16 +588,7 @@ function CardConfigModal({
         .toUpperCase()
         .slice(0, 2);
     }
-    return id === "me"
-      ? memberName
-        ? memberName
-            .split(" ")
-            .map((w) => w[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2)
-        : "ME"
-      : id;
+    return id === "me" ? (memberName ? memberName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) : "ME") : id;
   }
 
   function labelChipLabel(id) {
@@ -621,8 +619,9 @@ function CardConfigModal({
   // ── Label options built from real board labels ────────────────────────────
   // boardLabels shape: [{ id, name, color }]  (Trello REST response)
   // Falls back to a "no labels on this board" placeholder if empty.
-  const labelOptions = (
-    boardLabels && boardLabels.length > 0 ? boardLabels : []
+  const labelOptions = (boardLabels && boardLabels.length > 0
+    ? boardLabels
+    : []
   ).map((lbl) => {
     const hex = TRELLO_LABEL_COLORS[lbl.color] || "#888";
     const displayName = lbl.name?.trim() || lbl.color || "Unnamed label";
@@ -649,21 +648,11 @@ function CardConfigModal({
     };
   });
 
-  const listOptions = (lists || []).map((l) => ({
-    value: l.id,
-    label: l.name,
-  }));
+  const listOptions = (lists || []).map((l) => ({ value: l.id, label: l.name }));
 
   // ── Custom date range footer shown when "custom" is selected ─────────────
   const dueDateFooter = selectedDue.includes("custom") ? (
-    <div
-      style={{
-        display: "flex",
-        gap: 6,
-        alignItems: "center",
-        padding: "8px 12px",
-      }}
-    >
+    <div style={{ display: "flex", gap: 6, alignItems: "center", padding: "8px 12px" }}>
       <input
         type="date"
         value={customDateFrom}
@@ -774,12 +763,7 @@ function CardConfigModal({
   );
 
   // Ordered: primary filter first, board second, rest below
-  const allFilters = {
-    assigned: AssignedFilter,
-    due: DueFilter,
-    labels: LabelsFilter,
-    list: ListFilter,
-  };
+  const allFilters = { assigned: AssignedFilter, due: DueFilter, labels: LabelsFilter, list: ListFilter };
   const secondaryKeys = Object.keys(allFilters).filter((k) => k !== primary);
   const orderedFilters = [
     primary ? allFilters[primary] : null,
@@ -830,19 +814,13 @@ function CardConfigModal({
             >
               ‹
             </button>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#e0e0e0" }}>
-              Dashcards — Track
-            </span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: "#e0e0e0" }}>Dashcards — Track</span>
           </div>
-          <button className="customize-close" onClick={onClose}>
-            ✕
-          </button>
+          <button className="customize-close" onClick={onClose}>✕</button>
         </div>
 
         {/* Body */}
-        <div
-          style={{ display: "flex", overflow: "hidden", flex: 1, minHeight: 0 }}
-        >
+        <div style={{ display: "flex", overflow: "hidden", flex: 1, minHeight: 0 }}>
           {/* Left: card preview */}
           <div
             style={{
@@ -879,50 +857,20 @@ function CardConfigModal({
                   <img
                     src={coverImage}
                     alt=""
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
                   />
                 )}
-                <div
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "rgba(0,0,0,0.25)",
-                  }}
-                />
+                <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
                 <div style={{ position: "relative", zIndex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 22,
-                      fontWeight: 700,
-                      color: "#fff",
-                      lineHeight: 1,
-                    }}
-                  >
+                  <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
                     {statValue ?? 0}
                   </div>
                 </div>
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    fontSize: 18,
-                    zIndex: 1,
-                  }}
-                >
+                <div style={{ position: "absolute", top: 8, right: 8, fontSize: 18, zIndex: 1 }}>
                   {emoji}
                 </div>
                 {/* ── Member badges on card cover (change 4) ── */}
-                <MemberBadges
-                  memberIds={selectedMembers}
-                  allMembers={members}
-                />
+                <MemberBadges memberIds={selectedMembers} allMembers={members} />
               </div>
               <div style={{ padding: "8px 10px" }}>
                 <div
@@ -941,9 +889,7 @@ function CardConfigModal({
                 </div>
               </div>
             </div>
-            <div style={{ fontSize: 10, color: "#555", textAlign: "center" }}>
-              Preview
-            </div>
+            <div style={{ fontSize: 10, color: "#555", textAlign: "center" }}>Preview</div>
           </div>
 
           {/* Right: form (scrollable) */}
@@ -989,10 +935,7 @@ function CardConfigModal({
               <SectionLabel>Cover color</SectionLabel>
               <ColorSwatchPicker
                 selected={coverImage ? null : coverColor}
-                onChange={(id) => {
-                  setCoverColor(id);
-                  setCoverImage(null);
-                }}
+                onChange={(id) => { setCoverColor(id); setCoverImage(null); }}
               />
             </div>
 
@@ -1000,21 +943,11 @@ function CardConfigModal({
             <div>
               <SectionLabel>
                 Cover image{" "}
-                <span
-                  style={{
-                    color: "#555",
-                    fontWeight: 400,
-                    textTransform: "none",
-                    letterSpacing: 0,
-                  }}
-                >
+                <span style={{ color: "#555", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
                   (optional — overrides color)
                 </span>
               </SectionLabel>
-              <ImageUpload
-                imageUrl={coverImage}
-                onImageChange={setCoverImage}
-              />
+              <ImageUpload imageUrl={coverImage} onImageChange={setCoverImage} />
             </div>
 
             <Divider />
@@ -1117,9 +1050,7 @@ function FilterRow({ label, icon, children }) {
         <span style={{ fontSize: 13 }}>{icon}</span>
         <span>{label}</span>
       </div>
-      <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-        {children}
-      </div>
+      <div style={{ flex: 1, display: "flex", alignItems: "center" }}>{children}</div>
     </div>
   );
 }
@@ -1130,8 +1061,8 @@ export function CustomizeFlow({
   lists,
   stats,
   memberName,
-  members, // [{ id, fullName, avatarColor }]
-  boardLabels, // [{ id, name, color }]  — fetch via t.board("get", "labels")
+  members,       // [{ id, fullName, avatarColor }]
+  boardLabels,   // [{ id, name, color }]  — fetch via t.board("get", "labels")
   customizeStat,
   setCustomizeStat,
   onSave,
