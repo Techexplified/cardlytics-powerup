@@ -490,6 +490,7 @@ function CardBackView() {
         });
       });
     });
+  }
 
   function handleStartTracking() {
     if (!trelloT) return;
