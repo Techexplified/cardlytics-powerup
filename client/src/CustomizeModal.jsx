@@ -57,6 +57,33 @@ const STAT_LIST = [
   { type: "cardsInList",  label: "Cards in List",      emoji: "📋" },
 ];
 
+// ── Smart defaults per stat type ──────────────────────────────────────────────
+const STAT_DUE_DEFAULTS = {
+  dueThisWeek: "week",
+  overdue:     "overdue",
+};
+
+const STAT_LABELS_DEFAULTS = {
+  withLabel: "any",
+};
+
+const STAT_ACTIVITY_DEFAULTS = {
+  stale:        "stale",
+  createdToday: "active today",
+};
+
+// Which filter should appear at the top for each stat type
+const PRIMARY_FILTER = {
+  assigned:     "assigned",
+  dueThisWeek:  "due",
+  overdue:      "due",
+  unassigned:   "assigned",
+  withLabel:    "labels",
+  stale:        "activity",
+  createdToday: "activity",
+  cardsInList:  "list",
+};
+
 // ── Step 1: Stat picker ───────────────────────────────────────────────────────
 function StatPicker({ onSelect, onClose }) {
   return (
@@ -91,43 +118,26 @@ function StatPicker({ onSelect, onClose }) {
 // ── Color Swatch Picker ───────────────────────────────────────────────────────
 function ColorSwatchPicker({ selected, onChange }) {
   return (
-    <div style={{
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 8,
-      padding: "10px 0 4px",
-    }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 0 4px" }}>
       {COVER_COLORS.map(({ id, hex, label }) => (
         <button
           key={id}
           title={label}
           onClick={() => onChange(id)}
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: hex,
-            border: selected === id
-              ? "2px solid #fff"
-              : "2px solid transparent",
+            width: 28, height: 28, borderRadius: 6, background: hex,
+            border: selected === id ? "2px solid #fff" : "2px solid transparent",
             outline: selected === id ? `2px solid ${hex}` : "none",
-            cursor: "pointer",
-            padding: 0,
-            transition: "transform 0.1s",
+            cursor: "pointer", padding: 0, transition: "transform 0.1s",
             transform: selected === id ? "scale(1.15)" : "scale(1)",
             position: "relative",
           }}
         >
           {selected === id && (
             <span style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontSize: 13,
-              fontWeight: 700,
+              position: "absolute", inset: 0, display: "flex",
+              alignItems: "center", justifyContent: "center",
+              color: "#fff", fontSize: 13, fontWeight: 700,
               textShadow: "0 1px 2px rgba(0,0,0,0.5)",
             }}>✓</span>
           )}
@@ -151,28 +161,15 @@ function ImageUpload({ imageUrl, onImageChange }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        style={{ display: "none" }}
-        onChange={handleFile}
-      />
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <button
           onClick={() => fileRef.current?.click()}
           style={{
-            background: "#2e2e2e",
-            border: "1px solid #3a3a3a",
-            borderRadius: 6,
-            padding: "6px 12px",
-            color: "#ccc",
-            fontSize: 12,
-            fontFamily: "'DM Sans', sans-serif",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
+            background: "#2e2e2e", border: "1px solid #3a3a3a", borderRadius: 6,
+            padding: "6px 12px", color: "#ccc", fontSize: 12,
+            fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6,
           }}
         >
           🖼 {imageUrl ? "Change image" : "Upload image"}
@@ -181,14 +178,9 @@ function ImageUpload({ imageUrl, onImageChange }) {
           <button
             onClick={() => onImageChange(null)}
             style={{
-              background: "none",
-              border: "1px solid #3a3a3a",
-              borderRadius: 6,
-              padding: "6px 10px",
-              color: "#888",
-              fontSize: 12,
-              fontFamily: "'DM Sans', sans-serif",
-              cursor: "pointer",
+              background: "none", border: "1px solid #3a3a3a", borderRadius: 6,
+              padding: "6px 10px", color: "#888", fontSize: 12,
+              fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
             }}
           >
             Remove
@@ -196,18 +188,8 @@ function ImageUpload({ imageUrl, onImageChange }) {
         )}
       </div>
       {imageUrl && (
-        <div style={{
-          width: "100%",
-          height: 48,
-          borderRadius: 6,
-          overflow: "hidden",
-          border: "1px solid #3a3a3a",
-        }}>
-          <img
-            src={imageUrl}
-            alt="Cover preview"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
+        <div style={{ width: "100%", height: 48, borderRadius: 6, overflow: "hidden", border: "1px solid #3a3a3a" }}>
+          <img src={imageUrl} alt="Cover preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         </div>
       )}
     </div>
@@ -219,62 +201,146 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
   const [cardName,   setCardName]   = useState(DEFAULT_NAMES[statType] || "");
   const [coverColor, setCoverColor] = useState(DEFAULT_COVER[statType] || "blue");
   const [coverImage, setCoverImage] = useState(null);
-  const [board,      setBoard]      = useState("any");
+  const [board,      setBoard]      = useState("this"); // default to current board
   const [list,       setList]       = useState("any");
-  const [due,        setDue]        = useState("");
-  const [labels,     setLabels]     = useState("");
+  const [due,        setDue]        = useState(STAT_DUE_DEFAULTS[statType] || "");
+  const [labels,     setLabels]     = useState(STAT_LABELS_DEFAULTS[statType] || "");
+  const [activity,   setActivity]   = useState(STAT_ACTIVITY_DEFAULTS[statType] || "");
   const [showMore,   setShowMore]   = useState(false);
 
   const resolvedCoverHex = coverImage
     ? null
-    : (COVER_COLORS.find(c => c.id === coverColor)?.hex || "#0052cc");
+    : COVER_COLORS.find((c) => c.id === coverColor)?.hex || "#0052cc";
 
-  const emoji = STAT_EMOJIS[statType] || "📌";
+  const emoji    = STAT_EMOJIS[statType] || "📌";
+  const primary  = PRIMARY_FILTER[statType]; // which filter is primary for this stat
 
-  // initials from full name
   const initials = memberName
-    ? memberName.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
+    ? memberName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
     : "ME";
 
   function handleSave() {
-    onSave(statType, { cardName, cover: coverColor, coverImage, board, list, due, labels });
+    onSave(statType, { cardName, cover: coverColor, coverImage, board, list, due, labels, activity });
   }
+
+  // ── Reusable filter blocks ────────────────────────────────────────────────
+  const BoardFilter = (
+    <FilterRow label="Board" icon="⊞" key="board">
+      <select value={board} onChange={(e) => setBoard(e.target.value)} className="list-dropdown" style={{ maxWidth: 160 }}>
+        <option value="this">this board</option>
+        <option value="any">any board</option>
+      </select>
+    </FilterRow>
+  );
+
+  const ListFilter = (
+    <FilterRow label="List" icon="☰" key="list">
+      <select value={list} onChange={(e) => setList(e.target.value)} className="list-dropdown" style={{ maxWidth: 160 }}>
+        <option value="any">any</option>
+        {(lists || []).map((l) => (
+          <option key={l.id} value={l.id}>{l.name}</option>
+        ))}
+      </select>
+    </FilterRow>
+  );
+
+  const AssignedFilter = (
+    <FilterRow label="Assigned" icon="👤" key="assigned">
+      <div style={{ fontSize: 11, color: "#777", whiteSpace: "nowrap", marginRight: 6, flexShrink: 0 }}>
+        includes
+      </div>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 7,
+        background: "#1e1e1e", border: "1px solid #3a3a3a",
+        borderRadius: 6, padding: "5px 9px",
+        fontSize: 12, color: "#ccc", flex: 1, minWidth: 0,
+      }}>
+        <div style={{
+          width: 20, height: 20, borderRadius: "50%", background: "#0052cc",
+          flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 9, fontWeight: 700, color: "#fff",
+        }}>
+          {initials}
+        </div>
+        <span style={{ flex: 1, fontSize: 11, color: "#d0d0d0", wordBreak: "break-word", lineHeight: 1.3 }}>
+          {memberName || "me"}
+        </span>
+        <span title="Remove" style={{ color: "#555", cursor: "pointer", flexShrink: 0, fontSize: 11 }}>✕</span>
+      </div>
+    </FilterRow>
+  );
+
+  const DueFilter = (
+    <FilterRow label="Due" icon="🕐" key="due">
+      <select value={due} onChange={(e) => setDue(e.target.value)} className="list-dropdown" style={{ maxWidth: 160 }}>
+        <option value="">any</option>
+        <option value="overdue">overdue</option>
+        <option value="today">today</option>
+        <option value="week">this week</option>
+        <option value="month">this month</option>
+        <option value="none">no due date</option>
+      </select>
+    </FilterRow>
+  );
+
+  const LabelsFilter = (
+    <FilterRow label="Labels" icon="🏷" key="labels">
+      <select value={labels} onChange={(e) => setLabels(e.target.value)} className="list-dropdown" style={{ maxWidth: 160 }}>
+        <option value="">any</option>
+        <option value="any">has any label</option>
+        <option value="none">no label</option>
+        <option value="red">red</option>
+        <option value="orange">orange</option>
+        <option value="yellow">yellow</option>
+        <option value="green">green</option>
+        <option value="blue">blue</option>
+        <option value="purple">purple</option>
+      </select>
+    </FilterRow>
+  );
+
+  const ActivityFilter = (
+    <FilterRow label="Activity" icon="📊" key="activity">
+      <select value={activity} onChange={(e) => setActivity(e.target.value)} className="list-dropdown" style={{ maxWidth: 160 }}>
+        <option value="">any</option>
+        <option value="stale">stale (14+ days)</option>
+        <option value="active today">active today</option>
+      </select>
+    </FilterRow>
+  );
+
+  // ── Build ordered filter list: primary first, then board, then rest ────────
+  const allFilters = { assigned: AssignedFilter, due: DueFilter, labels: LabelsFilter, list: ListFilter, activity: ActivityFilter };
+  const secondaryKeys = Object.keys(allFilters).filter((k) => k !== primary);
+
+  const orderedFilters = [
+    primary ? allFilters[primary] : null,  // primary filter at top
+    BoardFilter,                            // board always second
+    ...secondaryKeys.map((k) => allFilters[k]), // rest below
+  ].filter(Boolean);
 
   return (
     <div className="customize-overlay" onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "#252525",
-          border: "1px solid #3a3a3a",
-          borderRadius: 12,
-          width: 540,
-          maxWidth: "94vw",
-          maxHeight: "90vh",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
+          background: "#252525", border: "1px solid #3a3a3a", borderRadius: 12,
+          width: 540, maxWidth: "94vw", maxHeight: "90vh",
+          display: "flex", flexDirection: "column", overflow: "hidden",
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
         {/* ── Header ── */}
         <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "13px 16px",
-          borderBottom: "1px solid #333",
-          flexShrink: 0,
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          padding: "13px 16px", borderBottom: "1px solid #333", flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button
-              onClick={onBack}
-              style={{
-                background: "none", border: "none", color: "#888",
-                fontSize: 18, cursor: "pointer", padding: "0 4px",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >‹</button>
+            <button onClick={onBack} style={{
+              background: "none", border: "none", color: "#888",
+              fontSize: 18, cursor: "pointer", padding: "0 4px",
+              fontFamily: "'DM Sans', sans-serif",
+            }}>‹</button>
             <span style={{ fontSize: 14, fontWeight: 600, color: "#e0e0e0" }}>
               Dashcards — Track
             </span>
@@ -282,69 +348,35 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
           <button className="customize-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* ── Body (scrollable) ── */}
+        {/* ── Body ── */}
         <div style={{ display: "flex", overflow: "hidden", flex: 1, minHeight: 0 }}>
 
           {/* Left: card preview */}
           <div style={{
-            width: 190,
-            flexShrink: 0,
-            padding: 14,
+            width: 190, flexShrink: 0, padding: 14,
             borderRight: "1px solid #2e2e2e",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
+            display: "flex", flexDirection: "column", gap: 8,
           }}>
-            <div style={{
-              background: "#1a1a1a",
-              border: "1px solid #333",
-              borderRadius: 8,
-              overflow: "hidden",
-            }}>
-              {/* Cover */}
+            <div style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, overflow: "hidden" }}>
               <div style={{
                 background: coverImage ? "transparent" : resolvedCoverHex,
-                height: 78,
-                display: "flex",
-                alignItems: "flex-end",
-                padding: "8px 10px",
-                position: "relative",
-                overflow: "hidden",
+                height: 78, display: "flex", alignItems: "flex-end",
+                padding: "8px 10px", position: "relative", overflow: "hidden",
               }}>
                 {coverImage && (
-                  <img
-                    src={coverImage}
-                    alt=""
-                    style={{
-                      position: "absolute", inset: 0,
-                      width: "100%", height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
+                  <img src={coverImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
                 )}
-                <div style={{
-                  position: "absolute", inset: 0,
-                  background: "rgba(0,0,0,0.25)",
-                }} />
+                <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
                 <div style={{ position: "relative", zIndex: 1 }}>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
-                    {statValue ?? 0}
-                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1 }}>{statValue ?? 0}</div>
                 </div>
-                <div style={{
-                  position: "absolute", top: 8, right: 8,
-                  fontSize: 18, zIndex: 1,
-                }}>{emoji}</div>
+                <div style={{ position: "absolute", top: 8, right: 8, fontSize: 18, zIndex: 1 }}>{emoji}</div>
               </div>
-              {/* Card name */}
               <div style={{ padding: "8px 10px" }}>
                 <div style={{
-                  fontSize: 11, fontWeight: 600, color: "#ccc",
-                  lineHeight: 1.35,
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
+                  fontSize: 11, fontWeight: 600, color: "#ccc", lineHeight: 1.35,
+                  display: "-webkit-box", WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical", overflow: "hidden",
                 }}>
                   {cardName || DEFAULT_NAMES[statType]}
                 </div>
@@ -365,16 +397,9 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
                 onChange={(e) => setCardName(e.target.value)}
                 placeholder={DEFAULT_NAMES[statType]}
                 style={{
-                  width: "100%",
-                  background: "#1e1e1e",
-                  border: "1px solid #3a3a3a",
-                  borderRadius: 6,
-                  padding: "7px 10px",
-                  color: "#e0e0e0",
-                  fontSize: 12,
-                  fontFamily: "'DM Sans', sans-serif",
-                  outline: "none",
-                  boxSizing: "border-box",
+                  width: "100%", background: "#1e1e1e", border: "1px solid #3a3a3a",
+                  borderRadius: 6, padding: "7px 10px", color: "#e0e0e0", fontSize: 12,
+                  fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box",
                 }}
                 onFocus={(e) => (e.target.style.borderColor = "#555")}
                 onBlur={(e)  => (e.target.style.borderColor = "#3a3a3a")}
@@ -383,7 +408,7 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
 
             <Divider />
 
-            {/* Appearance: color swatches + optional image upload */}
+            {/* Cover color */}
             <div>
               <SectionLabel>Cover color</SectionLabel>
               <ColorSwatchPicker
@@ -392,153 +417,45 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
               />
             </div>
 
+            {/* Cover image */}
             <div>
-              <SectionLabel>Cover image <span style={{ color: "#555", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional — overrides color)</span></SectionLabel>
+              <SectionLabel>
+                Cover image{" "}
+                <span style={{ color: "#555", fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
+                  (optional — overrides color)
+                </span>
+              </SectionLabel>
               <ImageUpload imageUrl={coverImage} onImageChange={setCoverImage} />
             </div>
 
             <Divider />
 
-            {/* Filters */}
+            {/* Filters — primary first, board second, rest below */}
             <div>
               <SectionLabel>Filters</SectionLabel>
             </div>
 
-            <FilterRow label="Board" icon="⊞">
-              <select
-                value={board}
-                onChange={(e) => setBoard(e.target.value)}
-                className="list-dropdown"
-                style={{ maxWidth: 160 }}
-              >
-                <option value="any">any</option>
-                <option value="this">this board</option>
-              </select>
-            </FilterRow>
+            {orderedFilters}
 
-            <FilterRow label="List" icon="☰">
-              <select
-                value={list}
-                onChange={(e) => setList(e.target.value)}
-                className="list-dropdown"
-                style={{ maxWidth: 160 }}
-              >
-                <option value="any">any</option>
-                {(lists || []).map((l) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-              </select>
-            </FilterRow>
-
-            {/* Assigned — full name, no truncation */}
-            <FilterRow label="Assigned" icon="👤">
-              <div style={{
-                fontSize: 11, color: "#777",
-                whiteSpace: "nowrap", marginRight: 6, flexShrink: 0,
-              }}>
-                includes
-              </div>
-              <div style={{
-                display: "flex", alignItems: "center", gap: 7,
-                background: "#1e1e1e", border: "1px solid #3a3a3a",
-                borderRadius: 6, padding: "5px 9px",
-                fontSize: 12, color: "#ccc", flex: 1, minWidth: 0,
-              }}>
-                <div style={{
-                  width: 20, height: 20, borderRadius: "50%",
-                  background: "#0052cc", flexShrink: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 9, fontWeight: 700, color: "#fff",
-                }}>
-                  {initials}
-                </div>
-                {/* Full name — wraps instead of truncating */}
-                <span style={{
-                  flex: 1,
-                  fontSize: 11,
-                  color: "#d0d0d0",
-                  wordBreak: "break-word",
-                  lineHeight: 1.3,
-                }}>
-                  {memberName || "me"}
-                </span>
-                <span
-                  title="Remove"
-                  style={{ color: "#555", cursor: "pointer", flexShrink: 0, fontSize: 11 }}
-                >✕</span>
-              </div>
-            </FilterRow>
-
-            <FilterRow label="Due" icon="🕐">
-              <select
-                value={due}
-                onChange={(e) => setDue(e.target.value)}
-                className="list-dropdown"
-                style={{ maxWidth: 160 }}
-              >
-                <option value="">any</option>
-                <option value="overdue">overdue</option>
-                <option value="today">today</option>
-                <option value="week">this week</option>
-                <option value="month">this month</option>
-                <option value="none">no due date</option>
-              </select>
-            </FilterRow>
-
-            <FilterRow label="Labels" icon="🏷">
-              <select
-                value={labels}
-                onChange={(e) => setLabels(e.target.value)}
-                className="list-dropdown"
-                style={{ maxWidth: 160 }}
-              >
-                <option value="">any</option>
-                <option value="any">has any label</option>
-                <option value="none">no label</option>
-                <option value="red">red</option>
-                <option value="orange">orange</option>
-                <option value="yellow">yellow</option>
-                <option value="green">green</option>
-                <option value="blue">blue</option>
-                <option value="purple">purple</option>
-              </select>
-            </FilterRow>
-
+            {/* More filters toggle */}
             {showMore && (
-              <>
-                <FilterRow label="Priority" icon="⚡">
-                  <select className="list-dropdown" style={{ maxWidth: 160 }}>
-                    <option value="">any</option>
-                    <option>high</option>
-                    <option>medium</option>
-                    <option>low</option>
-                  </select>
-                </FilterRow>
-                <FilterRow label="Activity" icon="📊">
-                  <select className="list-dropdown" style={{ maxWidth: 160 }}>
-                    <option value="">any</option>
-                    <option>stale (14+ days)</option>
-                    <option>active today</option>
-                  </select>
-                </FilterRow>
-              </>
+              <FilterRow label="Priority" icon="⚡" key="priority">
+                <select className="list-dropdown" style={{ maxWidth: 160 }}>
+                  <option value="">any</option>
+                  <option>high</option>
+                  <option>medium</option>
+                  <option>low</option>
+                </select>
+              </FilterRow>
             )}
 
             <button
               onClick={() => setShowMore((s) => !s)}
               style={{
-                background: "none",
-                border: "1px solid #333",
-                borderRadius: 6,
-                padding: "5px 10px",
-                color: "#4ea1ff",
-                fontSize: 12,
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                alignSelf: "flex-start",
+                background: "none", border: "1px solid #333", borderRadius: 6,
+                padding: "5px 10px", color: "#4ea1ff", fontSize: 12, cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif", display: "flex",
+                alignItems: "center", gap: 4, alignSelf: "flex-start",
               }}
             >
               <span>{showMore ? "−" : "+"}</span>
@@ -550,19 +467,14 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
 
         {/* ── Footer ── */}
         <div style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          gap: 10,
-          padding: "12px 16px",
-          borderTop: "1px solid #2e2e2e",
-          flexShrink: 0,
+          display: "flex", justifyContent: "flex-end", gap: 10,
+          padding: "12px 16px", borderTop: "1px solid #2e2e2e", flexShrink: 0,
         }}>
           <button
             onClick={onClose}
             style={{
-              background: "none", border: "1px solid #3a3a3a",
-              borderRadius: 6, padding: "7px 18px",
-              color: "#aaa", fontSize: 13,
+              background: "none", border: "1px solid #3a3a3a", borderRadius: 6,
+              padding: "7px 18px", color: "#aaa", fontSize: 13,
               fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
             }}
           >
@@ -571,9 +483,8 @@ function CardConfigModal({ statType, statValue, lists, memberName, onSave, onBac
           <button
             onClick={handleSave}
             style={{
-              background: "#0052cc", border: "none",
-              borderRadius: 6, padding: "7px 18px",
-              color: "#fff", fontSize: 13, fontWeight: 600,
+              background: "#0052cc", border: "none", borderRadius: 6,
+              padding: "7px 18px", color: "#fff", fontSize: 13, fontWeight: 600,
               fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "#0065ff")}
@@ -592,8 +503,7 @@ function SectionLabel({ children }) {
   return (
     <div style={{
       fontSize: 10, fontWeight: 700, color: "#666",
-      letterSpacing: "0.08em", textTransform: "uppercase",
-      marginBottom: 6,
+      letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6,
     }}>
       {children}
     </div>
@@ -609,8 +519,7 @@ function FilterRow({ label, icon, children }) {
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{
         display: "flex", alignItems: "center", gap: 6,
-        width: 76, flexShrink: 0,
-        fontSize: 12, color: "#777",
+        width: 76, flexShrink: 0, fontSize: 12, color: "#777",
       }}>
         <span style={{ fontSize: 13 }}>{icon}</span>
         <span>{label}</span>
