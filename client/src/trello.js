@@ -43,7 +43,8 @@ export async function getListCards(key, token, listId) {
   return res.json();
 }
 
-function getWeekBounds(now) {
+// ── Exported so App.jsx can use the same week boundaries everywhere ───────────
+export function getWeekBounds(now) {
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfWeek = new Date(startOfDay);
   startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay()); // back to Sunday
@@ -73,6 +74,7 @@ export function computeStats(cards, memberId) {
     if (card.due && !card.dueComplete) {
       const due = new Date(card.due);
       if (due < now) overdue++;
+      // ── Use calendar week (Sunday→Sunday) consistently ────────────────────
       if (due >= startOfWeek && due < endOfWeek) dueThisWeek++;
     }
     if (card.dateLastActivity) {
@@ -115,6 +117,7 @@ export function computeDetailStats(cards) {
     }
     if (card.due && !card.dueComplete) {
       const due = new Date(card.due);
+      // ── Use calendar week (Sunday→Sunday) consistently ────────────────────
       if (due >= startOfWeek && due < endOfWeek) dueThisWeek++;
     }
   }
@@ -242,7 +245,7 @@ export async function createList(key, token, boardId, name) {
   return res.json();
 }
 
-// ── Apply user-configured filters to a card array ─────────────────────────
+// ── Apply user-configured filters to a card array ────────────────────────────
 // filters shape (mirrors CardConfigModal onSave output):
 //   { due: string[], members: string[], labels: string[], lists: string[],
 //     customDateFrom: string, customDateTo: string }
@@ -253,17 +256,17 @@ export function applyFilters(cards, filters, memberId) {
   const now = new Date();
 
   return cards.filter((card) => {
-    // ── Due filter ────────────────────────────────────────────────────────
+    // ── Due filter ────────────────────────────────────────────────────────────
     if (filters.due && filters.due.length > 0) {
       const due = card.due ? new Date(card.due) : null;
       const matches = filters.due.some((d) => {
-        if (d === "nodate")   return !due;
-        if (!due)             return false;
-        if (d === "overdue")  return due < now && !card.dueComplete;
-        if (d === "2days")    return due >= now && due <= new Date(now.getTime() + 2 * 86400000);
-        if (d === "1week")    return due >= now && due <= new Date(now.getTime() + 7 * 86400000);
-        if (d === "2weeks")   return due >= now && due <= new Date(now.getTime() + 14 * 86400000);
-        if (d === "1month")   return due >= now && due <= new Date(now.getTime() + 30 * 86400000);
+        if (d === "nodate")  return !due;
+        if (!due)            return false;
+        if (d === "overdue") return due < now && !card.dueComplete;
+        if (d === "2days")   return due >= now && due <= new Date(now.getTime() + 2 * 86400000);
+        if (d === "1week")   return due >= now && due <= new Date(now.getTime() + 7 * 86400000);
+        if (d === "2weeks")  return due >= now && due <= new Date(now.getTime() + 14 * 86400000);
+        if (d === "1month")  return due >= now && due <= new Date(now.getTime() + 30 * 86400000);
         if (d === "custom") {
           const from = filters.customDateFrom ? new Date(filters.customDateFrom) : null;
           const to   = filters.customDateTo   ? new Date(filters.customDateTo)   : null;
@@ -276,25 +279,26 @@ export function applyFilters(cards, filters, memberId) {
       if (!matches) return false;
     }
 
-    // ── Member / assigned filter ──────────────────────────────────────────
+    // ── Member / assigned filter ──────────────────────────────────────────────
     if (filters.members && filters.members.length > 0) {
-      // resolve "me" → real memberId
+      // FIX #5: guard against null memberId before resolving "me"
       const resolvedIds = filters.members.map((id) =>
-        id === "me" ? memberId : id
-      );
+        id === "me" && memberId ? memberId : id
+      ).filter(Boolean); // remove any remaining null/undefined
+
       const cardMembers = card.idMembers || [];
       const hasMatch = resolvedIds.some((id) => cardMembers.includes(id));
       if (!hasMatch) return false;
     }
 
-    // ── Label filter (by label id) ────────────────────────────────────────
+    // ── Label filter (by label id) ────────────────────────────────────────────
     if (filters.labels && filters.labels.length > 0) {
       const cardLabelIds = (card.labels || []).map((l) => l.id);
       const hasMatch = filters.labels.some((id) => cardLabelIds.includes(id));
       if (!hasMatch) return false;
     }
 
-    // ── List filter ───────────────────────────────────────────────────────
+    // ── List filter ───────────────────────────────────────────────────────────
     if (filters.lists && filters.lists.length > 0) {
       if (!filters.lists.includes(card.idList)) return false;
     }

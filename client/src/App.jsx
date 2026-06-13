@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   getBoardCards,
   computeStats,
@@ -10,6 +10,7 @@ import {
   createCard,
   createList,
   applyFilters,
+  getWeekBounds, // FIX #3: imported so dueThisWeek is consistent everywhere
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
@@ -30,6 +31,7 @@ const trelloT = (() => {
 })();
 
 // ── module-level helper (used by refreshTrackerCards + createCard flow) ───────
+// FIX #10: defined once here only — removed duplicate in trello.js
 function dataUrlToBlob(dataUrl) {
   const base64Data = dataUrl.split(",")[1];
   const byteCharacters = atob(base64Data);
@@ -84,21 +86,8 @@ function cardCreatedDate(cardId) {
   return new Date(ts);
 }
 
+// FIX #6: use prefix-based check everywhere instead of loose keyword match
 const isTrackerCard = (name) => {
-  const lower = name.toLowerCase();
-  return [
-    "assigned to me",
-    "due this week",
-    "overdue cards",
-    "unassigned cards",
-    "cards with a label",
-    "stale cards",
-    "created today",
-    "cards in list",
-  ].some((p) => lower.includes(p));
-};
-
-const isTrackerCardDisplay = (name) => {
   const lower = name.toLowerCase();
   const PREFIXES = [
     "📌 assigned to me",
@@ -112,6 +101,9 @@ const isTrackerCardDisplay = (name) => {
   ];
   return PREFIXES.some((p) => lower.startsWith(p.toLowerCase()));
 };
+
+// isTrackerCardDisplay is now identical to isTrackerCard — kept as alias for clarity
+const isTrackerCardDisplay = isTrackerCard;
 
 const STAT_LABELS = {
   assigned: "Assigned to Me",
@@ -225,16 +217,150 @@ function Toast({ toast }) {
   );
 }
 
-const TRACKER_PREFIXES = [
-  "📌 Assigned to Me",
-  "📅 Due This Week",
-  "⚠️ Overdue Cards",
-  "👤 Unassigned Cards",
-  "🏷️ Cards With Label",
-  "💤 Stale Cards",
-  "✨ Created Today",
-  "📋 Cards in List",
-];
+// ── Shared helper: build the statFilterMap used in refresh loops ──────────────
+// FIX #2: cardsInList now included; FIX #3: uses getWeekBounds for dueThisWeek
+function buildStatFilterMap(memberId, resolvedListId) {
+  const now = new Date();
+  const { startOfWeek, endOfWeek } = getWeekBounds(now);
+  const fourteenAgo = new Date(now.getTime() - 14 * 86400000);
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+
+  return {
+    assigned:    (c) => c.idMembers?.includes(memberId),
+    dueThisWeek: (c) => c.due && new Date(c.due) >= startOfWeek && new Date(c.due) < endOfWeek,
+    overdue:     (c) => c.due && new Date(c.due) < now && !c.dueComplete,
+    unassigned:  (c) => !c.idMembers || c.idMembers.length === 0,
+    withLabel:   (c) => c.labels?.length > 0,
+    stale:       (c) => c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
+    createdToday:(c) => parseInt(c.id.substring(0, 8), 16) * 1000 >= todayStart.getTime(),
+    // FIX #2: cardsInList scoped to the list recorded in the meta tag
+    cardsInList: (c) => resolvedListId ? c.idList === resolvedListId : true,
+  };
+}
+
+// ── Shared tracker-card refresh logic ────────────────────────────────────────
+// Used by both CardBackView and the main App refreshTrackerCards function
+async function runTrackerRefresh(key, tkn, trelloContext) {
+  const board = await trelloContext.board("id");
+  const boardId = board.id;
+
+  const allLists = await getBoardLists(key, tkn, boardId);
+  const cardlyticsList = allLists.find(
+    (l) => l.name.toLowerCase() === "cardlytics",
+  );
+  if (!cardlyticsList) return;
+
+  const trackerCards = await getListCards(key, tkn, cardlyticsList.id);
+  const allBoardCards = await getBoardCards(key, tkn, boardId);
+  const memberId = await getMemberId(key, tkn);
+
+  const filteredCards = allBoardCards.filter(
+    (c) => !isTrackerCard(c.name) && c.idList !== cardlyticsList.id,
+  );
+
+  // FIX #1: removed dead statCountMap — counts are computed per-card below
+
+  for (const card of trackerCards) {
+    const statMatch = card.desc?.match(
+      /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
+    );
+    if (!statMatch) continue;
+
+    const resolvedListId = statMatch[2] || null;
+    const statType = statMatch[3];
+    const filtersRaw = statMatch[4];
+
+    let cardFilters = null;
+    if (filtersRaw) {
+      try {
+        cardFilters = JSON.parse(decodeURIComponent(filtersRaw));
+      } catch (_) {}
+    }
+
+    const filteredForStat = cardFilters
+      ? applyFilters(filteredCards, cardFilters, memberId)
+      : filteredCards;
+
+    // FIX #2 + #3: use shared builder that includes cardsInList + calendar week
+    const statFilterMap = buildStatFilterMap(memberId, resolvedListId);
+    const statFn = statFilterMap[statType];
+    const newCount = statFn
+      ? filteredForStat.filter(statFn).length
+      : filteredForStat.length;
+
+    const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
+    const oldCount = oldCountMatch ? parseInt(oldCountMatch[1]) : null;
+    if (oldCount === newCount) continue;
+
+    const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
+
+    let existingBgDataUrl = null;
+    try {
+      const local = localStorage.getItem(`cardlytics:customBg:${card.id}`);
+      if (local) {
+        existingBgDataUrl = local;
+      } else {
+        existingBgDataUrl = await trelloContext.get(
+          "board",
+          "shared",
+          `customBg:${card.id}`,
+        );
+      }
+    } catch (_) {}
+
+    // Delete old attachments
+    const attachRes = await fetch(
+      `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
+    );
+    if (attachRes.ok) {
+      const attachments = await attachRes.json();
+      for (const att of attachments) {
+        await fetch(
+          `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${tkn}`,
+          { method: "DELETE" },
+        );
+      }
+    }
+
+    const newCoverDataUrl = await generateStatCoverImage(
+      newCount,
+      coverColor,
+      existingBgDataUrl,
+    );
+
+    const blob = dataUrlToBlob(newCoverDataUrl);
+    const formData = new FormData();
+    formData.append("key", key);
+    formData.append("token", tkn);
+    formData.append("file", blob, "cover.jpg");
+    formData.append("setCover", "false");
+
+    const uploadRes = await fetch(
+      `${TRELLO_BASE}/cards/${card.id}/attachments`,
+      { method: "POST", body: formData },
+    );
+    if (!uploadRes.ok) continue;
+    const newAttachment = await uploadRes.json();
+
+    const newDesc = card.desc.replace(
+      /\d+ card\(s\) tracked/,
+      `${newCount} card(s) tracked`,
+    );
+    await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        desc: newDesc,
+        cover: {
+          idAttachment: newAttachment.id,
+          brightness: "dark",
+          size: "full",
+        },
+      }),
+    });
+  }
+}
 
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
 function CardBackView() {
@@ -243,9 +369,8 @@ function CardBackView() {
   useEffect(() => {
     if (!trelloT) return;
     trelloT.card("name", "idList", "desc").then((card) => {
-      const matchesPrefix = TRACKER_PREFIXES.some((p) =>
-        card.name.toLowerCase().startsWith(p.toLowerCase()),
-      );
+      // FIX #6: use prefix-based isTrackerCard (now consistent)
+      const matchesPrefix = isTrackerCard(card.name);
       const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
 
       if (matchesPrefix || hasMetaTag) {
@@ -276,170 +401,11 @@ function CardBackView() {
     const tkn = getStoredToken();
     if (!tkn || !trelloT) return;
 
-    const run = async () => {
-      try {
-        const board = await trelloT.board("id");
-        const boardId = board.id;
-
-        const allLists = await getBoardLists(key, tkn, boardId);
-        const cardlyticsList = allLists.find(
-          (l) => l.name.toLowerCase() === "cardlytics",
-        );
-        if (!cardlyticsList) return;
-
-        const trackerCards = await getListCards(key, tkn, cardlyticsList.id);
-        const allBoardCards = await getBoardCards(key, tkn, boardId);
-        const memberId = await getMemberId(key, tkn);
-
-        const filteredCards = allBoardCards.filter(
-          (c) => !isTrackerCard(c.name) && c.idList !== cardlyticsList.id,
-        );
-        const freshStats = computeStats(filteredCards, memberId);
-
-        const statCountMap = {
-          assigned: freshStats.assigned,
-          dueThisWeek: freshStats.dueThisWeek,
-          overdue: freshStats.overdue,
-          unassigned: freshStats.unassigned,
-          withLabel: freshStats.withLabel,
-          stale: freshStats.stale,
-          createdToday: freshStats.createdToday,
-        };
-
-        for (const card of trackerCards) {
-          const statMatch = card.desc?.match(
-            /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
-          );
-          if (!statMatch) continue;
-
-          const statType = statMatch[3];
-          const filtersRaw = statMatch[4];
-
-          let cardFilters = null;
-          if (filtersRaw) {
-            try {
-              cardFilters = JSON.parse(decodeURIComponent(filtersRaw));
-            } catch (_) {}
-          }
-
-          const filteredForStat = cardFilters
-            ? applyFilters(filteredCards, cardFilters, memberId)
-            : filteredCards;
-
-          const now2 = new Date();
-          const weekFromNow2 = new Date(now2.getTime() + 7 * 86400000);
-          const fourteenAgo2 = new Date(now2.getTime() - 14 * 86400000);
-          const todayStart2 = new Date(now2);
-          todayStart2.setHours(0, 0, 0, 0);
-
-          const statFilterMap2 = {
-            assigned: (c) => c.idMembers?.includes(memberId),
-            dueThisWeek: (c) =>
-              c.due &&
-              new Date(c.due) >= now2 &&
-              new Date(c.due) <= weekFromNow2,
-            overdue: (c) => c.due && new Date(c.due) < now2 && !c.dueComplete,
-            unassigned: (c) => !c.idMembers || c.idMembers.length === 0,
-            withLabel: (c) => c.labels?.length > 0,
-            stale: (c) =>
-              c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo2,
-            createdToday: (c) =>
-              parseInt(c.id.substring(0, 8), 16) * 1000 >=
-              todayStart2.getTime(),
-          };
-
-          const statFn2 = statFilterMap2[statType];
-          const newCount = statFn2
-            ? filteredForStat.filter(statFn2).length
-            : filteredForStat.length;
-
-          const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
-          const oldCount = oldCountMatch ? parseInt(oldCountMatch[1]) : null;
-          if (oldCount === newCount) continue;
-
-          const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
-
-          // Only try to preserve background if card was created with a custom image
-          // Read custom bg from plugin data (avoids CORS fetch)
-          // Read custom bg from plugin data, fallback to attachment fetch for older cards
-          let existingBgDataUrl = null;
-          try {
-            const local = localStorage.getItem(
-              `cardlytics:customBg:${card.id}`,
-            );
-            if (local) {
-              existingBgDataUrl = local;
-            } else {
-              existingBgDataUrl = await trelloT.get(
-                "board",
-                "shared",
-                `customBg:${card.id}`,
-              );
-            }
-          } catch (_) {}
-
-          // Delete old attachments
-          const attachRes2 = await fetch(
-            `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
-          );
-          if (attachRes2.ok) {
-            const attachments = await attachRes2.json();
-            for (const att of attachments) {
-              await fetch(
-                `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${tkn}`,
-                { method: "DELETE" },
-              );
-            }
-          }
-
-          const newCoverDataUrl = await generateStatCoverImage(
-            newCount,
-            coverColor,
-            existingBgDataUrl,
-          );
-
-          // Upload new cover
-          const blob = dataUrlToBlob(newCoverDataUrl);
-          const formData = new FormData();
-          formData.append("key", key);
-          formData.append("token", tkn);
-          formData.append("file", blob, "cover.jpg");
-          formData.append("setCover", "false");
-
-          const uploadRes = await fetch(
-            `${TRELLO_BASE}/cards/${card.id}/attachments`,
-            { method: "POST", body: formData },
-          );
-          if (!uploadRes.ok) continue;
-          const newAttachment = await uploadRes.json();
-
-          // Update desc count + set cover
-          const newDesc = card.desc.replace(
-            /\d+ card\(s\) tracked/,
-            `${newCount} card(s) tracked`,
-          );
-          await fetch(
-            `${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`,
-            {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                desc: newDesc,
-                cover: {
-                  idAttachment: newAttachment.id,
-                  brightness: "dark",
-                  size: "full",
-                },
-              }),
-            },
-          );
-        }
-      } catch (err) {
-        console.error("CardBackView cover refresh error:", err);
-      }
-    };
-
-    run();
+    // FIX #1 + #2 + #3: use shared runTrackerRefresh — dead statCountMap gone,
+    // cardsInList handled, dueThisWeek uses calendar week
+    runTrackerRefresh(key, tkn, trelloT).catch((err) =>
+      console.error("CardBackView cover refresh error:", err),
+    );
   }, []);
 
   function handleOpenDetails() {
@@ -452,8 +418,7 @@ function CardBackView() {
       let statType = "all";
       let cardMode = "board";
       let resolvedListId = card.idList;
-
-      const filtersRaw = statMatch?.[4] ?? null; // ← move here, outside if
+      const filtersRaw = statMatch?.[4] ?? null;
 
       if (statMatch) {
         cardMode = statMatch[1];
@@ -463,9 +428,9 @@ function CardBackView() {
         const nameMap = [
           { prefix: "📌 Assigned to Me", type: "assigned" },
           { prefix: "📅 Due This Week", type: "dueThisWeek" },
-          { prefix: "⚠ Overdue Cards", type: "overdue" },
+          { prefix: "⚠️ Overdue Cards", type: "overdue" },
           { prefix: "👤 Unassigned Cards", type: "unassigned" },
-          { prefix: "🏷 Cards With Label", type: "withLabel" },
+          { prefix: "🏷️ Cards With Label", type: "withLabel" },
           { prefix: "💤 Stale Cards", type: "stale" },
           { prefix: "✨ Created Today", type: "createdToday" },
           { prefix: "📋 Cards in List", type: "cardsInList" },
@@ -541,11 +506,12 @@ function CardBackView() {
 
 // ─── CARD DETAILS VIEW ────────────────────────────────────────────────────────
 function CardDetailsView() {
-  const params = new URLSearchParams(window.location.search);
-  const listId = params.get("listId");
-  const boardId = params.get("boardId");
-  const statType = params.get("statType") || "all";
-  const mode = params.get("mode") || "board";
+  // FIX #8: memoize params so the stale closure issue is avoided
+  const params = useRef(new URLSearchParams(window.location.search));
+  const listId = params.current.get("listId");
+  const boardId = params.current.get("boardId");
+  const statType = params.current.get("statType") || "all";
+  const mode = params.current.get("mode") || "board";
 
   const [cards, setCards] = useState([]);
   const [listName, setListName] = useState("List");
@@ -583,7 +549,6 @@ function CardDetailsView() {
       try {
         const isListScoped = mode === "list" || statType === "cardsInList";
 
-        // Always fetch full board cards upfront — used for allCards stat + avoids a second fetch later
         const [rawBoardCards, mid, allBoardLists] = await Promise.all([
           boardId ? getBoardCards(key, token, boardId) : Promise.resolve([]),
           getMemberId(key, token),
@@ -596,6 +561,7 @@ function CardDetailsView() {
         } else {
           allCards = rawBoardCards;
         }
+
         const cardlyticsListIds = allBoardLists
           .filter((l) => l.name.toLowerCase() === "cardlytics")
           .map((l) => l.id);
@@ -606,28 +572,27 @@ function CardDetailsView() {
             !cardlyticsListIds.includes(c.idList),
         );
 
+        // FIX #3: use getWeekBounds for consistent dueThisWeek definition
         const now = new Date();
-        const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const { startOfWeek, endOfWeek } = getWeekBounds(now);
         const fourteenAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
         const todayStart = new Date(now);
         todayStart.setHours(0, 0, 0, 0);
 
         const filterMap = {
-          assigned: (c) => c.idMembers?.includes(mid),
-          dueThisWeek: (c) =>
-            c.due && new Date(c.due) >= now && new Date(c.due) <= weekFromNow,
-          overdue: (c) => c.due && new Date(c.due) < now && !c.dueComplete,
-          unassigned: (c) => !c.idMembers || c.idMembers.length === 0,
-          withLabel: (c) => c.labels?.length > 0,
-          stale: (c) =>
-            c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
-          createdToday: (c) => cardCreatedDate(c.id) >= todayStart,
+          assigned:    (c) => c.idMembers?.includes(mid),
+          dueThisWeek: (c) => c.due && new Date(c.due) >= startOfWeek && new Date(c.due) < endOfWeek,
+          overdue:     (c) => c.due && new Date(c.due) < now && !c.dueComplete,
+          unassigned:  (c) => !c.idMembers || c.idMembers.length === 0,
+          withLabel:   (c) => c.labels?.length > 0,
+          stale:       (c) => c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
+          createdToday:(c) => cardCreatedDate(c.id) >= todayStart,
           cardsInList: () => true,
-          all: () => true,
+          all:         () => true,
         };
 
-        // Parse filters from URL or read from the tracker card desc
-        const filtersParam = params.get("filters");
+        // FIX #8: read filters from the memoized params ref
+        const filtersParam = params.current.get("filters");
         let savedFilters = null;
         if (filtersParam) {
           try {
@@ -656,8 +621,6 @@ function CardDetailsView() {
           ? allCards.filter((c) => !isTrackerCard(c.name)).length
           : 0;
 
-        // Always fetch full board cards so "All cards" stat is never scoped
-        // Reuse already-fetched rawBoardCards — no extra API call needed
         const boardWideCards = rawBoardCards.filter(
           (c) =>
             !isTrackerCardDisplay(c.name) &&
@@ -738,7 +701,7 @@ function CardDetailsView() {
     });
 
   async function handleExport(format) {
-    const rows = filtered; // uses current filtered + sorted cards
+    const rows = filtered;
 
     if (format === "csv") {
       const headers = [
@@ -800,7 +763,6 @@ function CardDetailsView() {
       a.click();
       URL.revokeObjectURL(url);
     } else if (format === "pdf") {
-      // Hide the dropdown before capturing
       document.getElementById("export-menu").style.display = "none";
 
       const target = document.querySelector(".cd-right");
@@ -898,60 +860,15 @@ function CardDetailsView() {
 
   const isListScoped = mode === "list" || statType === "cardsInList";
   const leftStats = [
-    {
-      value: fullStats.allCards,
-      label: "All cards",
-      accent: "#4ea1ff",
-      statType: "all",
-    },
-    {
-      value: detailStats.total,
-      label: "In this view",
-      accent: "#4caf50",
-      statType: null,
-    },
-    {
-      value: fullStats.assigned,
-      label: "Assigned to me",
-      accent: "#4ea1ff",
-      statType: "assigned",
-    },
-    {
-      value: fullStats.dueThisWeek,
-      label: "Due this week",
-      accent: "#f9c74f",
-      statType: "dueThisWeek",
-    },
-    {
-      value: fullStats.overdue,
-      label: "Overdue cards",
-      accent: "#ff5252",
-      statType: "overdue",
-    },
-    {
-      value: fullStats.unassigned,
-      label: "Unassigned cards",
-      accent: "#ab47bc",
-      statType: "unassigned",
-    },
-    {
-      value: fullStats.withLabel,
-      label: "Cards with a label",
-      accent: "#ff9800",
-      statType: "withLabel",
-    },
-    {
-      value: fullStats.stale,
-      label: "Stale (14+ days inactive)",
-      accent: "#888",
-      statType: "stale",
-    },
-    {
-      value: fullStats.createdToday,
-      label: "Created today",
-      accent: "#2ec4b6",
-      statType: "createdToday",
-    },
+    { value: fullStats.allCards,      label: "All cards",               accent: "#4ea1ff", statType: "all" },
+    { value: detailStats.total,       label: "In this view",            accent: "#4caf50", statType: null },
+    { value: fullStats.assigned,      label: "Assigned to me",          accent: "#4ea1ff", statType: "assigned" },
+    { value: fullStats.dueThisWeek,   label: "Due this week",           accent: "#f9c74f", statType: "dueThisWeek" },
+    { value: fullStats.overdue,       label: "Overdue cards",           accent: "#ff5252", statType: "overdue" },
+    { value: fullStats.unassigned,    label: "Unassigned cards",        accent: "#ab47bc", statType: "unassigned" },
+    { value: fullStats.withLabel,     label: "Cards with a label",      accent: "#ff9800", statType: "withLabel" },
+    { value: fullStats.stale,         label: "Stale (14+ days inactive)",accent: "#888",   statType: "stale" },
+    { value: fullStats.createdToday,  label: "Created today",           accent: "#2ec4b6", statType: "createdToday" },
   ];
 
   return (
@@ -1331,8 +1248,6 @@ export default function App() {
     new Date().toLocaleTimeString(),
   );
   const [lists, setLists] = useState([]);
-  const [selectedListId, setSelectedListId] = useState("");
-  const [selectedListCount, setSelectedListCount] = useState(null);
   const [trackingListName, setTrackingListName] = useState("");
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
@@ -1343,172 +1258,27 @@ export default function App() {
   const [cardConfig, setCardConfig] = useState({});
   const [isTracking, setIsTracking] = useState(false);
 
-  // ── 1. refreshTrackerCards — defined FIRST so fetchData can call it ─────────
+  // FIX #9: track current scopeListId in a ref so the setInterval closure
+  // always reads the latest value instead of the stale initial one
+  const scopeListIdRef = useRef(scopeListId);
+  useEffect(() => {
+    scopeListIdRef.current = scopeListId;
+  }, [scopeListId]);
+
+  // ── 1. refreshTrackerCards ────────────────────────────────────────────────
+  // FIX #1 + #2 + #3: delegates to shared runTrackerRefresh helper
   async function refreshTrackerCards() {
+    const key = TRELLO_API_KEY;
+    const tkn = getStoredToken();
+    if (!tkn || !trelloT) return;
     try {
-      const key = TRELLO_API_KEY;
-      const tkn = getStoredToken();
-      if (!tkn || !trelloT) return;
-
-      const board = await trelloT.board("id");
-      const boardId = board.id;
-
-      const allLists = await getBoardLists(key, tkn, boardId);
-      const cardlyticsList = allLists.find(
-        (l) => l.name.toLowerCase() === "cardlytics",
-      );
-      if (!cardlyticsList) return;
-
-      const trackerCards = await getListCards(key, tkn, cardlyticsList.id);
-      const allBoardCards = await getBoardCards(key, tkn, boardId);
-      const memberId = await getMemberId(key, tkn);
-
-      const filteredCards = allBoardCards.filter(
-        (c) => !isTrackerCard(c.name) && c.idList !== cardlyticsList.id,
-      );
-      const freshStats = computeStats(filteredCards, memberId);
-
-      const statCountMap = {
-        assigned: freshStats.assigned,
-        dueThisWeek: freshStats.dueThisWeek,
-        overdue: freshStats.overdue,
-        unassigned: freshStats.unassigned,
-        withLabel: freshStats.withLabel,
-        stale: freshStats.stale,
-        createdToday: freshStats.createdToday,
-      };
-
-      for (const card of trackerCards) {
-        const statMatch = card.desc?.match(
-          /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
-        );
-        if (!statMatch) continue;
-
-        const statType = statMatch[3];
-        const filtersRaw = statMatch[4];
-
-        // Parse saved filters and apply them to get the real filtered count
-        let cardFilters = null;
-        if (filtersRaw) {
-          try {
-            cardFilters = JSON.parse(decodeURIComponent(filtersRaw));
-          } catch (_) {}
-        }
-
-        // Re-filter cards if this stat card has filters saved
-        const baseCards = filteredCards; // already excludes tracker cards
-        const filteredForStat = cardFilters
-          ? applyFilters(baseCards, cardFilters, memberId)
-          : baseCards;
-
-        // Now apply the stat-type filter on top of the user filters
-        const now = new Date();
-        const weekFromNow = new Date(now.getTime() + 7 * 86400000);
-        const fourteenAgo = new Date(now.getTime() - 14 * 86400000);
-        const todayStart = new Date(now);
-        todayStart.setHours(0, 0, 0, 0);
-
-        const statFilterMap = {
-          assigned: (c) => c.idMembers?.includes(memberId),
-          dueThisWeek: (c) =>
-            c.due && new Date(c.due) >= now && new Date(c.due) <= weekFromNow,
-          overdue: (c) => c.due && new Date(c.due) < now && !c.dueComplete,
-          unassigned: (c) => !c.idMembers || c.idMembers.length === 0,
-          withLabel: (c) => c.labels?.length > 0,
-          stale: (c) =>
-            c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
-          createdToday: (c) =>
-            parseInt(c.id.substring(0, 8), 16) * 1000 >= todayStart.getTime(),
-        };
-
-        const statFn = statFilterMap[statType];
-        const newCount = statFn
-          ? filteredForStat.filter(statFn).length
-          : filteredForStat.length;
-
-        // Only update if count changed — avoids unnecessary uploads
-        const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
-        const oldCount = oldCountMatch ? parseInt(oldCountMatch[1]) : null;
-        if (oldCount === newCount) continue;
-
-        const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
-
-        // Only try to preserve background if card was created with a custom image
-        // Read custom bg from plugin data (avoids CORS fetch)
-        // Read custom bg from plugin data, fallback to attachment fetch for older cards
-        let existingBgDataUrl = null;
-        try {
-          const local = localStorage.getItem(`cardlytics:customBg:${card.id}`);
-          if (local) {
-            existingBgDataUrl = local;
-          } else {
-            existingBgDataUrl = await trelloT.get(
-              "board",
-              "shared",
-              `customBg:${card.id}`,
-            );
-          }
-        } catch (_) {}
-
-        // Delete old attachments
-        const attachRes2 = await fetch(
-          `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
-        );
-        if (attachRes2.ok) {
-          const attachments = await attachRes2.json();
-          for (const att of attachments) {
-            await fetch(
-              `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${tkn}`,
-              { method: "DELETE" },
-            );
-          }
-        }
-
-        const newCoverDataUrl = await generateStatCoverImage(
-          newCount,
-          coverColor,
-          existingBgDataUrl,
-        );
-
-        // Upload new cover image
-        const blob = dataUrlToBlob(newCoverDataUrl);
-        const formData = new FormData();
-        formData.append("key", key);
-        formData.append("token", tkn);
-        formData.append("file", blob, "cover.jpg");
-        formData.append("setCover", "false");
-
-        const uploadRes = await fetch(
-          `${TRELLO_BASE}/cards/${card.id}/attachments`,
-          { method: "POST", body: formData },
-        );
-        if (!uploadRes.ok) continue;
-        const newAttachment = await uploadRes.json();
-
-        // Update cover + description count
-        const newDesc = card.desc.replace(
-          /\d+ card\(s\) tracked/,
-          `${newCount} card(s) tracked`,
-        );
-        await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            desc: newDesc,
-            cover: {
-              idAttachment: newAttachment.id,
-              brightness: "dark",
-              size: "full",
-            },
-          }),
-        });
-      }
+      await runTrackerRefresh(key, tkn, trelloT);
     } catch (err) {
       console.error("refreshTrackerCards error:", err);
     }
   }
 
-  // ── 2. fetchData — calls refreshTrackerCards at the end ───────────────────
+  // ── 2. fetchData ──────────────────────────────────────────────────────────
   async function fetchData(overrideScope) {
     try {
       const key = TRELLO_API_KEY;
@@ -1520,7 +1290,8 @@ export default function App() {
         : new URLSearchParams(window.location.search).get("boardId");
       if (!boardId) return;
 
-      const resolvedScope = overrideScope ?? scopeListId;
+      // FIX #9: use ref so interval calls always get the current scope
+      const resolvedScope = overrideScope ?? scopeListIdRef.current;
       const activeScope = resolvedScope !== "board" ? resolvedScope : null;
       const cards =
         mode === "list" && listId
@@ -1529,6 +1300,7 @@ export default function App() {
             ? await getListCards(key, tkn, activeScope)
             : await getBoardCards(key, tkn, boardId);
 
+      // FIX #4: fetch lists once and reuse — removed second getBoardLists call
       const allLists = await getBoardLists(key, tkn, boardId);
       const cardlyticsListIds = allLists
         .filter((l) => l.name.toLowerCase() === "cardlytics")
@@ -1562,8 +1334,8 @@ export default function App() {
       setStats(computed);
       setLastUpdated(new Date().toLocaleTimeString());
 
-      const boardLists = await getBoardLists(key, tkn, boardId);
-      setLists(boardLists);
+      // FIX #4: reuse allLists instead of calling getBoardLists again
+      setLists(allLists);
 
       if (mode === "list" && listId) {
         const listRes = await fetch(
@@ -1571,13 +1343,12 @@ export default function App() {
         );
         if (listRes.ok) setTrackingListName((await listRes.json()).name);
       } else {
-        const existing = boardLists.find(
+        const existing = allLists.find(
           (l) => l.name.toLowerCase() === "cardlytics",
         );
-        setTrackingListName(existing?.name || boardLists[0]?.name || "");
+        setTrackingListName(existing?.name || allLists[0]?.name || "");
       }
 
-      // ── Refresh board tracker card covers with updated counts ─────────────
       await refreshTrackerCards();
     } catch (err) {
       console.error(err);
@@ -1590,20 +1361,20 @@ export default function App() {
 
     if (trelloT) {
       trelloT.render(() => {
-        fetchData(); // ✅ KEEP THIS
+        fetchData();
       });
     }
 
     fetchData();
 
     const intervalId = setInterval(() => {
-      fetchData();
+      fetchData(); // FIX #9: fetchData now reads scopeListIdRef.current internally
     }, 15000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [token, scopeListId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token]); // FIX #9: removed scopeListId from deps — ref handles currency
 
   if (!token)
     return (
@@ -1628,26 +1399,7 @@ export default function App() {
       prev.includes(type) ? prev.filter((i) => i !== type) : [...prev, type],
     );
 
-  async function handleListChange(e) {
-    const id = e.target.value;
-    setSelectedListId(id);
-    if (!id) {
-      setSelectedListCount(null);
-      return;
-    }
-    const key = TRELLO_API_KEY;
-    const tkn = getStoredToken();
-    if (!tkn) return;
-    const cards = await getListCards(key, tkn, id);
-    setSelectedListCount(cards.filter((c) => !isTrackerCard(c.name)).length);
-  }
-
   const handleTrack = async (statsOverride, configOverride) => {
-    console.log("handleTrack called", {
-      trelloT: !!trelloT,
-      statsOverride,
-      configOverride,
-    });
     const statsToTrack = statsOverride ?? selectedStats;
     const configToUse = configOverride ?? cardConfig;
 
@@ -1697,16 +1449,7 @@ export default function App() {
           const defaults = DEFAULT_STAT_CONFIG[stat];
           const saved = configToUse[stat];
           const count = stats[stat];
-          console.log(
-            "stat:",
-            stat,
-            "saved:",
-            saved,
-            "coverImage:",
-            !!saved?.coverImage,
-          );
 
-          // Encode filters as compact JSON in the meta tag
           const filterConfig = saved
             ? {
                 due: saved.due || [],
@@ -1718,14 +1461,19 @@ export default function App() {
               }
             : null;
 
-          const filterStr =
-            filterConfig &&
-            (filterConfig.due.length > 0 ||
-              filterConfig.members.length > 0 ||
-              filterConfig.labels.length > 0 ||
-              filterConfig.lists.length > 0)
-              ? `:filters:${encodeURIComponent(JSON.stringify(filterConfig))}`
-              : "";
+          // FIX #7: also include filterStr when only customDate range is set
+          const hasActiveFilters = filterConfig && (
+            filterConfig.due.length > 0 ||
+            filterConfig.members.length > 0 ||
+            filterConfig.labels.length > 0 ||
+            filterConfig.lists.length > 0 ||
+            filterConfig.customDateFrom !== "" ||   // ✅ was missing
+            filterConfig.customDateTo !== ""         // ✅ was missing
+          );
+
+          const filterStr = hasActiveFilters
+            ? `:filters:${encodeURIComponent(JSON.stringify(filterConfig))}`
+            : "";
 
           const metaTag =
             mode === "list" && listId
@@ -1736,7 +1484,6 @@ export default function App() {
           const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
           const cover = saved?.cover || defaults.cover;
 
-          // AFTER
           const coverImageDataUrl = await generateStatCoverImage(
             count,
             cover,
@@ -1752,16 +1499,13 @@ export default function App() {
             coverImageDataUrl,
           );
 
-          // Store custom bg image in plugin data so refresh can reuse it without CORS fetch
           if (saved?.coverImage && trelloT) {
             try {
-              // Store full image in localStorage for this browser (primary)
               localStorage.setItem(
                 `cardlytics:customBg:${newCard.id}`,
                 saved.coverImage,
               );
 
-              // Store tiny thumbnail in Trello plugin data as cross-device fallback
               const tiny = await new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
@@ -1778,13 +1522,6 @@ export default function App() {
                 "shared",
                 `customBg:${newCard.id}`,
                 tiny,
-              );
-              console.log(
-                "✅ customBg saved — localStorage:",
-                saved.coverImage.length,
-                "chars | plugin fallback:",
-                tiny.length,
-                "chars",
               );
             } catch (err) {
               console.error("❌ customBg save failed", err);
