@@ -102,6 +102,7 @@ const PRIMARY_FILTER = {
 // ── Portal dropdown ───────────────────────────────────────────────────────────
 // Renders children into document.body so overflow:hidden parents can't clip it.
 // Falls back gracefully if ReactDOM.createPortal isn't available.
+import { createPortal } from "react-dom";
 
 function PortalDropdown({ anchorRef, open, children }) {
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
