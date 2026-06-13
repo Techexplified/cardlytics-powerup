@@ -43,11 +43,18 @@ export async function getListCards(key, token, listId) {
   return res.json();
 }
 
+function getWeekBounds(now) {
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfWeek = new Date(startOfDay);
+  startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay()); // back to Sunday
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 7); // next Sunday (exclusive)
+  return { startOfDay, startOfWeek, endOfWeek };
+}
+
 export function computeStats(cards, memberId) {
   const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfWeek = new Date(startOfDay);
-  endOfWeek.setDate(startOfDay.getDate() + 7);
+  const { startOfDay, startOfWeek, endOfWeek } = getWeekBounds(now);
   const staleThreshold = new Date(now);
   staleThreshold.setDate(now.getDate() - 14);
 
@@ -66,7 +73,7 @@ export function computeStats(cards, memberId) {
     if (card.due && !card.dueComplete) {
       const due = new Date(card.due);
       if (due < now) overdue++;
-      else if (due >= startOfDay && due <= endOfWeek) dueThisWeek++;
+      if (due >= startOfWeek && due < endOfWeek) dueThisWeek++;
     }
     if (card.dateLastActivity) {
       const lastActive = new Date(card.dateLastActivity);
@@ -90,9 +97,7 @@ export function computeStats(cards, memberId) {
 
 export function computeDetailStats(cards) {
   const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfWeek = new Date(startOfDay);
-  endOfWeek.setDate(startOfDay.getDate() + 7);
+  const { startOfWeek, endOfWeek } = getWeekBounds(now);
 
   const labelCounts = {};
   let dueThisWeek = 0,
@@ -110,7 +115,7 @@ export function computeDetailStats(cards) {
     }
     if (card.due && !card.dueComplete) {
       const due = new Date(card.due);
-      if (due >= startOfDay && due <= endOfWeek) dueThisWeek++;
+      if (due >= startOfWeek && due < endOfWeek) dueThisWeek++;
     }
   }
 

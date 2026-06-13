@@ -14,6 +14,26 @@ const COVER_COLORS = [
   { id: "black",  hex: "#374151", label: "Slate" },
 ];
 
+// Premium-only gradient covers, built from the same palette for visual consistency
+const COVER_GRADIENTS = [
+  { id: "grad-blue-sky",      css: "linear-gradient(135deg, #0052cc 0%, #29b6f6 100%)", label: "Blue → Sky" },
+  { id: "grad-green-sky",     css: "linear-gradient(135deg, #1a7a4a 0%, #29b6f6 100%)", label: "Green → Sky" },
+  { id: "grad-orange-pink",   css: "linear-gradient(135deg, #e67e22 0%, #e91e8c 100%)", label: "Orange → Pink" },
+  { id: "grad-purple-pink",   css: "linear-gradient(135deg, #7e57c2 0%, #e91e8c 100%)", label: "Purple → Pink" },
+  { id: "grad-yellow-orange", css: "linear-gradient(135deg, #e6a817 0%, #e67e22 100%)", label: "Yellow → Orange" },
+  { id: "grad-red-purple",    css: "linear-gradient(135deg, #c0392b 0%, #7e57c2 100%)", label: "Red → Purple" },
+  { id: "grad-slate-blue",    css: "linear-gradient(135deg, #374151 0%, #0052cc 100%)", label: "Slate → Blue" },
+  { id: "grad-multi",         css: "linear-gradient(135deg, #0052cc 0%, #7e57c2 50%, #e91e8c 100%)", label: "Blue → Purple → Pink" },
+];
+
+// Resolves a cover id (solid color or gradient) to a CSS background value
+function resolveCoverBackground(coverId) {
+  const grad = COVER_GRADIENTS.find((g) => g.id === coverId);
+  if (grad) return grad.css;
+  const solid = COVER_COLORS.find((c) => c.id === coverId);
+  return solid?.hex || "#0052cc";
+}
+
 // Trello's label color name → display hex
 // Used as fallback when a board label has a color but no custom name.
 const TRELLO_LABEL_COLORS = {
@@ -409,47 +429,163 @@ function StatPicker({ onSelect, onClose }) {
 }
 
 // ── Color Swatch Picker ───────────────────────────────────────────────────────
-function ColorSwatchPicker({ selected, onChange }) {
+// Renders the solid color row, plus a "Gradients" row gated behind isPremium.
+// Free users see locked, dimmed gradient swatches with an upgrade prompt.
+function ColorSwatchPicker({ selected, onChange, isPremium, onUpgradeClick }) {
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 0 4px" }}>
-      {COVER_COLORS.map(({ id, hex, label }) => (
-        <button
-          key={id}
-          title={label}
-          onClick={() => onChange(id)}
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            background: hex,
-            border: selected === id ? "2px solid #fff" : "2px solid transparent",
-            outline: selected === id ? `2px solid ${hex}` : "none",
-            cursor: "pointer",
-            padding: 0,
-            transition: "transform 0.1s",
-            transform: selected === id ? "scale(1.15)" : "scale(1)",
-            position: "relative",
-          }}
-        >
-          {selected === id && (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* Solid colors */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 0 4px" }}>
+        {COVER_COLORS.map(({ id, hex, label }) => (
+          <button
+            key={id}
+            title={label}
+            onClick={() => onChange(id)}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              background: hex,
+              border: selected === id ? "2px solid #fff" : "2px solid transparent",
+              outline: selected === id ? `2px solid ${hex}` : "none",
+              cursor: "pointer",
+              padding: 0,
+              transition: "transform 0.1s",
+              transform: selected === id ? "scale(1.15)" : "scale(1)",
+              position: "relative",
+            }}
+          >
+            {selected === id && (
+              <span
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                }}
+              >
+                ✓
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Gradients (premium) */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: "#666",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+            }}
+          >
+            Gradients
+          </span>
+          {!isPremium && (
             <span
               style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#fff",
-                fontSize: 13,
+                fontSize: 9,
                 fontWeight: 700,
-                textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                color: "#1a1a1a",
+                background: "linear-gradient(135deg, #e6a817, #e67e22)",
+                borderRadius: 4,
+                padding: "2px 6px",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
               }}
             >
-              ✓
+              Premium
             </span>
           )}
-        </button>
-      ))}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {COVER_GRADIENTS.map(({ id, css, label }) => (
+            <button
+              key={id}
+              title={isPremium ? label : `${label} — Premium feature`}
+              onClick={() => {
+                if (!isPremium) {
+                  onUpgradeClick?.();
+                  return;
+                }
+                onChange(id);
+              }}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                background: css,
+                border: selected === id ? "2px solid #fff" : "2px solid transparent",
+                outline: selected === id ? "2px solid #888" : "none",
+                cursor: "pointer",
+                padding: 0,
+                transition: "transform 0.1s",
+                transform: selected === id ? "scale(1.15)" : "scale(1)",
+                position: "relative",
+                opacity: isPremium ? 1 : 0.55,
+              }}
+            >
+              {selected === id && isPremium && (
+                <span
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                  }}
+                >
+                  ✓
+                </span>
+              )}
+              {!isPremium && (
+                <span
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    color: "#fff",
+                    textShadow: "0 1px 2px rgba(0,0,0,0.6)",
+                  }}
+                >
+                  🔒
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        {!isPremium && (
+          <div
+            onClick={onUpgradeClick}
+            style={{
+              marginTop: 6,
+              fontSize: 11,
+              color: "#29b6f6",
+              cursor: "pointer",
+              textDecoration: "underline",
+              display: "inline-block",
+            }}
+          >
+            Unlock gradient covers with Premium →
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -514,7 +650,7 @@ function ImageUpload({ imageUrl, onImageChange }) {
 }
 
 // ── Card Config Modal ─────────────────────────────────────────────────────────
-function CardConfigModal({ statType, statValue, lists, memberName, members, boardLabels, onSave, onBack, onClose }) {
+function CardConfigModal({ statType, statValue, lists, memberName, members, boardLabels, isPremium, onSave, onBack, onClose, onUpgradeClick }) {
   const [cardName, setCardName] = useState(DEFAULT_NAMES[statType] || "");
   const [coverColor, setCoverColor] = useState(DEFAULT_COVER[statType] || "blue");
   const [coverImage, setCoverImage] = useState(null);
@@ -527,9 +663,8 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
   const [selectedLabels, setSelectedLabels] = useState([]);    // color names
   const [selectedLists, setSelectedLists] = useState([]);      // list ids
 
-  const resolvedCoverHex = coverImage
-    ? null
-    : COVER_COLORS.find((c) => c.id === coverColor)?.hex || "#0052cc";
+  // Solid color or gradient CSS background, depending on what's selected
+  const resolvedCoverBg = coverImage ? null : resolveCoverBackground(coverColor);
 
   const emoji = STAT_EMOJIS[statType] || "📌";
   const primary = PRIMARY_FILTER[statType];
@@ -848,7 +983,7 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
               {/* Cover with member badges */}
               <div
                 style={{
-                  background: coverImage ? "transparent" : resolvedCoverHex,
+                  background: coverImage ? "transparent" : resolvedCoverBg,
                   height: 78,
                   display: "flex",
                   alignItems: "flex-end",
@@ -952,6 +1087,8 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
               <ColorSwatchPicker
                 selected={coverImage ? null : coverColor}
                 onChange={(id) => { setCoverColor(id); setCoverImage(null); }}
+                isPremium={isPremium}
+                onUpgradeClick={onUpgradeClick}
               />
             </div>
 
@@ -1152,6 +1289,8 @@ export function CustomizeFlow({
   setCustomizeStat,
   onSave,
   onClose,
+  isPremium,      // true if the current user has premium access (gates gradient covers)
+  onUpgradeClick, // called when a free user clicks a locked gradient / upgrade prompt
 }) {
   if (!show) return null;
 
@@ -1172,9 +1311,11 @@ export function CustomizeFlow({
       memberName={memberName}
       members={members}
       boardLabels={boardLabels}
+      isPremium={isPremium}
       onSave={onSave}
       onBack={() => setCustomizeStat(null)}
       onClose={onClose}
+      onUpgradeClick={onUpgradeClick}
     />
   );
 }
