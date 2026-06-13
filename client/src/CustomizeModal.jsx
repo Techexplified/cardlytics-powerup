@@ -13,14 +13,20 @@ const COVER_COLORS = [
   { id: "black",  hex: "#374151", label: "Slate" },
 ];
 
-const LABEL_COLORS = {
-  red:    "#c0392b",
-  orange: "#e67e22",
-  yellow: "#e6a817",
-  green:  "#1a7a4a",
-  blue:   "#0052cc",
-  purple: "#7e57c2",
-  pink:   "#e91e8c",
+// Trello's label color name → display hex
+// Used as fallback when a board label has a color but no custom name.
+const TRELLO_LABEL_COLORS = {
+  red:       "#c0392b",
+  orange:    "#e67e22",
+  yellow:    "#e6a817",
+  green:     "#1a7a4a",
+  blue:      "#0052cc",
+  purple:    "#7e57c2",
+  pink:      "#e91e8c",
+  sky:       "#29b6f6",
+  lime:      "#51e898",
+  black:     "#374151",
+  null:      "#888888", // labels with no color
 };
 
 const STAT_EMOJIS = {
@@ -77,15 +83,8 @@ const DUE_OPTIONS = [
   { value: "custom", label: "Custom range…" },
 ];
 
-const LABEL_OPTIONS = [
-  { value: "red",    label: "Red" },
-  { value: "orange", label: "Orange" },
-  { value: "yellow", label: "Yellow" },
-  { value: "green",  label: "Green" },
-  { value: "blue",   label: "Blue" },
-  { value: "purple", label: "Purple" },
-  { value: "pink",   label: "Pink" },
-];
+// LABEL_OPTIONS is now built dynamically from the `boardLabels` prop.
+// Shape expected: [{ id, name, color }]  — same as Trello REST /boards/:id/labels
 
 // Which filter is shown first for each stat type
 const PRIMARY_FILTER = {
@@ -459,7 +458,7 @@ function ImageUpload({ imageUrl, onImageChange }) {
 }
 
 // ── Card Config Modal ─────────────────────────────────────────────────────────
-function CardConfigModal({ statType, statValue, lists, memberName, members, onSave, onBack, onClose }) {
+function CardConfigModal({ statType, statValue, lists, memberName, members, boardLabels, onSave, onBack, onClose }) {
   const [cardName, setCardName] = useState(DEFAULT_NAMES[statType] || "");
   const [coverColor, setCoverColor] = useState(DEFAULT_COVER[statType] || "blue");
   const [coverImage, setCoverImage] = useState(null);
@@ -538,7 +537,10 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, onSa
     return id === "me" ? (memberName ? memberName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) : "ME") : id;
   }
 
-  function labelChipLabel(v) {
+  function labelChipLabel(id) {
+    const lbl = (boardLabels || []).find((l) => l.id === id);
+    const hex = TRELLO_LABEL_COLORS[lbl?.color] || "#888";
+    const name = lbl?.name?.trim() || lbl?.color || id;
     return (
       <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
         <span
@@ -547,10 +549,11 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, onSa
             width: 8,
             height: 8,
             borderRadius: "50%",
-            background: LABEL_COLORS[v] || "#888",
+            background: hex,
+            flexShrink: 0,
           }}
         />
-        {v.charAt(0).toUpperCase() + v.slice(1)}
+        {name}
       </span>
     );
   }
@@ -559,25 +562,37 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, onSa
     return (lists || []).find((l) => l.id === id)?.name || id;
   }
 
-  // ── Label options with color dots ────────────────────────────────────────
-  const labelOptions = LABEL_OPTIONS.map((opt) => ({
-    ...opt,
-    render: () => (
-      <>
-        <span
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
-            background: LABEL_COLORS[opt.value],
-            display: "inline-block",
-            flexShrink: 0,
-          }}
-        />
-        <span>{opt.label}</span>
-      </>
-    ),
-  }));
+  // ── Label options built from real board labels ────────────────────────────
+  // boardLabels shape: [{ id, name, color }]  (Trello REST response)
+  // Falls back to a "no labels on this board" placeholder if empty.
+  const labelOptions = (boardLabels && boardLabels.length > 0
+    ? boardLabels
+    : []
+  ).map((lbl) => {
+    const hex = TRELLO_LABEL_COLORS[lbl.color] || "#888";
+    const displayName = lbl.name?.trim() || lbl.color || "Unnamed label";
+    return {
+      value: lbl.id,
+      label: displayName,
+      render: () => (
+        <>
+          <span
+            style={{
+              width: 28,
+              height: 14,
+              borderRadius: 3,
+              background: hex,
+              display: "inline-block",
+              flexShrink: 0,
+            }}
+          />
+          <span style={{ color: displayName === lbl.color ? "#888" : "#ccc" }}>
+            {displayName}
+          </span>
+        </>
+      ),
+    };
+  });
 
   const listOptions = (lists || []).map((l) => ({ value: l.id, label: l.name }));
 
@@ -992,7 +1007,8 @@ export function CustomizeFlow({
   lists,
   stats,
   memberName,
-  members,         // full member list: [{ id, fullName, avatarColor }]
+  members,       // [{ id, fullName, avatarColor }]
+  boardLabels,   // [{ id, name, color }]  — fetch via t.board("get", "labels")
   customizeStat,
   setCustomizeStat,
   onSave,
@@ -1016,6 +1032,7 @@ export function CustomizeFlow({
       lists={lists}
       memberName={memberName}
       members={members}
+      boardLabels={boardLabels}
       onSave={onSave}
       onBack={() => setCustomizeStat(null)}
       onClose={onClose}
