@@ -108,53 +108,37 @@ const PRIMARY_FILTER = {
 //   placeholder: string
 //   chipLabel: (value) => string | ReactNode   — label shown inside a chip
 //   footer?: ReactNode                         — extra content below options (e.g. date pickers)
-function MultiSelect({
-  options,
-  selected,
-  onChange,
-  placeholder,
-  chipLabel,
-  footer,
-}) {
+function MultiSelect({ options, selected, onChange, placeholder, chipLabel, footer }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef();
+  const wrapperRef = useRef();
   const triggerRef = useRef();
-  const dropdownRef = useRef();  // FIX #2: ref on the portal node
+  const dropdownRef = useRef();
   const [dropdownStyle, setDropdownStyle] = useState({});
 
-  // FIX #2: include dropdownRef in the outside-click check
   useEffect(() => {
     function handleClick(e) {
-      if (
-        ref.current && !ref.current.contains(e.target) &&
-        dropdownRef.current && !dropdownRef.current.contains(e.target)
-      ) {
-        setOpen(false);
-      }
+      const inTrigger = wrapperRef.current?.contains(e.target);
+      const inDropdown = dropdownRef.current?.contains(e.target);
+      if (!inTrigger && !inDropdown) setOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // FIX #1 + #3: recalc on scroll/resize too, and flip upward if near bottom
   useEffect(() => {
     function calcPosition() {
       if (!open || !triggerRef.current) return;
       const rect = triggerRef.current.getBoundingClientRect();
-      const dropdownHeight = 200;
       const spaceBelow = window.innerHeight - rect.bottom;
-
+      const dropdownHeight = 220;
       setDropdownStyle({
         position: "fixed",
-        top: spaceBelow > dropdownHeight
-          ? rect.bottom + 6
-          : rect.top - dropdownHeight - 6,  // flip upward
+        top: spaceBelow > dropdownHeight ? rect.bottom + 6 : rect.top - dropdownHeight - 6,
         left: rect.left,
         width: Math.max(rect.width, 180),
-        zIndex: 9999,
+        zIndex: 99999,
       });
     }
-
     calcPosition();
     window.addEventListener("scroll", calcPosition, true);
     window.addEventListener("resize", calcPosition);
@@ -165,138 +149,91 @@ function MultiSelect({
   }, [open]);
 
   function toggle(value) {
-    const next = selected.includes(value)
-      ? selected.filter((v) => v !== value)
-      : [...selected, value];
-    onChange(next);
+    onChange(
+      selected.includes(value)
+        ? selected.filter((v) => v !== value)
+        : [...selected, value]
+    );
   }
 
   return (
-    <div ref={ref} style={{ position: "relative", flex: 1 }}>
-      {/* Trigger */}
+    <div ref={wrapperRef} style={{ position: "relative", flex: 1 }}>
       <div
         ref={triggerRef}
         onClick={() => setOpen((o) => !o)}
         style={{
-          display: "flex",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 5,
+          display: "flex", alignItems: "center", flexWrap: "wrap", gap: 5,
           background: "#1e1e1e",
           border: `1px solid ${open ? "#555" : "#3a3a3a"}`,
-          borderRadius: 6,
-          padding: "5px 9px",
-          cursor: "pointer",
-          minHeight: 32,
+          borderRadius: 6, padding: "5px 9px", cursor: "pointer", minHeight: 32,
         }}
       >
         {selected.length === 0 ? (
           <span style={{ fontSize: 12, color: "#555" }}>{placeholder}</span>
         ) : (
           selected.map((v) => (
-            <span
-              key={v}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                background: "#2a2a2a",
-                border: "1px solid #3a3a3a",
-                borderRadius: 4,
-                padding: "1px 6px",
-                fontSize: 11,
-                color: "#d0d0d0",
-              }}
-            >
+            <span key={v} style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              background: "#2a2a2a", border: "1px solid #3a3a3a",
+              borderRadius: 4, padding: "1px 6px", fontSize: 11, color: "#d0d0d0",
+            }}>
               {chipLabel ? chipLabel(v) : v}
               <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggle(v);
-                }}
+                onClick={(e) => { e.stopPropagation(); toggle(v); }}
                 style={{ color: "#555", cursor: "pointer", fontSize: 10 }}
-              >
-                ✕
-              </span>
+              >✕</span>
             </span>
           ))
         )}
-        <span style={{ marginLeft: "auto", color: "#444", fontSize: 10 }}>
-          ▼
-        </span>
+        <span style={{ marginLeft: "auto", color: "#444", fontSize: 10 }}>▼</span>
       </div>
 
-      {/* Dropdown — rendered in a portal to escape overflow:hidden */}
-      {open &&
-        createPortal(
-          <div
-            ref={dropdownRef}  // FIX #2: attach ref here
-            style={{
-              ...dropdownStyle,
-              background: "#1a1a1a",
-              border: "1px solid #3a3a3a",
-              borderRadius: 8,
-              boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-              overflow: "hidden",
-              maxHeight: 200,
-              overflowY: "auto",
-            }}
-          >
-            {options.map((opt) => (
-              <div
-                key={opt.value}
-                onClick={() => toggle(opt.value)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "8px 12px",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  color: "#bbb",
-                  background: "transparent",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "#252525")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.background = "transparent")
-                }
-              >
-                <div
-                  style={{
-                    width: 15,
-                    height: 15,
-                    borderRadius: 3,
-                    border: selected.includes(opt.value)
-                      ? "1.5px solid #0052cc"
-                      : "1.5px solid #444",
-                    background: selected.includes(opt.value)
-                      ? "#0052cc"
-                      : "transparent",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    fontSize: 9,
-                    color: "#fff",
-                    fontWeight: 700,
-                  }}
-                >
-                  {selected.includes(opt.value) && "✓"}
-                </div>
-                {opt.render ? opt.render() : <span>{opt.label}</span>}
+      {open && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{
+            ...dropdownStyle,
+            background: "#1a1a1a",
+            border: "1px solid #3a3a3a",
+            borderRadius: 8,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+            maxHeight: 220,
+            overflowY: "auto",
+          }}
+        >
+          {options.map((opt) => (
+            <div
+              key={opt.value}
+              onClick={() => toggle(opt.value)}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "8px 12px", cursor: "pointer",
+                fontSize: 12, color: "#bbb", background: "transparent",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#252525")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <div style={{
+                width: 15, height: 15, borderRadius: 3, flexShrink: 0,
+                border: selected.includes(opt.value) ? "1.5px solid #0052cc" : "1.5px solid #444",
+                background: selected.includes(opt.value) ? "#0052cc" : "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 9, color: "#fff", fontWeight: 700,
+              }}>
+                {selected.includes(opt.value) && "✓"}
               </div>
-            ))}
-            {footer && (
-              <>
-                <div style={{ borderTop: "1px solid #2a2a2a" }} />
-                {footer}
-              </>
-            )}
-          </div>,
-          document.body
-        )}
+              {opt.render ? opt.render() : <span>{opt.label}</span>}
+            </div>
+          ))}
+          {footer && (
+            <>
+              <div style={{ borderTop: "1px solid #2a2a2a" }} />
+              {footer}
+            </>
+          )}
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -570,7 +507,10 @@ function CardConfigModal({
   const [coverImage, setCoverImage] = useState(null);
 
   // ── Multi-select filter state (all arrays now) ───────────────────────────
-  const [selectedDue, setSelectedDue] = useState([]); // e.g. ["1week", "overdue"]
+  const [selectedDue, setSelectedDue] = useState(
+  statType === "dueThisWeek" ? ["1week"] : 
+  statType === "overdue" ? ["overdue"] : []
+);// e.g. ["1week", "overdue"]
   const [customDateFrom, setCustomDateFrom] = useState("");
   const [customDateTo, setCustomDateTo] = useState("");
   const [selectedMembers, setSelectedMembers] = useState([]); // member ids
