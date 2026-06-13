@@ -894,6 +894,18 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
               </div>
             </div>
             <div style={{ fontSize: 10, color: "#555", textAlign: "center" }}>Preview</div>
+
+            {/* ── Active filters summary ── */}
+            <ActiveFiltersSummary
+              due={selectedDue}
+              members={selectedMembers}
+              labels={selectedLabels}
+              lists={selectedLists}
+              dueChipLabel={dueChipLabel}
+              memberChipLabel={memberChipLabel}
+              labelChipLabel={labelChipLabel}
+              listChipLabel={listChipLabel}
+            />
           </div>
 
           {/* Right: form (scrollable) */}
@@ -1034,6 +1046,75 @@ function SectionLabel({ children }) {
 
 function Divider() {
   return <div style={{ borderTop: "1px solid #2e2e2e" }} />;
+}
+
+// ── Active filters summary (shown under preview) ─────────────────────────────
+function ActiveFiltersSummary({ due, members, labels, lists, dueChipLabel, memberChipLabel, labelChipLabel, listChipLabel }) {
+  const groups = [
+    { key: "due", icon: "🕐", values: due, render: (v) => dueChipLabel(v) },
+    { key: "members", icon: "👤", values: members, render: (v) => memberChipLabel(v) },
+    { key: "labels", icon: "🏷", values: labels, render: (v) => labelChipLabel(v) },
+    { key: "lists", icon: "☰", values: lists, render: (v) => listChipLabel(v) },
+  ].filter((g) => g.values && g.values.length > 0);
+
+  if (groups.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        padding: "10px 10px",
+        background: "#1a1a1a",
+        border: "1px solid #2e2e2e",
+        borderRadius: 8,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 9,
+          fontWeight: 700,
+          color: "#666",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          marginBottom: 2,
+        }}
+      >
+        Active filters
+      </div>
+      {groups.map((g) => (
+        <div key={g.key} style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+          <span style={{ fontSize: 11, flexShrink: 0, lineHeight: "20px" }}>{g.icon}</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, flex: 1, minWidth: 0 }}>
+            {g.values.map((v) => (
+              <span
+                key={v}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  background: "#252525",
+                  border: "1px solid #3a3a3a",
+                  borderRadius: 4,
+                  padding: "2px 7px",
+                  fontSize: 11,
+                  color: "#ccc",
+                  lineHeight: "16px",
+                  maxWidth: "100%",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {g.render(v)}
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function FilterRow({ label, icon, children }) {
