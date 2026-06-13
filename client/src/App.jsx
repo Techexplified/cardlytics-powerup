@@ -1282,6 +1282,7 @@ export default function App() {
   const [trackingListName, setTrackingListName] = useState("");
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
+  const [boardMembers, setBoardMembers] = useState([]);
   const [showCustomize, setShowCustomize] = useState(false);
   const [scopeListId, setScopeListId] = useState("board");
   const [customizeStat, setCustomizeStat] = useState(null);
@@ -1455,6 +1456,13 @@ export default function App() {
       if (memberId) {
         const memberDetails = await getMemberDetails(key, tkn, memberId);
         setMemberFullName(memberDetails?.fullName || "");
+        const membersRes = await fetch(
+          `${TRELLO_BASE}/boards/${boardId}/members?key=${key}&token=${tkn}&fields=id,fullName,initials`,
+        );
+        if (membersRes.ok) {
+          const membersData = await membersRes.json();
+          setBoardMembers(membersData);
+        }
       }
 
       const computed = computeStats(filteredForStats, memberId);
@@ -1700,6 +1708,7 @@ export default function App() {
         lists={lists}
         stats={stats}
         memberName={memberFullName}
+        members={boardMembers}
         customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
         onSave={async (type, cfg) => {
