@@ -9,6 +9,7 @@ import {
   getBoardLists,
   createCard,
   createList,
+  applyFilters,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
@@ -307,13 +308,50 @@ function CardBackView() {
 
         for (const card of trackerCards) {
           const statMatch = card.desc?.match(
-            /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
+            /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
           );
           if (!statMatch) continue;
 
           const statType = statMatch[3];
-          const newCount = statCountMap[statType];
-          if (newCount === undefined) continue;
+          const filtersRaw = statMatch[4];
+
+          let cardFilters = null;
+          if (filtersRaw) {
+            try {
+              cardFilters = JSON.parse(decodeURIComponent(filtersRaw));
+            } catch (_) {}
+          }
+
+          const filteredForStat = cardFilters
+            ? applyFilters(filteredCards, cardFilters, memberId)
+            : filteredCards;
+
+          const now2 = new Date();
+          const weekFromNow2 = new Date(now2.getTime() + 7 * 86400000);
+          const fourteenAgo2 = new Date(now2.getTime() - 14 * 86400000);
+          const todayStart2 = new Date(now2);
+          todayStart2.setHours(0, 0, 0, 0);
+
+          const statFilterMap2 = {
+            assigned: (c) => c.idMembers?.includes(memberId),
+            dueThisWeek: (c) =>
+              c.due &&
+              new Date(c.due) >= now2 &&
+              new Date(c.due) <= weekFromNow2,
+            overdue: (c) => c.due && new Date(c.due) < now2 && !c.dueComplete,
+            unassigned: (c) => !c.idMembers || c.idMembers.length === 0,
+            withLabel: (c) => c.labels?.length > 0,
+            stale: (c) =>
+              c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo2,
+            createdToday: (c) =>
+              parseInt(c.id.substring(0, 8), 16) * 1000 >=
+              todayStart2.getTime(),
+          };
+
+          const statFn2 = statFilterMap2[statType];
+          const newCount = statFn2
+            ? filteredForStat.filter(statFn2).length
+            : filteredForStat.length;
 
           const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
           const oldCount = oldCountMatch ? parseInt(oldCountMatch[1]) : null;
@@ -408,12 +446,14 @@ function CardBackView() {
     if (!trelloT) return;
     trelloT.card("id", "idList", "name", "desc").then((card) => {
       const statMatch = card.desc?.match(
-        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
+        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
       );
 
       let statType = "all";
       let cardMode = "board";
       let resolvedListId = card.idList;
+
+      const filtersRaw = statMatch?.[4] ?? null; // ← move here, outside if
 
       if (statMatch) {
         cardMode = statMatch[1];
@@ -445,12 +485,11 @@ function CardBackView() {
       trelloT.board("id").then((board) => {
         trelloT.modal({
           title: "Cardlytics",
-          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}`,
+          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}${filtersRaw ? `&filters=${filtersRaw}` : ""}`,
           fullscreen: true,
         });
       });
     });
-  }
 
   function handleStartTracking() {
     if (!trelloT) return;
@@ -586,10 +625,24 @@ function CardDetailsView() {
           all: () => true,
         };
 
+        // Parse filters from URL or read from the tracker card desc
+        const filtersParam = params.get("filters");
+        let savedFilters = null;
+        if (filtersParam) {
+          try {
+            savedFilters = JSON.parse(decodeURIComponent(filtersParam));
+          } catch (_) {}
+        }
+
         const fn = filterMap[statType] || (() => true);
         const filteredCards = allCards
           .filter((c) => !isTrackerCard(c.name))
-          .filter(fn);
+          .filter(fn)
+          .filter((c) =>
+            savedFilters
+              ? applyFilters([c], savedFilters, mid).length > 0
+              : true,
+          );
 
         setCards(filteredCards);
         setDetailStats(computeDetailStats(filteredCards));
@@ -1326,13 +1379,51 @@ export default function App() {
 
       for (const card of trackerCards) {
         const statMatch = card.desc?.match(
-          /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)/,
+          /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
         );
         if (!statMatch) continue;
 
         const statType = statMatch[3];
-        const newCount = statCountMap[statType];
-        if (newCount === undefined) continue;
+        const filtersRaw = statMatch[4];
+
+        // Parse saved filters and apply them to get the real filtered count
+        let cardFilters = null;
+        if (filtersRaw) {
+          try {
+            cardFilters = JSON.parse(decodeURIComponent(filtersRaw));
+          } catch (_) {}
+        }
+
+        // Re-filter cards if this stat card has filters saved
+        const baseCards = filteredCards; // already excludes tracker cards
+        const filteredForStat = cardFilters
+          ? applyFilters(baseCards, cardFilters, memberId)
+          : baseCards;
+
+        // Now apply the stat-type filter on top of the user filters
+        const now = new Date();
+        const weekFromNow = new Date(now.getTime() + 7 * 86400000);
+        const fourteenAgo = new Date(now.getTime() - 14 * 86400000);
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
+
+        const statFilterMap = {
+          assigned: (c) => c.idMembers?.includes(memberId),
+          dueThisWeek: (c) =>
+            c.due && new Date(c.due) >= now && new Date(c.due) <= weekFromNow,
+          overdue: (c) => c.due && new Date(c.due) < now && !c.dueComplete,
+          unassigned: (c) => !c.idMembers || c.idMembers.length === 0,
+          withLabel: (c) => c.labels?.length > 0,
+          stale: (c) =>
+            c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
+          createdToday: (c) =>
+            parseInt(c.id.substring(0, 8), 16) * 1000 >= todayStart.getTime(),
+        };
+
+        const statFn = statFilterMap[statType];
+        const newCount = statFn
+          ? filteredForStat.filter(statFn).length
+          : filteredForStat.length;
 
         // Only update if count changed — avoids unnecessary uploads
         const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
@@ -1614,10 +1705,31 @@ export default function App() {
             !!saved?.coverImage,
           );
 
+          // Encode filters as compact JSON in the meta tag
+          const filterConfig = saved
+            ? {
+                due: saved.due || [],
+                members: saved.members || [],
+                labels: saved.labels || [],
+                lists: saved.lists || [],
+                customDateFrom: saved.customDateFrom || "",
+                customDateTo: saved.customDateTo || "",
+              }
+            : null;
+
+          const filterStr =
+            filterConfig &&
+            (filterConfig.due.length > 0 ||
+              filterConfig.members.length > 0 ||
+              filterConfig.labels.length > 0 ||
+              filterConfig.lists.length > 0)
+              ? `:filters:${encodeURIComponent(JSON.stringify(filterConfig))}`
+              : "";
+
           const metaTag =
             mode === "list" && listId
-              ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}`
-              : `\n\n[_]: cardlytics:mode:board:statType:${stat}`;
+              ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}${filterStr}`
+              : `\n\n[_]: cardlytics:mode:board:statType:${stat}${filterStr}`;
 
           const cardName = saved?.cardName || defaults.name;
           const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;

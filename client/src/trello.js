@@ -236,3 +236,64 @@ export async function createList(key, token, boardId, name) {
   if (!res.ok) throw new Error("Failed to create list");
   return res.json();
 }
+
+// ── Apply user-configured filters to a card array ─────────────────────────
+// filters shape (mirrors CardConfigModal onSave output):
+//   { due: string[], members: string[], labels: string[], lists: string[],
+//     customDateFrom: string, customDateTo: string }
+// memberId: the current user's Trello member ID (used to resolve "me")
+export function applyFilters(cards, filters, memberId) {
+  if (!filters) return cards;
+
+  const now = new Date();
+
+  return cards.filter((card) => {
+    // ── Due filter ────────────────────────────────────────────────────────
+    if (filters.due && filters.due.length > 0) {
+      const due = card.due ? new Date(card.due) : null;
+      const matches = filters.due.some((d) => {
+        if (d === "nodate")   return !due;
+        if (!due)             return false;
+        if (d === "overdue")  return due < now && !card.dueComplete;
+        if (d === "2days")    return due >= now && due <= new Date(now.getTime() + 2 * 86400000);
+        if (d === "1week")    return due >= now && due <= new Date(now.getTime() + 7 * 86400000);
+        if (d === "2weeks")   return due >= now && due <= new Date(now.getTime() + 14 * 86400000);
+        if (d === "1month")   return due >= now && due <= new Date(now.getTime() + 30 * 86400000);
+        if (d === "custom") {
+          const from = filters.customDateFrom ? new Date(filters.customDateFrom) : null;
+          const to   = filters.customDateTo   ? new Date(filters.customDateTo)   : null;
+          if (from && due < from) return false;
+          if (to   && due > to)   return false;
+          return true;
+        }
+        return false;
+      });
+      if (!matches) return false;
+    }
+
+    // ── Member / assigned filter ──────────────────────────────────────────
+    if (filters.members && filters.members.length > 0) {
+      // resolve "me" → real memberId
+      const resolvedIds = filters.members.map((id) =>
+        id === "me" ? memberId : id
+      );
+      const cardMembers = card.idMembers || [];
+      const hasMatch = resolvedIds.some((id) => cardMembers.includes(id));
+      if (!hasMatch) return false;
+    }
+
+    // ── Label filter (by label id) ────────────────────────────────────────
+    if (filters.labels && filters.labels.length > 0) {
+      const cardLabelIds = (card.labels || []).map((l) => l.id);
+      const hasMatch = filters.labels.some((id) => cardLabelIds.includes(id));
+      if (!hasMatch) return false;
+    }
+
+    // ── List filter ───────────────────────────────────────────────────────
+    if (filters.lists && filters.lists.length > 0) {
+      if (!filters.lists.includes(card.idList)) return false;
+    }
+
+    return true;
+  });
+}
