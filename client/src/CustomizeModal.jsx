@@ -142,16 +142,20 @@ function PortalDropdown({ anchorRef, open, children, portalRef }) {
     if (!anchorRef.current) return;
     function measure() {
       const r = anchorRef.current.getBoundingClientRect();
+      const scrollX = window.scrollX || window.pageXOffset;
+const scrollY = window.scrollY || window.pageYOffset;
       const spaceBelow = window.innerHeight - r.bottom - 8;
       const spaceAbove = r.top - 8;
       const maxH = 280;
       const up = spaceBelow < 140 && spaceAbove > spaceBelow;
       if (up) {
         const h = Math.min(maxH, Math.max(spaceAbove, 80));
-        setCoords({ top: r.top - h - 4, left: r.left, width: Math.max(r.width, 220), maxHeight: h, up: true });
+        setCoords({ top: r.top + scrollY - h - 4, left: r.left + scrollX, width: Math.max(r.width, 220), maxHeight: h, up: true });
       } else {
         const h = Math.min(maxH, Math.max(spaceBelow, 80));
-        setCoords({ top: r.bottom + 4, left: r.left, width: Math.max(r.width, 220), maxHeight: h, up: false });
+       setCoords({
+  top: r.bottom + scrollY + 4,
+  left: r.left + scrollX, width: Math.max(r.width, 220), maxHeight: h, up: false });
       }
     }
     measure();
@@ -164,11 +168,11 @@ function PortalDropdown({ anchorRef, open, children, portalRef }) {
   if (!open || !coords) return null;
   return createPortal(
     <div ref={portalRef} style={{
-      position:"fixed", top:coords.top, left:coords.left, width:coords.width,
+      position:"absolute", top:coords.top, left:coords.left, width:coords.width,
       background:"#1a1a1a", border:`1px solid ${T.border}`, borderRadius:10,
       zIndex:2147483647,
       boxShadow: coords.up ? "0 -6px 24px rgba(0,0,0,0.7)" : "0 6px 24px rgba(0,0,0,0.7)",
-      overflow:"hidden", maxHeight:coords.maxHeight, overflowY:"auto",
+      overflow:"visible", maxHeight:coords.maxHeight, overflowY:"auto",
       scrollbarWidth:"thin", scrollbarColor:`${T.border} transparent`,
     }}>
       {children}
@@ -399,14 +403,12 @@ function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, member
 // ── Add filter dropdown ───────────────────────────────────────────────────────
 function AddFilterDropdown({ activeKeys, onAdd, isPremium, onUpgradeClick }) {
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef();
-  const portalRef  = useRef();
-  const wrapRef    = useRef();
+  const wrapRef = useRef();
 
   useEffect(() => {
     if (!open) return;
     function onDown(e) {
-      if (wrapRef.current?.contains(e.target) || portalRef.current?.contains(e.target)) return;
+      if (wrapRef.current?.contains(e.target)) return;
       setOpen(false);
     }
     document.addEventListener("mousedown", onDown);
@@ -416,8 +418,8 @@ function AddFilterDropdown({ activeKeys, onAdd, isPremium, onUpgradeClick }) {
   const available = ADDABLE_FILTERS.filter(f => !activeKeys.includes(f.key));
 
   return (
-    <div ref={wrapRef}>
-      <button ref={triggerRef} onClick={() => setOpen(o=>!o)} style={{
+    <div ref={wrapRef} style={{ position:"relative" }}>
+      <button onClick={() => setOpen(o=>!o)} style={{
         fontSize:12, color: open ? T.accentHover : T.accent,
         background:"none", border:"none", cursor:"pointer",
         fontFamily:"'DM Sans',sans-serif", padding:0, display:"flex", alignItems:"center", gap:4,
@@ -425,40 +427,48 @@ function AddFilterDropdown({ activeKeys, onAdd, isPremium, onUpgradeClick }) {
       }}>
         <span style={{ fontSize:14, lineHeight:1 }}>+</span> Add filter
       </button>
-      <PortalDropdown anchorRef={triggerRef} open={open} portalRef={portalRef}>
-        <div style={{ padding:"8px 14px 6px", borderBottom:`1px solid ${T.border}` }}>
-          <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.08em" }}>
-            Add a filter
-          </span>
-        </div>
-        <div style={{ padding:"4px 0" }}>
-          {available.length === 0
-            ? <div style={{ padding:"12px 14px", fontSize:13, color:T.textMuted }}>All filters added</div>
-            : available.map((f) => (
-              <div key={f.key}
-                onClick={() => { if (f.premium && !isPremium) { onUpgradeClick?.(); return; } onAdd(f.key); setOpen(false); }}
-                style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 14px", cursor:"pointer", fontSize:13, color:"#b0bdd4", transition:"background 0.1s" }}
-                onMouseEnter={e => e.currentTarget.style.background="#2a2a2a"}
-                onMouseLeave={e => e.currentTarget.style.background="transparent"}
-              >
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <span style={{ fontSize:15, color:T.textMuted }}>{f.icon}</span>
-                  {f.label}
+
+      {open && (
+        <div style={{
+          position:"absolute", top:"calc(100% + 6px)", right:0,
+          width:220, background:T.bgDeep, border:`1px solid ${T.border}`,
+          borderRadius:10, zIndex:100,
+          boxShadow:"0 6px 24px rgba(0,0,0,0.7)",
+          overflow:"hidden",
+        }}>
+          <div style={{ padding:"8px 14px 6px", borderBottom:`1px solid ${T.border}` }}>
+            <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.08em" }}>
+              Add a filter
+            </span>
+          </div>
+          <div style={{ padding:"4px 0" }}>
+            {available.length === 0
+              ? <div style={{ padding:"12px 14px", fontSize:13, color:T.textMuted }}>All filters added</div>
+              : available.map((f) => (
+                <div key={f.key}
+                  onClick={() => { if (f.premium && !isPremium) { onUpgradeClick?.(); return; } onAdd(f.key); setOpen(false); }}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 14px", cursor:"pointer", fontSize:13, color:"#b0bdd4", transition:"background 0.1s" }}
+                  onMouseEnter={e => e.currentTarget.style.background="#2a2a2a"}
+                  onMouseLeave={e => e.currentTarget.style.background="transparent"}
+                >
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <span style={{ fontSize:15, color:T.textMuted }}>{f.icon}</span>
+                    {f.label}
+                  </div>
+                  {f.premium && (
+                    <span style={{ fontSize:9, fontWeight:700, color:"#c89a30", background:"#2e2200", borderRadius:4, padding:"2px 7px", textTransform:"uppercase", letterSpacing:"0.05em" }}>
+                      Premium
+                    </span>
+                  )}
                 </div>
-                {f.premium && (
-                  <span style={{ fontSize:9, fontWeight:700, color:"#c89a30", background:"#2e2200", borderRadius:4, padding:"2px 7px", textTransform:"uppercase", letterSpacing:"0.05em" }}>
-                    Premium
-                  </span>
-                )}
-              </div>
-            ))
-          }
+              ))
+            }
+          </div>
         </div>
-      </PortalDropdown>
+      )}
     </div>
   );
 }
-
 // ── Left sidebar active filters summary ───────────────────────────────────────
 function ActiveFiltersSummary({ activeFilters, filterValues, lists, members, boardLabels }) {
   const active = activeFilters.filter(k => (filterValues[k]||[]).length > 0);
@@ -628,7 +638,7 @@ function StatPicker({ onSelect, onClose }) {
 }
 
 // ── Card config modal (step 2) ────────────────────────────────────────────────
-function CardConfigModal({ statType, statValue, lists, memberName, members, boardLabels, isPremium, computeFilteredCount, onSave, onBack, onClose, onUpgradeClick }) {
+function CardConfigModal({ statType, statValue, lists, memberName, members, boardLabels, isPremium, computeFilteredCount, onSave, onBack, onClose, onUpgradeClick, boardName, workspaceBoards = [] }){
   const [activeTab,          setActiveTab]          = useState("filters");
   const [cardName,           setCardName]           = useState(DEFAULT_NAMES[statType]||"");
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
@@ -637,6 +647,8 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
   const [alertOn,            setAlertOn]            = useState(true);
   const [boardScope,         setBoardScope]         = useState("this");
   const [memberScope,        setMemberScope]        = useState("me");
+  const [boardDropOpen, setBoardDropOpen] = useState(false);
+const boardDropRef = useRef();
 
   const [activeFilters, setActiveFilters] = useState(() => DEFAULT_FILTERS[statType] || ["due"]);
   const [filterValues,  setFilterValues]  = useState({ due:[], member:[], label:[], list:[], status:[], activity:[], unassigned:[] });
@@ -800,20 +812,53 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
                 <div>
                   <SectionLabel>Scope</SectionLabel>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
-                    {[
-                      { lbl:"Board", val:boardScope, set:setBoardScope, opts:[{v:"this",l:"This board"},{v:"all",l:"All boards"}] },
-                      { lbl:"Member", val:memberScope, set:setMemberScope, opts:[{v:"me",l:`Me (${memberName?memberName.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2):"SB"})`},{v:"anyone",l:"Anyone"}] },
-                    ].map(({ lbl,val,set,opts }) => (
-                      <div key={lbl}>
-                        <div style={{ fontSize:11, color:T.textMuted, marginBottom:5 }}>{lbl}</div>
-                        <div style={{ position:"relative" }}>
-                          <select value={val} onChange={e=>set(e.target.value)} style={selectStyle}>
-                            {opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
-                          </select>
-                          <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:10, color:T.textMuted, pointerEvents:"none" }}>▾</span>
-                        </div>
-                      </div>
-                    ))}
+                   <div>
+  <div style={{ fontSize:11, color:T.textMuted, marginBottom:5 }}>Board</div>
+  <div ref={boardDropRef} style={{ position:"relative" }}>
+    <div
+      onClick={() => setBoardDropOpen(o=>!o)}
+      style={{ ...selectStyle, display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer", userSelect:"none" }}
+    >
+      <span>{boardScope === "this" ? (boardName || "This board") : (workspaceBoards.find(b=>b.id===boardScope)?.name || "All boards")}</span>
+      <span style={{ fontSize:10, color:T.textMuted }}>{boardDropOpen?"▴":"▾"}</span>
+    </div>
+    {boardDropOpen && (
+      <div style={{
+        position:"absolute", top:"calc(100% + 4px)", left:0, right:0,
+        background:T.bgDeep, border:`1px solid ${T.accent}`,
+        borderRadius:6, zIndex:200, overflow:"hidden",
+        boxShadow:"0 6px 20px rgba(0,0,0,0.5)",
+      }}>
+        {[
+          { v:"this", l: boardName || "This board" },
+          { v:"all",  l: "All boards" },
+          ...workspaceBoards.map(b => ({ v:b.id, l:b.name })),
+        ].map(opt => (
+          <div key={opt.v}
+            onClick={() => { setBoardScope(opt.v); setBoardDropOpen(false); }}
+            style={{
+              padding:"8px 12px", fontSize:12, cursor:"pointer",
+              background: boardScope===opt.v ? "#1a3a6a" : "transparent",
+              color: boardScope===opt.v ? "#fff" : T.textSub,
+            }}
+            onMouseEnter={e => e.currentTarget.style.background="#2a2a2a"}
+            onMouseLeave={e => e.currentTarget.style.background=boardScope===opt.v?"#1a3a6a":"transparent"}
+          >{opt.l}</div>
+        ))}
+      </div>
+    )}
+  </div>
+</div>
+<div>
+  <div style={{ fontSize:11, color:T.textMuted, marginBottom:5 }}>Member</div>
+  <div style={{ position:"relative" }}>
+    <select value={memberScope} onChange={e=>setMemberScope(e.target.value)} style={selectStyle}>
+      <option value="me">Me ({memberName?memberName.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2):"SB"})</option>
+      <option value="anyone">Anyone</option>
+    </select>
+    <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:10, color:T.textMuted, pointerEvents:"none" }}>▾</span>
+  </div>
+</div>
                   </div>
                 </div>
 
@@ -962,15 +1007,16 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function CustomizeFlow({ show, lists, stats, memberName, members, boardLabels, customizeStat, setCustomizeStat, onSave, onClose, isPremium, onUpgradeClick, computeFilteredCount }) {
+export function CustomizeFlow({ show, lists, stats, memberName, members, boardLabels, customizeStat, setCustomizeStat, onSave, onClose, isPremium, onUpgradeClick, computeFilteredCount, boardName, workspaceBoards }){
   if (!show) return null;
   if (!customizeStat) return <StatPicker onSelect={type=>setCustomizeStat(type)} onClose={onClose} />;
   return (
     <CardConfigModal
-      statType={customizeStat} statValue={stats?.[customizeStat]??0}
-      lists={lists} memberName={memberName} members={members} boardLabels={boardLabels}
-      isPremium={isPremium} computeFilteredCount={computeFilteredCount}
-      onSave={onSave} onBack={()=>setCustomizeStat(null)} onClose={onClose} onUpgradeClick={onUpgradeClick}
-    />
+  statType={customizeStat} statValue={stats?.[customizeStat]??0}
+  lists={lists} memberName={memberName} members={members} boardLabels={boardLabels}
+  isPremium={isPremium} computeFilteredCount={computeFilteredCount}
+  onSave={onSave} onBack={()=>setCustomizeStat(null)} onClose={onClose} onUpgradeClick={onUpgradeClick}
+  boardName={boardName} workspaceBoards={workspaceBoards}
+/>
   );
 }
