@@ -1504,7 +1504,6 @@ export default function App() {
         statsToTrack.map(async (stat) => {
           const defaults = DEFAULT_STAT_CONFIG[stat];
           const saved = configToUse[stat];
-          const count = stats[stat];
 
           const filterConfig = saved
             ? {
@@ -1516,6 +1515,14 @@ export default function App() {
                 customDateTo: saved.customDateTo || "",
               }
             : null;
+
+          const count = filterConfig
+            ? (() => {
+                const base = applyFilters(boardCards, filterConfig, currentMemberId);
+                const statFn = buildStatFilterMap(currentMemberId, null)[stat];
+                return statFn ? base.filter(statFn).length : base.length;
+              })()
+            : stats[stat];
 
           // FIX #7: also include filterStr when only customDate range is set
           const hasActiveFilters =
@@ -1715,7 +1722,7 @@ export default function App() {
               borderRadius: 6,
             }}
           >
-            <option value="board">Through the board</option>
+            <option value="board">Throughout the board</option>
             {lists
               .filter((l) => l.name.toLowerCase() !== "cardlytics")
               .map((l) => (
