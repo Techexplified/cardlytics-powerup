@@ -1310,6 +1310,7 @@ export default function App() {
   const [cardConfig, setCardConfig] = useState({});
   const [isTracking, setIsTracking] = useState(false);
   const [boardCards, setBoardCards] = useState([]);
+  const [allBoardCards, setAllBoardCards] = useState([]);
   const [currentMemberId, setCurrentMemberId] = useState(null);
 
   // FIX #9: track current scopeListId in a ref so the setInterval closure
@@ -1346,25 +1347,35 @@ export default function App() {
 
       // FIX #9: use ref so interval calls always get the current scope
       const resolvedScope = overrideScope ?? scopeListIdRef.current;
-      const activeScope = resolvedScope !== "board" ? resolvedScope : null;
-      const cards =
-        mode === "list" && listId
-          ? await getListCards(key, tkn, listId)
-          : activeScope
-            ? await getListCards(key, tkn, activeScope)
-            : await getBoardCards(key, tkn, boardId);
+const activeScope = resolvedScope !== "board" ? resolvedScope : null;
 
-      // FIX #4: fetch lists once and reuse — removed second getBoardLists call
-      const allLists = await getBoardLists(key, tkn, boardId);
-      const cardlyticsListIds = allLists
-        .filter((l) => l.name.toLowerCase() === "cardlytics")
-        .map((l) => l.id);
+// Fetch full board cards once — reused for both stats scope and customize preview
+const fullBoardCards = await getBoardCards(key, tkn, boardId);
 
-      const filteredForStats = cards.filter(
-        (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
-      );
-      const memberId = await getMemberId(key, tkn);
-      setCurrentMemberId(memberId);
+const cards =
+  mode === "list" && listId
+    ? await getListCards(key, tkn, listId)
+    : activeScope
+      ? await getListCards(key, tkn, activeScope)
+      : fullBoardCards; // ✅ reuse instead of fetching again
+
+const allLists = await getBoardLists(key, tkn, boardId);
+const cardlyticsListIds = allLists
+  .filter((l) => l.name.toLowerCase() === "cardlytics")
+  .map((l) => l.id);
+
+const filteredForStats = cards.filter(
+  (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
+);
+const memberId = await getMemberId(key, tkn);
+setCurrentMemberId(memberId);
+
+// Full board cards for customize preview — already fetched above, no extra call
+const fullFiltered = fullBoardCards.filter(
+  (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
+);
+setAllBoardCards(fullFiltered);
+
 
       if (trelloT) {
         trelloT
@@ -1518,7 +1529,11 @@ export default function App() {
 
           const count = filterConfig
             ? (() => {
-                const base = applyFilters(boardCards, filterConfig, currentMemberId);
+                const base = applyFilters(
+                  allBoardCards,
+                  filterConfig,
+                  currentMemberId,
+                );
                 const statFn = buildStatFilterMap(currentMemberId, null)[stat];
                 return statFn ? base.filter(statFn).length : base.length;
               })()
@@ -1636,7 +1651,7 @@ export default function App() {
           setCustomizeStat(null);
         }}
         computeFilteredCount={(statType, filters) => {
-          const base = applyFilters(boardCards, filters, currentMemberId);
+          const base = applyFilters(allBoardCards, filters, currentMemberId);
           const statFn = buildStatFilterMap(currentMemberId, null)[statType];
           return statFn ? base.filter(statFn).length : base.length;
         }}
