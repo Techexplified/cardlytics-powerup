@@ -618,6 +618,7 @@ function StatPicker({ onSelect, onClose }) {
       </div>
     </div>
   );
+}
 // ── ColorSwatchPicker ─────────────────────────────────────────────────────────
 function ColorSwatchPicker({ selected, onChange, isPremium, onUpgradeClick }) {
   return (
