@@ -46,11 +46,13 @@ export async function getListCards(key, token, listId) {
 // ── Exported so App.jsx can use the same week boundaries everywhere ───────────
 export function getWeekBounds(now) {
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfWeek = new Date(startOfDay);
-  startOfWeek.setDate(startOfDay.getDate() - startOfDay.getDay()); // back to Sunday
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 7); // next Sunday (exclusive)
-  return { startOfDay, startOfWeek, endOfWeek };
+
+  // "this week" = from start of today through the end of the upcoming Sunday
+  const endOfWeek = new Date(startOfDay);
+  const daysUntilSunday = 7 - startOfDay.getDay(); // 0=Sun gives 7, 1=Mon gives 6, etc.
+  endOfWeek.setDate(startOfDay.getDate() + daysUntilSunday);
+
+  return { startOfDay, startOfWeek: startOfDay, endOfWeek };
 }
 
 export function computeStats(cards, memberId) {
