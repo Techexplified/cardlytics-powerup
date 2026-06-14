@@ -167,12 +167,16 @@ function PortalDropdown({ anchorRef, open, children }) {
 
     function measure() {
       const rect = anchorRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const dropdownEstHeight = 280;
-      const top = spaceBelow < dropdownEstHeight
-        ? rect.top - dropdownEstHeight - 4
-        : rect.bottom + 4;
-      setCoords({ top, left: rect.left, width: rect.width });
+      // Always open downward — clamp so it never goes off the bottom of the screen
+      const maxHeight = 260;
+      const spaceBelow = window.innerHeight - rect.bottom - 8;
+      const clampedHeight = Math.min(maxHeight, Math.max(spaceBelow, 120));
+      setCoords({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        maxHeight: clampedHeight,
+      });
     }
 
     measure();
@@ -193,14 +197,17 @@ function PortalDropdown({ anchorRef, open, children }) {
         top: coords.top,
         left: coords.left,
         width: coords.width,
-        background: "#1a1a1a",
+        background: "#1e1e1e",
         border: "1px solid #3a3a3a",
         borderRadius: 8,
         zIndex: 9999,
-        boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
         overflow: "hidden",
-        maxHeight: 280,
+        maxHeight: coords.maxHeight || 260,
         overflowY: "auto",
+        // Smooth scrollbar styling
+        scrollbarWidth: "thin",
+        scrollbarColor: "#3a3a3a transparent",
       }}
     >
       {children}
