@@ -116,8 +116,6 @@ const PRIMARY_FILTER = {
 };
 
 // ── Smart name derivation ─────────────────────────────────────────────────────
-// Auto-generates a preview card name from active filters when user hasn't
-// manually typed a custom name.
 function deriveSmartName(statType, due, members, labels, lists, memberName, boardLabels, listData, membersData) {
   const parts = [];
 
@@ -129,13 +127,12 @@ function deriveSmartName(statType, due, members, labels, lists, memberName, boar
   }
 
   if (members.length === 1) {
-    // Look up real member object to get their actual name — never slice raw ID
     const memberObj = (membersData || []).find((m) => m.id === members[0]);
     const displayName = memberObj
       ? memberObj.fullName.split(" ")[0]
       : members[0] === "me" && memberName
         ? memberName.split(" ")[0]
-        : null; // unknown id — skip rather than leak raw id
+        : null;
     if (displayName) parts.push(`· ${displayName}`);
   } else if (members.length > 1) {
     parts.push(`· ${members.length} members`);
@@ -159,7 +156,7 @@ function deriveSmartName(statType, due, members, labels, lists, memberName, boar
 }
 
 // ── Portal dropdown ───────────────────────────────────────────────────────────
-function PortalDropdown({ anchorRef, open, children }) {
+function PortalDropdown({ anchorRef, open, children, portalRef }) {
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
@@ -167,7 +164,6 @@ function PortalDropdown({ anchorRef, open, children }) {
 
     function measure() {
       const rect = anchorRef.current.getBoundingClientRect();
-      // Always open downward — clamp so it never goes off the bottom of the screen
       const maxHeight = 260;
       const spaceBelow = window.innerHeight - rect.bottom - 8;
       const clampedHeight = Math.min(maxHeight, Math.max(spaceBelow, 120));
@@ -192,6 +188,7 @@ function PortalDropdown({ anchorRef, open, children }) {
 
   return createPortal(
     <div
+      ref={portalRef}
       style={{
         position: "fixed",
         top: coords.top,
@@ -205,7 +202,6 @@ function PortalDropdown({ anchorRef, open, children }) {
         overflow: "hidden",
         maxHeight: coords.maxHeight || 260,
         overflowY: "auto",
-        // Smooth scrollbar styling
         scrollbarWidth: "thin",
         scrollbarColor: "#3a3a3a transparent",
       }}
@@ -221,14 +217,14 @@ function MultiSelect({ options, selected, onChange, placeholder, chipLabel, foot
   const [open, setOpen] = useState(false);
   const triggerRef = useRef();
   const containerRef = useRef();
+  const portalRef = useRef();   // unique ref per instance — fixes shared-id bug
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e) {
-      const portalEl = document.getElementById("ms-portal-open");
       if (
         containerRef.current?.contains(e.target) ||
-        portalEl?.contains(e.target)
+        portalRef.current?.contains(e.target)   // use ref instead of getElementById
       ) return;
       setOpen(false);
     }
@@ -294,8 +290,8 @@ function MultiSelect({ options, selected, onChange, placeholder, chipLabel, foot
         </span>
       </div>
 
-      <PortalDropdown anchorRef={triggerRef} open={open}>
-        <div id={open ? "ms-portal-open" : undefined}>
+      <PortalDropdown anchorRef={triggerRef} open={open} portalRef={portalRef}>
+        <div>
           {options.map((opt) => (
             <div
               key={opt.value}
@@ -593,8 +589,6 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
   const [selectedLists, setSelectedLists] = useState([]);
 
   // ── Save-filters state ───────────────────────────────────────────────────
-  // savedFilters: null = unsaved, object = last saved snapshot
-  // filtersDirty: true when filters changed since last save
   const [savedFilters, setSavedFilters] = useState(null);
   const [filtersDirty, setFiltersDirty] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -605,7 +599,7 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
   function setLabels(v)   { setSelectedLabels(v);    setFiltersDirty(true); setJustSaved(false); }
   function setListsSel(v) { setSelectedLists(v);     setFiltersDirty(true); setJustSaved(false); }
 
-  // ── Derived name: auto-updates in preview unless user typed custom name ──
+  // ── Derived name ─────────────────────────────────────────────────────────
   const smartName = deriveSmartName(
     statType, selectedDue, selectedMembers, selectedLabels,
     selectedLists, memberName, boardLabels, lists, members
@@ -614,7 +608,7 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
 
   const resolvedCoverBg = coverImage ? null : resolveCoverBackground(coverColor);
 
-  // Live filtered count — recomputes whenever filters change
+  // Live filtered count
   const liveCount = computeFilteredCount
     ? computeFilteredCount(statType, {
         due: selectedDue,
@@ -736,14 +730,13 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
     setSavedFilters(snapshot);
     setFiltersDirty(false);
     setJustSaved(true);
-    // Auto-update card name from smart name if user hasn't typed one
     if (!nameManuallyEdited) {
       setCardName(smartName);
     }
     setTimeout(() => setJustSaved(false), 2000);
   }
 
-  // ── Final save (Start tracking) ──────────────────────────────────────────
+  // ── Final save ───────────────────────────────────────────────────────────
   function handleSave() {
     const filters = savedFilters || {
       due: selectedDue, members: selectedMembers,
@@ -896,7 +889,7 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
                 </div>
                 <MemberBadges memberIds={selectedMembers} allMembers={members} />
               </div>
-              {/* Card name in preview — updates live from filters */}
+              {/* Card name in preview */}
               <div style={{ padding: "8px 10px" }}>
                 <div style={{
                   fontSize: 11, fontWeight: 600, color: "#ccc",
@@ -1096,7 +1089,7 @@ function Divider() {
   return <div style={{ borderTop: "1px solid #2e2e2e" }} />;
 }
 
-// ── Active filters summary (shown under preview) ─────────────────────────────
+// ── Active filters summary ────────────────────────────────────────────────────
 function ActiveFiltersSummary({ due, members, labels, lists, dueChipLabel, memberChipLabel, labelChipLabel, listChipLabel }) {
   const groups = [
     { key: "due",     icon: "🕐", values: due,     render: (v) => dueChipLabel(v) },
@@ -1165,15 +1158,15 @@ export function CustomizeFlow({
   lists,
   stats,
   memberName,
-  members,              // [{ id, fullName, avatarColor }]
-  boardLabels,          // [{ id, name, color }]  — fetch via t.board("get", "labels")
+  members,
+  boardLabels,
   customizeStat,
   setCustomizeStat,
   onSave,
   onClose,
-  isPremium,            // true if the current user has premium access (gates gradient covers)
-  onUpgradeClick,       // called when a free user clicks a locked gradient / upgrade prompt
-  computeFilteredCount, // (statType, filters) => number — live count from parent
+  isPremium,
+  onUpgradeClick,
+  computeFilteredCount,
 }) {
   if (!show) return null;
 
