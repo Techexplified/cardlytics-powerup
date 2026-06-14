@@ -157,25 +157,45 @@ function deriveSmartName(statType, due, members, labels, lists, memberName, boar
 
 // ── Portal dropdown ───────────────────────────────────────────────────────────
 function PortalDropdown({ anchorRef, open, children, portalRef }) {
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+  const [coords, setCoords] = useState(null);
 
   useEffect(() => {
-    if (!open || !anchorRef.current) return;
+    if (!anchorRef.current) return;
 
     function measure() {
       const rect = anchorRef.current.getBoundingClientRect();
       const maxHeight = 260;
       const spaceBelow = window.innerHeight - rect.bottom - 8;
-      const clampedHeight = Math.min(maxHeight, Math.max(spaceBelow, 120));
-      setCoords({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-        maxHeight: clampedHeight,
-      });
+      const spaceAbove = rect.top - 8;
+
+      // Flip upward when not enough space below
+      const openUpward = spaceBelow < 140 && spaceAbove > spaceBelow;
+
+      if (openUpward) {
+        const clampedHeight = Math.min(maxHeight, Math.max(spaceAbove, 80));
+        setCoords({
+          top: rect.top - clampedHeight - 4,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: clampedHeight,
+          openUpward: true,
+        });
+      } else {
+        const clampedHeight = Math.min(maxHeight, Math.max(spaceBelow, 80));
+        setCoords({
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: clampedHeight,
+          openUpward: false,
+        });
+      }
     }
 
+    // Measure immediately (even when closed) so coords are ready on open
     measure();
+
+    if (!open) return;
     window.addEventListener("scroll", measure, true);
     window.addEventListener("resize", measure);
     return () => {
@@ -184,7 +204,7 @@ function PortalDropdown({ anchorRef, open, children, portalRef }) {
     };
   }, [open, anchorRef]);
 
-  if (!open) return null;
+  if (!open || !coords) return null;
 
   return createPortal(
     <div
@@ -197,10 +217,13 @@ function PortalDropdown({ anchorRef, open, children, portalRef }) {
         background: "#1e1e1e",
         border: "1px solid #3a3a3a",
         borderRadius: 8,
-        zIndex: 9999,
-        boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+        // Max possible z-index to always render above Trello's modal stack
+        zIndex: 2147483647,
+        boxShadow: coords.openUpward
+          ? "0 -4px 20px rgba(0,0,0,0.6)"
+          : "0 4px 20px rgba(0,0,0,0.6)",
         overflow: "hidden",
-        maxHeight: coords.maxHeight || 260,
+        maxHeight: coords.maxHeight,
         overflowY: "auto",
         scrollbarWidth: "thin",
         scrollbarColor: "#3a3a3a transparent",
