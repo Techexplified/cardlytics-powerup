@@ -315,3 +315,57 @@ export function applyFilters(cards, filters, memberId) {
     return true;
   });
 }
+
+// ── Workspace boards (for Board scope dropdown) ──────────────────────────────
+export async function getWorkspaceBoards(key, token) {
+  const res = await fetch(
+    `${BASE}/members/me/boards?${buildAuth(key, token)}&fields=id,name&filter=open`,
+  );
+  if (!res.ok) return [];
+  return res.json(); // [{ id, name }, ...]
+}
+
+export async function getBoardMembers(key, token, boardId) {
+  const res = await fetch(
+    `${BASE}/boards/${boardId}/members?${buildAuth(key, token)}&fields=id,fullName,initials`,
+  );
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function getBoardLabels(key, token, boardId) {
+  const res = await fetch(
+    `${BASE}/boards/${boardId}/labels?${buildAuth(key, token)}&fields=id,name,color&limit=200`,
+  );
+  if (!res.ok) return [];
+  return res.json();
+}
+
+function dedupeById(arr) {
+  const seen = new Set();
+  return arr.filter((x) => x?.id && !seen.has(x.id) && seen.add(x.id));
+}
+
+// ── Fetch lists/members/labels scoped to a board, or merged across all boards ─
+// targetBoardId === null  ->  merge across every board in `boards`
+export async function getBoardScopedData(key, token, targetBoardId, boards = []) {
+  if (targetBoardId === null) {
+    const results = await Promise.all(
+      boards.map((b) => getBoardScopedData(key, token, b.id, boards)),
+    );
+    return {
+      lists: results.flatMap((r, i) =>
+        r.lists.map((l) => ({ ...l, name: `${boards[i].name}: ${l.name}` })),
+      ),
+      members: dedupeById(results.flatMap((r) => r.members)),
+      boardLabels: dedupeById(results.flatMap((r) => r.boardLabels)),
+    };
+  }
+
+  const [lists, members, boardLabels] = await Promise.all([
+    getBoardLists(key, token, targetBoardId),
+    getBoardMembers(key, token, targetBoardId),
+    getBoardLabels(key, token, targetBoardId),
+  ]);
+  return { lists, members, boardLabels };
+}

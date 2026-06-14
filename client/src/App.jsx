@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
+   getBoard,  
   getBoardCards,
   computeStats,
   computeDetailStats,
@@ -7,10 +8,13 @@ import {
   getMemberDetails,
   getListCards,
   getBoardLists,
+   getBoardLabels,
   createCard,
   createList,
   applyFilters,
   getWeekBounds, // FIX #3: imported so dueThisWeek is consistent everywhere
+  getWorkspaceBoards,      // ← new
+  getBoardScopedData,  
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
@@ -1312,6 +1316,9 @@ export default function App() {
   const [boardCards, setBoardCards] = useState([]);
   const [allBoardCards, setAllBoardCards] = useState([]);
   const [currentMemberId, setCurrentMemberId] = useState(null);
+  const [boardLabels, setBoardLabels] = useState([]);
+const [currentBoardId, setCurrentBoardId] = useState(null);
+const [currentBoardName, setCurrentBoardName] = useState("");
 
   // FIX #9: track current scopeListId in a ref so the setInterval closure
   // always reads the latest value instead of the stale initial one
@@ -1344,6 +1351,7 @@ export default function App() {
         ? (await trelloT.board("id")).id
         : new URLSearchParams(window.location.search).get("boardId");
       if (!boardId) return;
+      setCurrentBoardId(boardId);
 
       // FIX #9: use ref so interval calls always get the current scope
       const resolvedScope = overrideScope ?? scopeListIdRef.current;
@@ -1394,6 +1402,11 @@ setAllBoardCards(fullFiltered);
           setBoardMembers(membersData);
         }
       }
+      const boardInfo = await getBoard(key, tkn, boardId);
+setCurrentBoardName(boardInfo?.name || "");
+
+const labels = await getBoardLabels(key, tkn, boardId);
+setBoardLabels(labels);
 
       const computed = computeStats(filteredForStats, memberId);
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
@@ -1631,32 +1644,44 @@ setAllBoardCards(fullFiltered);
     <div className="popup">
       <Toast toast={toast} />
 
-      <CustomizeFlow
-        show={showCustomize}
-        lists={lists}
-        stats={stats}
-        memberName={memberFullName}
-        members={boardMembers}
-        customizeStat={customizeStat}
-        setCustomizeStat={setCustomizeStat}
-        onSave={async (type, cfg) => {
-          const newConfig = { ...cardConfig, [type]: cfg };
-          setCardConfig(newConfig);
-          setShowCustomize(false);
-          setCustomizeStat(null);
-          await handleTrack([type], newConfig);
-        }}
-        onClose={() => {
-          setShowCustomize(false);
-          setCustomizeStat(null);
-        }}
-        computeFilteredCount={(statType, filters) => {
-          const base = applyFilters(allBoardCards, filters, currentMemberId);
-          const statFn = buildStatFilterMap(currentMemberId, null)[statType];
-          return statFn ? base.filter(statFn).length : base.length;
-        }}
-      />
-
+     <CustomizeFlow
+  show={showCustomize}
+  lists={lists}
+  stats={stats}
+  memberName={memberFullName}
+  members={boardMembers}
+  boardLabels={boardLabels}
+  customizeStat={customizeStat}
+  setCustomizeStat={setCustomizeStat}
+  onSave={async (type, cfg) => {
+    const newConfig = { ...cardConfig, [type]: cfg };
+    setCardConfig(newConfig);
+    setShowCustomize(false);
+    setCustomizeStat(null);
+    await handleTrack([type], newConfig);
+  }}
+  onClose={() => {
+    setShowCustomize(false);
+    setCustomizeStat(null);
+  }}
+  computeFilteredCount={(statType, filters) => {
+    const base = applyFilters(allBoardCards, filters, currentMemberId);
+    const statFn = buildStatFilterMap(currentMemberId, null)[statType];
+    return statFn ? base.filter(statFn).length : base.length;
+  }}
+  boardId={currentBoardId}
+  boardName={currentBoardName}
+  fetchWorkspaceBoards={async () => {
+    const key = TRELLO_API_KEY;
+    const tkn = getStoredToken();
+    return getWorkspaceBoards(key, tkn);
+  }}
+  fetchBoardScopedData={async (targetBoardId, boards) => {
+    const key = TRELLO_API_KEY;
+    const tkn = getStoredToken();
+    return getBoardScopedData(key, tkn, targetBoardId, boards);
+  }}
+/>
       <div
         className="header"
         style={{
