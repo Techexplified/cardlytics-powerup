@@ -118,7 +118,7 @@ const PRIMARY_FILTER = {
 // ── Smart name derivation ─────────────────────────────────────────────────────
 // Auto-generates a preview card name from active filters when user hasn't
 // manually typed a custom name.
-function deriveSmartName(statType, due, members, labels, lists, memberName, boardLabels, listData) {
+function deriveSmartName(statType, due, members, labels, lists, memberName, boardLabels, listData, membersData) {
   const parts = [];
 
   if (due.length === 1 && due[0] !== "custom") {
@@ -129,10 +129,14 @@ function deriveSmartName(statType, due, members, labels, lists, memberName, boar
   }
 
   if (members.length === 1) {
-    const found = (memberName && members[0] === "me")
-      ? memberName.split(" ")[0]
-      : members[0].slice(0, 8);
-    parts.push(`· ${found}`);
+    // Look up real member object to get their actual name — never slice raw ID
+    const memberObj = (membersData || []).find((m) => m.id === members[0]);
+    const displayName = memberObj
+      ? memberObj.fullName.split(" ")[0]
+      : members[0] === "me" && memberName
+        ? memberName.split(" ")[0]
+        : null; // unknown id — skip rather than leak raw id
+    if (displayName) parts.push(`· ${displayName}`);
   } else if (members.length > 1) {
     parts.push(`· ${members.length} members`);
   }
@@ -567,7 +571,7 @@ function ImageUpload({ imageUrl, onImageChange }) {
 }
 
 // ── Card Config Modal ─────────────────────────────────────────────────────────
-function CardConfigModal({ statType, statValue, lists, memberName, members, boardLabels, isPremium, onSave, onBack, onClose, onUpgradeClick }) {
+function CardConfigModal({ statType, statValue, lists, memberName, members, boardLabels, isPremium, computeFilteredCount, onSave, onBack, onClose, onUpgradeClick }) {
   const [cardName, setCardName] = useState(DEFAULT_NAMES[statType] || "");
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
   const [coverColor, setCoverColor] = useState(DEFAULT_COVER[statType] || "blue");
@@ -597,11 +601,23 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
   // ── Derived name: auto-updates in preview unless user typed custom name ──
   const smartName = deriveSmartName(
     statType, selectedDue, selectedMembers, selectedLabels,
-    selectedLists, memberName, boardLabels, lists
+    selectedLists, memberName, boardLabels, lists, members
   );
   const previewName = nameManuallyEdited ? cardName : smartName;
 
   const resolvedCoverBg = coverImage ? null : resolveCoverBackground(coverColor);
+
+  // Live filtered count — recomputes whenever filters change
+  const liveCount = computeFilteredCount
+    ? computeFilteredCount(statType, {
+        due: selectedDue,
+        members: selectedMembers,
+        labels: selectedLabels,
+        lists: selectedLists,
+        customDateFrom,
+        customDateTo,
+      })
+    : statValue ?? 0;
   const emoji = STAT_EMOJIS[statType] || "📌";
   const primary = PRIMARY_FILTER[statType];
 
@@ -865,7 +881,7 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
                 <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
                 <div style={{ position: "relative", zIndex: 1 }}>
                   <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
-                    {statValue ?? 0}
+                    {liveCount}
                   </div>
                 </div>
                 <div style={{ position: "absolute", top: 8, right: 8, fontSize: 18, zIndex: 1 }}>
@@ -1142,14 +1158,15 @@ export function CustomizeFlow({
   lists,
   stats,
   memberName,
-  members,        // [{ id, fullName, avatarColor }]
-  boardLabels,    // [{ id, name, color }]  — fetch via t.board("get", "labels")
+  members,              // [{ id, fullName, avatarColor }]
+  boardLabels,          // [{ id, name, color }]  — fetch via t.board("get", "labels")
   customizeStat,
   setCustomizeStat,
   onSave,
   onClose,
-  isPremium,      // true if the current user has premium access (gates gradient covers)
-  onUpgradeClick, // called when a free user clicks a locked gradient / upgrade prompt
+  isPremium,            // true if the current user has premium access (gates gradient covers)
+  onUpgradeClick,       // called when a free user clicks a locked gradient / upgrade prompt
+  computeFilteredCount, // (statType, filters) => number — live count from parent
 }) {
   if (!show) return null;
 
@@ -1171,6 +1188,7 @@ export function CustomizeFlow({
       members={members}
       boardLabels={boardLabels}
       isPremium={isPremium}
+      computeFilteredCount={computeFilteredCount}
       onSave={onSave}
       onBack={() => setCustomizeStat(null)}
       onClose={onClose}

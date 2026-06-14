@@ -227,15 +227,18 @@ function buildStatFilterMap(memberId, resolvedListId) {
   todayStart.setHours(0, 0, 0, 0);
 
   return {
-    assigned:    (c) => c.idMembers?.includes(memberId),
-    dueThisWeek: (c) => c.due && new Date(c.due) >= startOfWeek && new Date(c.due) < endOfWeek,
-    overdue:     (c) => c.due && new Date(c.due) < now && !c.dueComplete,
-    unassigned:  (c) => !c.idMembers || c.idMembers.length === 0,
-    withLabel:   (c) => c.labels?.length > 0,
-    stale:       (c) => c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
-    createdToday:(c) => parseInt(c.id.substring(0, 8), 16) * 1000 >= todayStart.getTime(),
+    assigned: (c) => c.idMembers?.includes(memberId),
+    dueThisWeek: (c) =>
+      c.due && new Date(c.due) >= startOfWeek && new Date(c.due) < endOfWeek,
+    overdue: (c) => c.due && new Date(c.due) < now && !c.dueComplete,
+    unassigned: (c) => !c.idMembers || c.idMembers.length === 0,
+    withLabel: (c) => c.labels?.length > 0,
+    stale: (c) =>
+      c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
+    createdToday: (c) =>
+      parseInt(c.id.substring(0, 8), 16) * 1000 >= todayStart.getTime(),
     // FIX #2: cardsInList scoped to the list recorded in the meta tag
-    cardsInList: (c) => resolvedListId ? c.idList === resolvedListId : true,
+    cardsInList: (c) => (resolvedListId ? c.idList === resolvedListId : true),
   };
 }
 
@@ -580,15 +583,19 @@ function CardDetailsView() {
         todayStart.setHours(0, 0, 0, 0);
 
         const filterMap = {
-          assigned:    (c) => c.idMembers?.includes(mid),
-          dueThisWeek: (c) => c.due && new Date(c.due) >= startOfWeek && new Date(c.due) < endOfWeek,
-          overdue:     (c) => c.due && new Date(c.due) < now && !c.dueComplete,
-          unassigned:  (c) => !c.idMembers || c.idMembers.length === 0,
-          withLabel:   (c) => c.labels?.length > 0,
-          stale:       (c) => c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
-          createdToday:(c) => cardCreatedDate(c.id) >= todayStart,
+          assigned: (c) => c.idMembers?.includes(mid),
+          dueThisWeek: (c) =>
+            c.due &&
+            new Date(c.due) >= startOfWeek &&
+            new Date(c.due) < endOfWeek,
+          overdue: (c) => c.due && new Date(c.due) < now && !c.dueComplete,
+          unassigned: (c) => !c.idMembers || c.idMembers.length === 0,
+          withLabel: (c) => c.labels?.length > 0,
+          stale: (c) =>
+            c.dateLastActivity && new Date(c.dateLastActivity) < fourteenAgo,
+          createdToday: (c) => cardCreatedDate(c.id) >= todayStart,
           cardsInList: () => true,
-          all:         () => true,
+          all: () => true,
         };
 
         // FIX #8: read filters from the memoized params ref
@@ -860,15 +867,60 @@ function CardDetailsView() {
 
   const isListScoped = mode === "list" || statType === "cardsInList";
   const leftStats = [
-    { value: fullStats.allCards,      label: "All cards",               accent: "#4ea1ff", statType: "all" },
-    { value: detailStats.total,       label: "In this view",            accent: "#4caf50", statType: null },
-    { value: fullStats.assigned,      label: "Assigned to me",          accent: "#4ea1ff", statType: "assigned" },
-    { value: fullStats.dueThisWeek,   label: "Due this week",           accent: "#f9c74f", statType: "dueThisWeek" },
-    { value: fullStats.overdue,       label: "Overdue cards",           accent: "#ff5252", statType: "overdue" },
-    { value: fullStats.unassigned,    label: "Unassigned cards",        accent: "#ab47bc", statType: "unassigned" },
-    { value: fullStats.withLabel,     label: "Cards with a label",      accent: "#ff9800", statType: "withLabel" },
-    { value: fullStats.stale,         label: "Stale (14+ days inactive)",accent: "#888",   statType: "stale" },
-    { value: fullStats.createdToday,  label: "Created today",           accent: "#2ec4b6", statType: "createdToday" },
+    {
+      value: fullStats.allCards,
+      label: "All cards",
+      accent: "#4ea1ff",
+      statType: "all",
+    },
+    {
+      value: detailStats.total,
+      label: "In this view",
+      accent: "#4caf50",
+      statType: null,
+    },
+    {
+      value: fullStats.assigned,
+      label: "Assigned to me",
+      accent: "#4ea1ff",
+      statType: "assigned",
+    },
+    {
+      value: fullStats.dueThisWeek,
+      label: "Due this week",
+      accent: "#f9c74f",
+      statType: "dueThisWeek",
+    },
+    {
+      value: fullStats.overdue,
+      label: "Overdue cards",
+      accent: "#ff5252",
+      statType: "overdue",
+    },
+    {
+      value: fullStats.unassigned,
+      label: "Unassigned cards",
+      accent: "#ab47bc",
+      statType: "unassigned",
+    },
+    {
+      value: fullStats.withLabel,
+      label: "Cards with a label",
+      accent: "#ff9800",
+      statType: "withLabel",
+    },
+    {
+      value: fullStats.stale,
+      label: "Stale (14+ days inactive)",
+      accent: "#888",
+      statType: "stale",
+    },
+    {
+      value: fullStats.createdToday,
+      label: "Created today",
+      accent: "#2ec4b6",
+      statType: "createdToday",
+    },
   ];
 
   return (
@@ -1257,6 +1309,8 @@ export default function App() {
   const [customizeStat, setCustomizeStat] = useState(null);
   const [cardConfig, setCardConfig] = useState({});
   const [isTracking, setIsTracking] = useState(false);
+  const [boardCards, setBoardCards] = useState([]);
+  const [currentMemberId, setCurrentMemberId] = useState(null);
 
   // FIX #9: track current scopeListId in a ref so the setInterval closure
   // always reads the latest value instead of the stale initial one
@@ -1310,6 +1364,7 @@ export default function App() {
         (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
       );
       const memberId = await getMemberId(key, tkn);
+      setCurrentMemberId(memberId);
 
       if (trelloT) {
         trelloT
@@ -1331,6 +1386,7 @@ export default function App() {
 
       const computed = computeStats(filteredForStats, memberId);
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
+      setBoardCards(filteredForStats);
       setStats(computed);
       setLastUpdated(new Date().toLocaleTimeString());
 
@@ -1462,14 +1518,14 @@ export default function App() {
             : null;
 
           // FIX #7: also include filterStr when only customDate range is set
-          const hasActiveFilters = filterConfig && (
-            filterConfig.due.length > 0 ||
-            filterConfig.members.length > 0 ||
-            filterConfig.labels.length > 0 ||
-            filterConfig.lists.length > 0 ||
-            filterConfig.customDateFrom !== "" ||   // ✅ was missing
-            filterConfig.customDateTo !== ""         // ✅ was missing
-          );
+          const hasActiveFilters =
+            filterConfig &&
+            (filterConfig.due.length > 0 ||
+              filterConfig.members.length > 0 ||
+              filterConfig.labels.length > 0 ||
+              filterConfig.lists.length > 0 ||
+              filterConfig.customDateFrom !== "" || // ✅ was missing
+              filterConfig.customDateTo !== ""); // ✅ was missing
 
           const filterStr = hasActiveFilters
             ? `:filters:${encodeURIComponent(JSON.stringify(filterConfig))}`
@@ -1571,6 +1627,11 @@ export default function App() {
         onClose={() => {
           setShowCustomize(false);
           setCustomizeStat(null);
+        }}
+        computeFilteredCount={(statType, filters) => {
+          const base = applyFilters(boardCards, filters, currentMemberId);
+          const statFn = buildStatFilterMap(currentMemberId, null)[statType];
+          return statFn ? base.filter(statFn).length : base.length;
         }}
       />
 
