@@ -100,6 +100,10 @@ const FILTER_DEFS = {
 };
 
 const ADDABLE_FILTERS = [
+  { key:"due",        icon:"📅", label:"Due date",   premium:false },
+  { key:"member",     icon:"👤", label:"Member",     premium:false },
+  { key:"label",      icon:"🏷", label:"Label",      premium:false },
+  { key:"list",       icon:"☰",  label:"List",       premium:false },
   { key:"status",     icon:"📋", label:"Status",     premium:false },
   { key:"activity",   icon:"🕐", label:"Activity",   premium:false },
   { key:"unassigned", icon:"👤", label:"Unassigned", premium:false },
@@ -287,7 +291,6 @@ function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, member
   if (!def) return null;
   const hasValuePicker = ["due","member","label","list"].includes(filterKey);
 
-  // Build a short display value for the pill
   function pillValue() {
     if (!values || !values.length) return null;
     if (filterKey === "due") {
@@ -312,7 +315,6 @@ function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, member
   const val = pillValue();
   const [hover, setHover] = useState(false);
 
-  // Label text shown in the pill  e.g. "Due date:" or "Member:"
   const pillKeyLabel = {
     due:    "Due date",
     member: "Member",
@@ -321,7 +323,7 @@ function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, member
   }[filterKey] || def.label;
 
   return (
-    <div ref={wrapRef} style={{ display:"inline-flex", position:"relative" }}>
+    <div ref={wrapRef} style={{ display:"inline-flex", position:"relative", flexShrink:0 }}>
       <div
         ref={triggerRef}
         onClick={() => hasValuePicker && setOpen(o=>!o)}
@@ -334,21 +336,19 @@ function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, member
           borderRadius:20, overflow:"hidden",
           fontSize:12, cursor: hasValuePicker ? "pointer" : "default",
           userSelect:"none", transition:"all 0.15s",
+          whiteSpace:"nowrap",
         }}
       >
-        {/* Icon badge */}
         <span style={{
           padding:"5px 8px 5px 10px", fontSize:13, lineHeight:1,
           borderRight:`1px solid ${T.pillBorder}`,
           display:"flex", alignItems:"center",
         }}>{def.icon}</span>
 
-        {/* Key label */}
         <span style={{ padding:"5px 6px", color:T.pillText, fontWeight:600 }}>
           {pillKeyLabel}
         </span>
 
-        {/* Value */}
         {val ? (
           <>
             <span style={{ color:T.textMuted, fontSize:11 }}>:</span>
@@ -361,12 +361,10 @@ function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, member
           </>
         ) : null}
 
-        {/* chevron */}
         {hasValuePicker && (
           <span style={{ padding:"5px 6px 5px 2px", color:T.textMuted, fontSize:9 }}>{open?"▲":"▼"}</span>
         )}
 
-        {/* Remove × */}
         <span
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           style={{
@@ -380,7 +378,6 @@ function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, member
 
       {hasValuePicker && (
         <PortalDropdown anchorRef={triggerRef} open={open} portalRef={portalRef}>
-          {/* Dropdown header */}
           <div style={{ padding:"8px 14px 6px", borderBottom:`1px solid ${T.border}` }}>
             <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.08em" }}>
               Filter by {pillKeyLabel}
@@ -424,6 +421,7 @@ function AddFilterDropdown({ activeKeys, onAdd, isPremium, onUpgradeClick }) {
         fontSize:12, color: open ? T.accentHover : T.accent,
         background:"none", border:"none", cursor:"pointer",
         fontFamily:"'DM Sans',sans-serif", padding:0, display:"flex", alignItems:"center", gap:4,
+        whiteSpace:"nowrap",
       }}>
         <span style={{ fontSize:14, lineHeight:1 }}>+</span> Add filter
       </button>
@@ -655,7 +653,6 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
     ? computeFilteredCount(statType, { due:filterValues.due, members:filterValues.member, labels:filterValues.label, lists:filterValues.list })
     : statValue ?? 0;
 
-  // Smart name
   function buildSmartName() {
     const parts = [];
     const { due, member:mems, label:labs, list:lsts } = filterValues;
@@ -822,23 +819,38 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
 
                 <Divider />
 
-                {/* Filters */}
+                {/* ── FILTERS SECTION ── */}
                 <div>
+                  {/* Header row: label + Add filter button */}
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                     <SectionLabel style={{ marginBottom:0 }}>Filters</SectionLabel>
-                    <AddFilterDropdown activeKeys={activeFilters} onAdd={addFilter} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />
+                    <AddFilterDropdown
+                      activeKeys={activeFilters}
+                      onAdd={addFilter}
+                      isPremium={isPremium}
+                      onUpgradeClick={onUpgradeClick}
+                    />
                   </div>
 
-                  {/* Pills */}
-                  {activeFilters.length>0 && (
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
+                  {/* Pills — wrap freely, each pill is flex-shrink:0 so it never truncates */}
+                  {activeFilters.length > 0 && (
+                    <div style={{
+                      display:"flex",
+                      flexWrap:"wrap",
+                      gap:6,
+                      marginBottom:12,
+                      // No overflow:hidden here — let pills wrap naturally
+                    }}>
                       {activeFilters.map(key => (
                         <FilterPill
-                          key={key} filterKey={key}
+                          key={key}
+                          filterKey={key}
                           values={filterValues[key]||[]}
-                          onValuesChange={vals=>setFilterValue(key,vals)}
-                          onRemove={()=>removeFilter(key)}
-                          lists={lists} members={members} boardLabels={boardLabels}
+                          onValuesChange={vals => setFilterValue(key, vals)}
+                          onRemove={() => removeFilter(key)}
+                          lists={lists}
+                          members={members}
+                          boardLabels={boardLabels}
                         />
                       ))}
                     </div>
