@@ -592,44 +592,32 @@ function MemberBadges({ memberIds, allMembers }) {
 // ── StatPicker ────────────────────────────────────────────────────────────────
 function StatPicker({ onSelect, onClose }) {
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      zIndex: 9999, fontFamily: "'DM Sans', sans-serif",
-    }} onClick={onClose}>
-      <div style={{
-        background: "#1e2128", border: "1px solid #2e3340", borderRadius: 12,
-        width: 280, padding: 0, overflow: "hidden",
-      }} onClick={(e) => e.stopPropagation()}>
-        <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "13px 16px", borderBottom: "1px solid #252930",
-        }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#e0e0e0" }}>Customize a stat card</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#666", fontSize: 18, cursor: "pointer", padding: "0 4px" }}>✕</button>
+    <div className="customize-overlay" onClick={onClose}>
+      <div
+        className="customize-modal"
+        style={{ width: 280 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="customize-header">
+          <span>Customize a stat card</span>
+          <button className="customize-close" onClick={onClose}>✕</button>
         </div>
-        <p style={{ fontSize: 12, color: "#555", padding: "10px 16px 6px", margin: 0 }}>Select a stat to configure</p>
+        <p className="customize-sub">Select a stat to configure</p>
         {STAT_LIST.map(({ type, label, emoji }) => (
           <div
             key={type}
+            className="customize-row"
             onClick={() => onSelect(type)}
-            style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "10px 16px",
-              cursor: "pointer", borderTop: "1px solid #252930", transition: "background 0.12s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#252a35")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            style={{ justifyContent: "space-between" }}
           >
-            <span style={{ fontSize: 16 }}>{emoji}</span>
-            <span style={{ flex: 1, fontSize: 13, color: "#ccc" }}>{label}</span>
-            <span style={{ color: "#555", fontSize: 16 }}>›</span>
+            <span className="customize-emoji">{emoji}</span>
+            <span className="customize-label">{label}</span>
+            <span style={{ color: "#555", fontSize: 14 }}>›</span>
           </div>
         ))}
       </div>
     </div>
   );
-}
-
 // ── ColorSwatchPicker ─────────────────────────────────────────────────────────
 function ColorSwatchPicker({ selected, onChange, isPremium, onUpgradeClick }) {
   return (
