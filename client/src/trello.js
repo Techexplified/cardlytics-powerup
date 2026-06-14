@@ -73,11 +73,10 @@ export function computeStats(cards, memberId) {
     if (memberId && card.idMembers?.includes(memberId)) assigned++;
     if (!card.idMembers || card.idMembers.length === 0) unassigned++;
     if (card.labels && card.labels.length > 0) withLabel++;
-    if (card.due && !card.dueComplete) {
+    if (card.due) {
       const due = new Date(card.due);
-      if (due < now) overdue++;
-      // ── Use calendar week (Sunday→Sunday) consistently ────────────────────
-      if (due >= startOfWeek && due < endOfWeek) dueThisWeek++;
+      if (due < now && !card.dueComplete) overdue++; // overdue only if not complete
+      if (due >= startOfWeek && due < endOfWeek) dueThisWeek++; // due this week regardless of completion
     }
     if (card.dateLastActivity) {
       const lastActive = new Date(card.dateLastActivity);
@@ -262,18 +261,26 @@ export function applyFilters(cards, filters, memberId) {
     if (filters.due && filters.due.length > 0) {
       const due = card.due ? new Date(card.due) : null;
       const matches = filters.due.some((d) => {
-        if (d === "nodate")  return !due;
-        if (!due)            return false;
+        if (d === "nodate") return !due;
+        if (!due) return false;
         if (d === "overdue") return due < now && !card.dueComplete;
-        if (d === "2days")   return due >= now && due <= new Date(now.getTime() + 2 * 86400000);
-        if (d === "1week")   return due >= now && due <= new Date(now.getTime() + 7 * 86400000);
-        if (d === "2weeks")  return due >= now && due <= new Date(now.getTime() + 14 * 86400000);
-        if (d === "1month")  return due >= now && due <= new Date(now.getTime() + 30 * 86400000);
+        if (d === "2days")
+          return due >= now && due <= new Date(now.getTime() + 2 * 86400000);
+        if (d === "1week")
+          return due >= now && due <= new Date(now.getTime() + 7 * 86400000);
+        if (d === "2weeks")
+          return due >= now && due <= new Date(now.getTime() + 14 * 86400000);
+        if (d === "1month")
+          return due >= now && due <= new Date(now.getTime() + 30 * 86400000);
         if (d === "custom") {
-          const from = filters.customDateFrom ? new Date(filters.customDateFrom) : null;
-          const to   = filters.customDateTo   ? new Date(filters.customDateTo)   : null;
+          const from = filters.customDateFrom
+            ? new Date(filters.customDateFrom)
+            : null;
+          const to = filters.customDateTo
+            ? new Date(filters.customDateTo)
+            : null;
           if (from && due < from) return false;
-          if (to   && due > to)   return false;
+          if (to && due > to) return false;
           return true;
         }
         return false;
@@ -284,9 +291,9 @@ export function applyFilters(cards, filters, memberId) {
     // ── Member / assigned filter ──────────────────────────────────────────────
     if (filters.members && filters.members.length > 0) {
       // FIX #5: guard against null memberId before resolving "me"
-      const resolvedIds = filters.members.map((id) =>
-        id === "me" && memberId ? memberId : id
-      ).filter(Boolean); // remove any remaining null/undefined
+      const resolvedIds = filters.members
+        .map((id) => (id === "me" && memberId ? memberId : id))
+        .filter(Boolean); // remove any remaining null/undefined
 
       const cardMembers = card.idMembers || [];
       const hasMatch = resolvedIds.some((id) => cardMembers.includes(id));
