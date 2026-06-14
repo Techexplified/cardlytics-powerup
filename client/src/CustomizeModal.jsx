@@ -638,7 +638,11 @@ function StatPicker({ onSelect, onClose }) {
 }
 
 // ── Card config modal (step 2) ────────────────────────────────────────────────
-function CardConfigModal({ statType, statValue, lists, memberName, members, boardLabels, isPremium, computeFilteredCount, onSave, onBack, onClose, onUpgradeClick, boardName, workspaceBoards = [] }){
+function CardConfigModal({
+  statType, statValue, lists, memberName, members, boardLabels,
+  isPremium, computeFilteredCount, onSave, onBack, onClose, onUpgradeClick,
+  boardName, boardId, workspaceBoards = [], fetchWorkspaceBoards, fetchBoardScopedData,
+}){
   const [activeTab,          setActiveTab]          = useState("filters");
   const [cardName,           setCardName]           = useState(DEFAULT_NAMES[statType]||"");
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
@@ -648,7 +652,60 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
   const [boardScope,         setBoardScope]         = useState("this");
   const [memberScope,        setMemberScope]        = useState("me");
   const [boardDropOpen, setBoardDropOpen] = useState(false);
-const boardDropRef = useRef();
+  const boardDropRef = useRef();
+
+  // ── Workspace boards: fetch list of board names on mount ──────────────────
+  const [boards, setBoards] = useState(workspaceBoards);
+  const [boardsLoading, setBoardsLoading] = useState(false);
+
+  useEffect(() => {
+    if (workspaceBoards && workspaceBoards.length) { setBoards(workspaceBoards); return; }
+    if (!fetchWorkspaceBoards) return;
+    setBoardsLoading(true);
+    fetchWorkspaceBoards()
+      .then(list => setBoards(Array.isArray(list) ? list : []))
+      .catch(() => setBoards([]))
+      .finally(() => setBoardsLoading(false));
+  }, [fetchWorkspaceBoards]);
+
+  // ── Scoped data: refetch lists/members/labels when boardScope changes ─────
+  const [scopedLists,   setScopedLists]   = useState(lists || []);
+  const [scopedMembers, setScopedMembers] = useState(members || []);
+  const [scopedLabels,  setScopedLabels]  = useState(boardLabels || []);
+  const [scopeLoading,  setScopeLoading]  = useState(false);
+
+  useEffect(() => {
+    if (boardScope === "this") {
+      setScopedLists(lists || []);
+      setScopedMembers(members || []);
+      setScopedLabels(boardLabels || []);
+      return;
+    }
+    if (!fetchBoardScopedData) return;
+    const targetBoardId = boardScope === "all" ? null : boardScope;
+    setScopeLoading(true);
+    fetchBoardScopedData(targetBoardId, boards)
+      .then(data => {
+        setScopedLists(data?.lists || []);
+        setScopedMembers(data?.members || []);
+        setScopedLabels(data?.boardLabels || []);
+      })
+      .catch(() => {
+        setScopedLists([]); setScopedMembers([]); setScopedLabels([]);
+      })
+      .finally(() => setScopeLoading(false));
+  }, [boardScope, boards, fetchBoardScopedData, lists, members, boardLabels]);
+
+  // close board dropdown on outside click
+  useEffect(() => {
+    if (!boardDropOpen) return;
+    function onDown(e) {
+      if (boardDropRef.current?.contains(e.target)) return;
+      setBoardDropOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [boardDropOpen]);
 
   const [activeFilters, setActiveFilters] = useState(() => DEFAULT_FILTERS[statType] || ["due"]);
   const [filterValues,  setFilterValues]  = useState({ due:[], member:[], label:[], list:[], status:[], activity:[], unassigned:[] });
@@ -656,6 +713,16 @@ const boardDropRef = useRef();
   function setFilterValue(key, vals) { setFilterValues(p => ({ ...p, [key]: vals })); }
   function addFilter(key)   { if (!activeFilters.includes(key)) setActiveFilters(p=>[...p,key]); }
   function removeFilter(key){ setActiveFilters(p=>p.filter(k=>k!==key)); setFilterValues(p=>({...p,[key]:[]})); }
+
+  // ── Member scope (Me / Anyone) drives the member filter value ─────────────
+  useEffect(() => {
+    if (memberScope === "me") {
+      const myId = scopedMembers?.find(m => m.fullName === memberName)?.id;
+      setFilterValue("member", myId ? [myId] : []);
+    } else {
+      setFilterValue("member", []);
+    }
+  }, [memberScope, scopedMembers, memberName]);
 
   const emoji     = STAT_EMOJIS[statType] || "📌";
   const resolvedBg = coverImage ? null : resolveCoverBackground(coverColor);
@@ -670,11 +737,11 @@ const boardDropRef = useRef();
     const { due, member:mems, label:labs, list:lsts } = filterValues;
     if (due.length===1&&due[0]!=="custom") { const l=DUE_OPTIONS.find(o=>o.value===due[0])?.label; if(l) parts.push(l); }
     else if (due.length>1) parts.push(`${due.length} due filters`);
-    if (mems.length===1) { const m=(members||[]).find(x=>x.id===mems[0]); if(m) parts.push(`· ${m.fullName.split(" ")[0]}`); }
+    if (mems.length===1) { const m=(scopedMembers||[]).find(x=>x.id===mems[0]); if(m) parts.push(`· ${m.fullName.split(" ")[0]}`); }
     else if (mems.length>1) parts.push(`· ${mems.length} members`);
-    if (labs.length===1) { const l=(boardLabels||[]).find(x=>x.id===labs[0]); if(l?.name) parts.push(`· ${l.name}`); }
+    if (labs.length===1) { const l=(scopedLabels||[]).find(x=>x.id===labs[0]); if(l?.name) parts.push(`· ${l.name}`); }
     else if (labs.length>1) parts.push(`· ${labs.length} labels`);
-    if (lsts.length===1) { const l=(lists||[]).find(x=>x.id===lsts[0]); if(l?.name) parts.push(`· ${l.name}`); }
+    if (lsts.length===1) { const l=(scopedLists||[]).find(x=>x.id===lsts[0]); if(l?.name) parts.push(`· ${l.name}`); }
     else if (lsts.length>1) parts.push(`· ${lsts.length} lists`);
     return parts.length>0 ? parts.join(" ") : DEFAULT_NAMES[statType];
   }
@@ -683,7 +750,11 @@ const boardDropRef = useRef();
   const hasAnyValues = Object.values(filterValues).some(v=>v.length>0);
 
   function handleSave() {
-    onSave(statType, { cardName:previewName, cover:coverColor, coverImage, due:filterValues.due, members:filterValues.member, labels:filterValues.label, lists:filterValues.list });
+    onSave(statType, {
+      cardName:previewName, cover:coverColor, coverImage,
+      due:filterValues.due, members:filterValues.member, labels:filterValues.label, lists:filterValues.list,
+      boardScope, memberScope,
+    });
   }
 
   const selectStyle = {
@@ -694,6 +765,14 @@ const boardDropRef = useRef();
   };
 
   const TABS = ["Filters","Alerts","Style"];
+
+  // Label shown on the Board dropdown trigger
+  function boardScopeLabel() {
+    if (boardScope === "this") return boardName || "This board";
+    if (boardScope === "all")  return "All boards";
+    const b = boards.find(b => b.id === boardScope);
+    return b?.name || "Select board";
+  }
 
   return (
     <div style={{
@@ -743,7 +822,7 @@ const boardDropRef = useRef();
                   <div style={{ fontSize:24, fontWeight:700, color:"#fff", lineHeight:1 }}>{liveCount}</div>
                 </div>
                 <div style={{ position:"absolute", top:8, right:8, fontSize:18, zIndex:1 }}>{emoji}</div>
-                <MemberBadges memberIds={selectedMembers} allMembers={members} />
+                <MemberBadges memberIds={selectedMembers} allMembers={scopedMembers} />
               </div>
               <div style={{ padding:"8px 10px 10px" }}>
                 <div style={{ fontSize:11, fontWeight:600, color:"#ccc", lineHeight:1.4, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
@@ -753,7 +832,7 @@ const boardDropRef = useRef();
             </div>
             <div style={{ fontSize:10, color:T.textMuted, textAlign:"center" }}>Preview</div>
 
-            <ActiveFiltersSummary activeFilters={activeFilters} filterValues={filterValues} lists={lists} members={members} boardLabels={boardLabels} />
+            <ActiveFiltersSummary activeFilters={activeFilters} filterValues={filterValues} lists={scopedLists} members={scopedMembers} boardLabels={scopedLabels} />
           </div>
 
           {/* Right panel */}
@@ -819,20 +898,24 @@ const boardDropRef = useRef();
       onClick={() => setBoardDropOpen(o=>!o)}
       style={{ ...selectStyle, display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer", userSelect:"none" }}
     >
-      <span>{boardScope === "this" ? (boardName || "This board") : (workspaceBoards.find(b=>b.id===boardScope)?.name || "All boards")}</span>
-      <span style={{ fontSize:10, color:T.textMuted }}>{boardDropOpen?"▴":"▾"}</span>
+      <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+        {boardsLoading ? "Loading boards…" : boardScopeLabel()}
+      </span>
+      <span style={{ fontSize:10, color:T.textMuted, flexShrink:0, marginLeft:6 }}>{boardDropOpen?"▴":"▾"}</span>
     </div>
     {boardDropOpen && (
       <div style={{
         position:"absolute", top:"calc(100% + 4px)", left:0, right:0,
         background:T.bgDeep, border:`1px solid ${T.accent}`,
-        borderRadius:6, zIndex:200, overflow:"hidden",
+        borderRadius:6, zIndex:200, overflow:"hidden", overflowY:"auto", maxHeight:240,
         boxShadow:"0 6px 20px rgba(0,0,0,0.5)",
       }}>
         {[
           { v:"this", l: boardName || "This board" },
           { v:"all",  l: "All boards" },
-          ...workspaceBoards.map(b => ({ v:b.id, l:b.name })),
+          ...boards
+            .filter(b => b.id !== boardId)
+            .map(b => ({ v:b.id, l:b.name })),
         ].map(opt => (
           <div key={opt.v}
             onClick={() => { setBoardScope(opt.v); setBoardDropOpen(false); }}
@@ -840,11 +923,15 @@ const boardDropRef = useRef();
               padding:"8px 12px", fontSize:12, cursor:"pointer",
               background: boardScope===opt.v ? "#1a3a6a" : "transparent",
               color: boardScope===opt.v ? "#fff" : T.textSub,
+              overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
             }}
             onMouseEnter={e => e.currentTarget.style.background="#2a2a2a"}
             onMouseLeave={e => e.currentTarget.style.background=boardScope===opt.v?"#1a3a6a":"transparent"}
           >{opt.l}</div>
         ))}
+        {boards.length === 0 && !boardsLoading && (
+          <div style={{ padding:"8px 12px", fontSize:12, color:T.textMuted }}>No other boards found</div>
+        )}
       </div>
     )}
   </div>
@@ -860,6 +947,9 @@ const boardDropRef = useRef();
   </div>
 </div>
                   </div>
+                  {scopeLoading && (
+                    <div style={{ fontSize:11, color:T.textMuted, marginTop:6 }}>Loading members, labels and lists…</div>
+                  )}
                 </div>
 
                 <Divider />
@@ -893,9 +983,9 @@ const boardDropRef = useRef();
                           values={filterValues[key]||[]}
                           onValuesChange={vals => setFilterValue(key, vals)}
                           onRemove={() => removeFilter(key)}
-                          lists={lists}
-                          members={members}
-                          boardLabels={boardLabels}
+                          lists={scopedLists}
+                          members={scopedMembers}
+                          boardLabels={scopedLabels}
                         />
                       ))}
                     </div>
@@ -1007,16 +1097,22 @@ const boardDropRef = useRef();
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function CustomizeFlow({ show, lists, stats, memberName, members, boardLabels, customizeStat, setCustomizeStat, onSave, onClose, isPremium, onUpgradeClick, computeFilteredCount, boardName, workspaceBoards }){
+export function CustomizeFlow({
+  show, lists, stats, memberName, members, boardLabels, customizeStat, setCustomizeStat,
+  onSave, onClose, isPremium, onUpgradeClick, computeFilteredCount,
+  boardName, boardId, workspaceBoards, fetchWorkspaceBoards, fetchBoardScopedData,
+}){
   if (!show) return null;
   if (!customizeStat) return <StatPicker onSelect={type=>setCustomizeStat(type)} onClose={onClose} />;
   return (
     <CardConfigModal
-  statType={customizeStat} statValue={stats?.[customizeStat]??0}
-  lists={lists} memberName={memberName} members={members} boardLabels={boardLabels}
-  isPremium={isPremium} computeFilteredCount={computeFilteredCount}
-  onSave={onSave} onBack={()=>setCustomizeStat(null)} onClose={onClose} onUpgradeClick={onUpgradeClick}
-  boardName={boardName} workspaceBoards={workspaceBoards}
-/>
+      statType={customizeStat} statValue={stats?.[customizeStat]??0}
+      lists={lists} memberName={memberName} members={members} boardLabels={boardLabels}
+      isPremium={isPremium} computeFilteredCount={computeFilteredCount}
+      onSave={onSave} onBack={()=>setCustomizeStat(null)} onClose={onClose} onUpgradeClick={onUpgradeClick}
+      boardName={boardName} boardId={boardId} workspaceBoards={workspaceBoards}
+      fetchWorkspaceBoards={fetchWorkspaceBoards}
+      fetchBoardScopedData={fetchBoardScopedData}
+    />
   );
 }
