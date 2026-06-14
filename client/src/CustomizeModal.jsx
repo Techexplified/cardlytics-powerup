@@ -1,947 +1,998 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 
-// ── Theme tokens ──────────────────────────────────────────────────────────────
-const T = {
-  bg:          "#1a1d24",   // modal body / left panel
-  bgDeep:      "#141720",   // inputs, card preview bg
-  bgItem:      "#1e2330",   // dropdown item hover
-  surface:     "#1e2128",   // modal outer shell
-  border:      "#2a2f3d",   // standard border
-  borderLight: "#252930",   // subtle divider
-  text:        "#e0e6f0",   // primary text
-  textSub:     "#7a8499",   // secondary / label text
-  textMuted:   "#4a5166",   // placeholder / muted
-  accent:      "#4c8fff",   // blue accent / active
-  accentHover: "#6aa3ff",
-  pillBg:      "#1e2540",   // filter pill background
-  pillBorder:  "#2e3d60",   // filter pill border
-  pillText:    "#8aaeff",   // filter pill key text
-  pillVal:     "#c8d8ff",   // filter pill value text
-  danger:      "#e05555",
-};
+// ─────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────
 
-// ── Cover palette ─────────────────────────────────────────────────────────────
 const COVER_COLORS = [
-  { id: "blue",   hex: "#0052cc", label: "Blue"   },
-  { id: "sky",    hex: "#29b6f6", label: "Sky"    },
-  { id: "green",  hex: "#1a7a4a", label: "Green"  },
-  { id: "yellow", hex: "#e6a817", label: "Yellow" },
-  { id: "orange", hex: "#e67e22", label: "Orange" },
-  { id: "red",    hex: "#c0392b", label: "Red"    },
-  { id: "purple", hex: "#7e57c2", label: "Purple" },
-  { id: "pink",   hex: "#e91e8c", label: "Pink"   },
-  { id: "black",  hex: "#374151", label: "Slate"  },
+  { id: "blue",   hex: "#2563eb" },
+  { id: "sky",    hex: "#38bdf8" },
+  { id: "green",  hex: "#22c55e" },
+  { id: "yellow", hex: "#facc15" },
+  { id: "orange", hex: "#f97316" },
+  { id: "red",    hex: "#ef4444" },
+  { id: "purple", hex: "#a855f7" },
+  { id: "pink",   hex: "#ec4899" },
+  { id: "slate",  hex: "#94a3b8" },
 ];
 
 const COVER_GRADIENTS = [
-  { id: "grad-blue-sky",      css: "linear-gradient(135deg,#0052cc,#29b6f6)",          label: "Blue → Sky"              },
-  { id: "grad-green-sky",     css: "linear-gradient(135deg,#1a7a4a,#29b6f6)",          label: "Green → Sky"             },
-  { id: "grad-orange-pink",   css: "linear-gradient(135deg,#e67e22,#e91e8c)",          label: "Orange → Pink"           },
-  { id: "grad-purple-pink",   css: "linear-gradient(135deg,#7e57c2,#e91e8c)",          label: "Purple → Pink"           },
-  { id: "grad-yellow-orange", css: "linear-gradient(135deg,#e6a817,#e67e22)",          label: "Yellow → Orange"         },
-  { id: "grad-red-purple",    css: "linear-gradient(135deg,#c0392b,#7e57c2)",          label: "Red → Purple"            },
-  { id: "grad-slate-blue",    css: "linear-gradient(135deg,#374151,#0052cc)",          label: "Slate → Blue"            },
-  { id: "grad-multi",         css: "linear-gradient(135deg,#0052cc,#7e57c2,#e91e8c)", label: "Blue → Purple → Pink"    },
+  { id: "grad-1", css: "linear-gradient(135deg,#667eea,#764ba2)", label: "Violet" },
+  { id: "grad-2", css: "linear-gradient(135deg,#f6d365,#fda085)", label: "Peach"  },
+  { id: "grad-3", css: "linear-gradient(135deg,#84fab0,#8fd3f4)", label: "Mint"   },
+  { id: "grad-4", css: "linear-gradient(135deg,#ff9a9e,#fecfef)", label: "Rose"   },
 ];
 
-function resolveCoverBackground(id) {
+function resolveCover(id, imageUrl) {
+  if (imageUrl) return null;
   const g = COVER_GRADIENTS.find((x) => x.id === id);
   if (g) return g.css;
-  return COVER_COLORS.find((x) => x.id === id)?.hex || "#0052cc";
+  return COVER_COLORS.find((x) => x.id === id)?.hex ?? "#2563eb";
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────────
 const TRELLO_LABEL_COLORS = {
-  red:"#c0392b", orange:"#e67e22", yellow:"#e6a817", green:"#1a7a4a",
-  blue:"#0052cc", purple:"#7e57c2", pink:"#e91e8c", sky:"#29b6f6",
-  lime:"#51e898", black:"#374151", null:"#888888",
+  red: "#ef4444", orange: "#f97316", yellow: "#facc15", green: "#22c55e",
+  blue: "#2563eb", purple: "#a855f7", pink: "#ec4899", sky: "#38bdf8",
+  lime: "#a3e635", black: "#475569", null: "#94a3b8",
 };
 
-const STAT_EMOJIS   = { assigned:"📌", dueThisWeek:"📅", overdue:"⚠️", unassigned:"👤", withLabel:"🏷️", stale:"💤", createdToday:"✨", cardsInList:"📋" };
-const DEFAULT_COVER = { assigned:"blue", dueThisWeek:"yellow", overdue:"red", unassigned:"purple", withLabel:"orange", stale:"black", createdToday:"green", cardsInList:"sky" };
+const STAT_ICONS = {
+  assigned:     "ti-pin",
+  dueThisWeek:  "ti-calendar",
+  overdue:      "ti-alert-triangle",
+  unassigned:   "ti-user",
+  withLabel:    "ti-tag",
+  stale:        "ti-moon",
+  createdToday: "ti-sparkles",
+  cardsInList:  "ti-layout-list",
+};
+
+const DEFAULT_COVER = {
+  assigned: "blue", dueThisWeek: "yellow", overdue: "red",
+  unassigned: "purple", withLabel: "orange", stale: "slate",
+  createdToday: "green", cardsInList: "sky",
+};
+
 const DEFAULT_NAMES = {
-  assigned:    "Assigned to me on all Workspace boards",
-  dueThisWeek: "Due this week",
-  overdue:     "Overdue cards",
-  unassigned:  "Unassigned cards",
-  withLabel:   "Cards with a label",
-  stale:       "Stale cards (14+ days)",
-  createdToday:"Created today",
-  cardsInList: "Cards in list",
+  assigned:     "Assigned to me on all Workspace boards",
+  dueThisWeek:  "Due this week",
+  overdue:      "Overdue cards",
+  unassigned:   "Unassigned cards",
+  withLabel:    "Cards with a label",
+  stale:        "Stale cards (14+ days)",
+  createdToday: "Created today",
+  cardsInList:  "Cards in list",
 };
 
 const STAT_LIST = [
-  { type:"assigned",     label:"Assigned to Me",   emoji:"📌" },
-  { type:"dueThisWeek", label:"Due This Week",     emoji:"📅" },
-  { type:"overdue",     label:"Overdue Cards",     emoji:"⚠️" },
-  { type:"unassigned",  label:"Unassigned Cards",  emoji:"👤" },
-  { type:"withLabel",   label:"Cards With Label",  emoji:"🏷️" },
-  { type:"stale",       label:"Stale Cards",       emoji:"💤" },
-  { type:"createdToday",label:"Created Today",     emoji:"✨" },
-  { type:"cardsInList", label:"Cards in List",     emoji:"📋" },
+  { type: "assigned",     label: "Assigned to Me",   icon: "ti-pin"            },
+  { type: "dueThisWeek", label: "Due This Week",     icon: "ti-calendar"       },
+  { type: "overdue",     label: "Overdue Cards",     icon: "ti-alert-triangle" },
+  { type: "unassigned",  label: "Unassigned Cards",  icon: "ti-user"           },
+  { type: "withLabel",   label: "Cards With Label",  icon: "ti-tag"            },
+  { type: "stale",       label: "Stale Cards",       icon: "ti-moon"           },
+  { type: "createdToday",label: "Created Today",     icon: "ti-sparkles"       },
+  { type: "cardsInList", label: "Cards in List",     icon: "ti-layout-list"    },
 ];
 
-const DUE_OPTIONS = [
-  { value:"2days",   label:"Due in 2 days"  },
-  { value:"1week",   label:"Due in 1 week"  },
-  { value:"2weeks",  label:"Due in 2 weeks" },
-  { value:"1month",  label:"Due in 1 month" },
-  { value:"overdue", label:"Overdue"        },
-  { value:"nodate",  label:"No due date"    },
-];
-
-// Filter definitions — icon + label shown in the pill
+// Filter definitions — label shown in chip, options array, whether multi-select
 const FILTER_DEFS = {
-  due:    { icon:"📅", label:"Due date",  valueKey:"due"    },
-  member: { icon:"👤", label:"Member",    valueKey:"members" },
-  list:   { icon:"☰",  label:"List",      valueKey:"lists"  },
-  label:  { icon:"🏷", label:"Label",     valueKey:"labels" },
+  due: {
+    icon: "ti-calendar", label: "Due date", multi: false,
+    opts: ["No due date", "Overdue", "Due today", "Due this week", "Due next week"],
+  },
+  member: {
+    icon: "ti-user", label: "Member", multi: false,
+    opts: [], // populated from props.members at render time
+  },
+  list: {
+    icon: "ti-layout-list", label: "List", multi: true,
+    opts: [], // populated from props.lists
+  },
+  label: {
+    icon: "ti-tag", label: "Label", multi: true,
+    opts: [], // populated from props.boardLabels
+  },
+  status: {
+    icon: "ti-checkbox", label: "Status", multi: false,
+    opts: ["Not done", "Done", "Has checklist", "No checklist"],
+  },
+  activity: {
+    icon: "ti-clock-hour-4", label: "Activity", multi: false,
+    opts: ["Active in 7 days", "Stale: 7+ days", "Stale: 14+ days", "Stale: 30+ days"],
+  },
+  unassigned: {
+    icon: "ti-users", label: "Unassigned", multi: false,
+    opts: ["Show only unassigned", "Exclude unassigned"],
+  },
+  attachment: {
+    icon: "ti-paperclip", label: "Attachment", multi: false, premium: true,
+    opts: ["Has attachment", "No attachment"],
+  },
+  comments: {
+    icon: "ti-message", label: "Comments", multi: false, premium: true,
+    opts: ["Has comments", "No comments"],
+  },
 };
-
-const ADDABLE_FILTERS = [
-  { key:"status",     icon:"📋", label:"Status",     premium:false },
-  { key:"activity",   icon:"🕐", label:"Activity",   premium:false },
-  { key:"unassigned", icon:"👤", label:"Unassigned", premium:false },
-  { key:"attachment", icon:"📎", label:"Attachment", premium:true  },
-  { key:"comments",   icon:"💬", label:"Comments",   premium:true  },
-];
 
 const DEFAULT_FILTERS = {
-  assigned:    ["due","member"],
-  dueThisWeek: ["due","member"],
-  overdue:     ["due"],
-  unassigned:  ["member","list"],
-  withLabel:   ["label"],
-  stale:       ["list"],
-  createdToday:["member"],
-  cardsInList: ["list"],
+  assigned:     ["due", "member"],
+  dueThisWeek:  ["due", "member"],
+  overdue:      ["due"],
+  unassigned:   ["member", "list"],
+  withLabel:    ["label"],
+  stale:        ["list"],
+  createdToday: ["member"],
+  cardsInList:  ["list"],
 };
 
-// ── Tiny shared components ────────────────────────────────────────────────────
-function SectionLabel({ children, style }) {
-  return (
-    <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase", marginBottom:6, ...style }}>
-      {children}
-    </div>
-  );
-}
-function Divider() {
-  return <div style={{ borderTop:`1px solid ${T.borderLight}`, margin:"2px 0" }} />;
+// ─────────────────────────────────────────────────────────────
+// Shared helpers
+// ─────────────────────────────────────────────────────────────
+
+function useOutsideClick(refs, onOutside, active) {
+  useEffect(() => {
+    if (!active) return;
+    function handler(e) {
+      if (refs.every((r) => !r.current?.contains(e.target))) onOutside();
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [active, ...refs]);
 }
 
-// ── Portal dropdown ───────────────────────────────────────────────────────────
-function PortalDropdown({ anchorRef, open, children, portalRef }) {
-  const [coords, setCoords] = useState(null);
+// ─────────────────────────────────────────────────────────────
+// Filter chip dropdown (portal-based)
+// ─────────────────────────────────────────────────────────────
+
+function FilterDropdown({ filterKey, values, onChange, onRemove, lists, members, boardLabels, anchorRef, onClose }) {
+  const dropRef = useRef();
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useOutsideClick([dropRef, anchorRef], onClose, true);
 
   useEffect(() => {
     if (!anchorRef.current) return;
-    function measure() {
-      const r = anchorRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - r.bottom - 8;
-      const spaceAbove = r.top - 8;
-      const maxH = 280;
-      const up = spaceBelow < 140 && spaceAbove > spaceBelow;
-      if (up) {
-        const h = Math.min(maxH, Math.max(spaceAbove, 80));
-        setCoords({ top: r.top - h - 4, left: r.left, width: Math.max(r.width, 220), maxHeight: h, up: true });
-      } else {
-        const h = Math.min(maxH, Math.max(spaceBelow, 80));
-        setCoords({ top: r.bottom + 4, left: r.left, width: Math.max(r.width, 220), maxHeight: h, up: false });
-      }
-    }
-    measure();
-    if (!open) return;
-    window.addEventListener("scroll", measure, true);
-    window.addEventListener("resize", measure);
-    return () => { window.removeEventListener("scroll", measure, true); window.removeEventListener("resize", measure); };
-  }, [open, anchorRef]);
+    const r = anchorRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + window.scrollY + 5, left: r.left + window.scrollX });
+  }, [anchorRef]);
 
-  if (!open || !coords) return null;
-  return createPortal(
-    <div ref={portalRef} style={{
-      position:"fixed", top:coords.top, left:coords.left, width:coords.width,
-      background:"#1a1d27", border:`1px solid ${T.border}`, borderRadius:10,
-      zIndex:2147483647,
-      boxShadow: coords.up ? "0 -6px 24px rgba(0,0,0,0.7)" : "0 6px 24px rgba(0,0,0,0.7)",
-      overflow:"hidden", maxHeight:coords.maxHeight, overflowY:"auto",
-      scrollbarWidth:"thin", scrollbarColor:`${T.border} transparent`,
-    }}>
-      {children}
-    </div>,
-    document.body
-  );
-}
-
-// ── Dropdown item ─────────────────────────────────────────────────────────────
-function DropdownItem({ children, checked, onClick }) {
-  const [hover, setHover] = useState(false);
-  return (
-    <div onClick={onClick}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{
-        display:"flex", alignItems:"center", gap:10, padding:"9px 14px",
-        cursor:"pointer", fontSize:13, color: hover ? T.text : "#b0bdd4",
-        background: hover ? "#222840" : "transparent", transition:"background 0.1s",
-      }}>
-      {checked !== undefined && (
-        <div style={{
-          width:16, height:16, borderRadius:4, flexShrink:0,
-          border: checked ? `1.5px solid ${T.accent}` : `1.5px solid ${T.textMuted}`,
-          background: checked ? T.accent : "transparent",
-          display:"flex", alignItems:"center", justifyContent:"center",
-          fontSize:10, color:"#fff", fontWeight:700,
-        }}>{checked && "✓"}</div>
-      )}
-      <span style={{ flex:1, minWidth:0 }}>{children}</span>
-    </div>
-  );
-}
-
-// ── Value picker content for each filter type ─────────────────────────────────
-function FilterValuePicker({ filterKey, selected, onChange, lists, members, boardLabels }) {
-  if (filterKey === "due") return (
-    <>{DUE_OPTIONS.map((opt) => (
-      <DropdownItem key={opt.value} checked={selected.includes(opt.value)}
-        onClick={() => onChange(selected.includes(opt.value) ? selected.filter(v=>v!==opt.value) : [...selected,opt.value])}>
-        {opt.label}
-      </DropdownItem>
-    ))}</>
-  );
-
-  if (filterKey === "member") {
-    const opts = members || [];
-    if (!opts.length) return <div style={{ padding:"12px 14px", fontSize:12, color:T.textMuted }}>No members found</div>;
-    return <>{opts.map((m) => {
-      const initials = m.fullName.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
-      const checked = selected.includes(m.id);
-      return (
-        <DropdownItem key={m.id} checked={checked}
-          onClick={() => onChange(checked ? selected.filter(v=>v!==m.id) : [...selected,m.id])}>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{
-              width:24, height:24, borderRadius:"50%", background: m.avatarColor||"#0052cc",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:9, fontWeight:700, color:"#fff", flexShrink:0,
-            }}>{initials}</div>
-            <span>{m.fullName}</span>
-          </div>
-        </DropdownItem>
-      );
-    })}</>;
-  }
-
-  if (filterKey === "label") {
-    const opts = boardLabels || [];
-    if (!opts.length) return <div style={{ padding:"12px 14px", fontSize:12, color:T.textMuted }}>No labels found</div>;
-    return <>{opts.map((lbl) => {
-      const hex = TRELLO_LABEL_COLORS[lbl.color] || "#888";
-      const name = lbl.name?.trim() || lbl.color || "Unnamed";
-      const checked = selected.includes(lbl.id);
-      return (
-        <DropdownItem key={lbl.id} checked={checked}
-          onClick={() => onChange(checked ? selected.filter(v=>v!==lbl.id) : [...selected,lbl.id])}>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <span style={{ width:32, height:14, borderRadius:3, background:hex, display:"inline-block", flexShrink:0 }} />
-            <span style={{ color: name===lbl.color ? T.textMuted : T.text }}>{name}</span>
-          </div>
-        </DropdownItem>
-      );
-    })}</>;
-  }
-
-  if (filterKey === "list") {
-    const opts = lists || [];
-    if (!opts.length) return <div style={{ padding:"12px 14px", fontSize:12, color:T.textMuted }}>No lists found</div>;
-    return <>{opts.map((l) => {
-      const checked = selected.includes(l.id);
-      return (
-        <DropdownItem key={l.id} checked={checked}
-          onClick={() => onChange(checked ? selected.filter(v=>v!==l.id) : [...selected,l.id])}>
-          {l.name}
-        </DropdownItem>
-      );
-    })}</>;
-  }
-  return null;
-}
-
-// ── Filter Pill ───────────────────────────────────────────────────────────────
-function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, members, boardLabels }) {
-  const [open, setOpen] = useState(false);
-  const triggerRef = useRef();
-  const portalRef  = useRef();
-  const wrapRef    = useRef();
-
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e) {
-      if (wrapRef.current?.contains(e.target) || portalRef.current?.contains(e.target)) return;
-      setOpen(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
-
+  // Resolve dynamic options
   const def = FILTER_DEFS[filterKey];
   if (!def) return null;
-  const hasValuePicker = ["due","member","label","list"].includes(filterKey);
 
-  // Build a short display value for the pill
-  function pillValue() {
-    if (!values || !values.length) return null;
-    if (filterKey === "due") {
-      if (values.length === 1) return DUE_OPTIONS.find(o=>o.value===values[0])?.label || values[0];
-      return `${values.length} dates`;
+  let opts = def.opts;
+  if (filterKey === "member") opts = (members || []).map((m) => m.fullName || m.username || m.id);
+  if (filterKey === "list")   opts = (lists || []).map((l) => l.name);
+  if (filterKey === "label")  opts = (boardLabels || []).map((l) => l.name?.trim() || l.color || l.id);
+
+  function toggle(opt) {
+    if (def.multi) {
+      onChange(values.includes(opt) ? values.filter((v) => v !== opt) : [...values, opt]);
+    } else {
+      onChange([opt]);
+      onClose();
     }
-    if (filterKey === "member") {
-      if (values.length === 1) { const m=(members||[]).find(x=>x.id===values[0]); return m?m.fullName.split(" ")[0]:values[0]; }
-      return `${values.length} members`;
-    }
-    if (filterKey === "label") {
-      if (values.length === 1) { const l=(boardLabels||[]).find(x=>x.id===values[0]); return l?.name?.trim()||l?.color||values[0]; }
-      return `${values.length} labels`;
-    }
-    if (filterKey === "list") {
-      if (values.length === 1) return (lists||[]).find(l=>l.id===values[0])?.name||values[0];
-      return `${values.length} lists`;
-    }
-    return null;
   }
 
-  const val = pillValue();
-  const [hover, setHover] = useState(false);
+  const content = (
+    <div
+      ref={dropRef}
+      style={{
+        position: "absolute",
+        top: pos.top,
+        left: pos.left,
+        zIndex: 9999,
+        background: "var(--color-background-primary)",
+        border: "0.5px solid var(--color-border-secondary)",
+        borderRadius: "var(--border-radius-md)",
+        padding: 8,
+        minWidth: 200,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
+      }}
+    >
+      <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, padding: "0 4px" }}>
+        {def.label}
+      </div>
 
-  // Label text shown in the pill  e.g. "Due date:" or "Member:"
-  const pillKeyLabel = {
-    due:    "Due date",
-    member: "Member",
-    list:   "List",
-    label:  "Label",
-  }[filterKey] || def.label;
+      {opts.length === 0 && (
+        <div style={{ fontSize: 12, color: "var(--color-text-tertiary)", padding: "6px 8px" }}>No options available</div>
+      )}
+
+      {opts.map((opt) => {
+        const sel = values.includes(opt);
+        return (
+          <DdOption key={opt} selected={sel} multi={def.multi} onClick={() => toggle(opt)}>
+            {/* label dot for label filter */}
+            {filterKey === "label" && (() => {
+              const lbl = (boardLabels || []).find((l) => (l.name?.trim() || l.color || l.id) === opt);
+              const hex = TRELLO_LABEL_COLORS[lbl?.color] || "#94a3b8";
+              return <span style={{ width: 28, height: 12, borderRadius: 3, background: hex, display: "inline-block", flexShrink: 0, marginRight: 4 }} />;
+            })()}
+            {/* avatar for member filter */}
+            {filterKey === "member" && (() => {
+              const m = (members || []).find((x) => (x.fullName || x.username || x.id) === opt);
+              const initials = opt.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+              return (
+                <span style={{
+                  width: 20, height: 20, borderRadius: "50%",
+                  background: m?.avatarColor || "#2563eb",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 8, fontWeight: 500, color: "#fff", flexShrink: 0, marginRight: 4,
+                }}>{initials}</span>
+              );
+            })()}
+            {opt}
+          </DdOption>
+        );
+      })}
+
+      <hr style={{ border: "none", borderTop: "0.5px solid var(--color-border-tertiary)", margin: "6px 0" }} />
+      <DdOption danger onClick={() => { onRemove(); onClose(); }}>
+        <i className="ti ti-x" style={{ fontSize: 13 }} aria-hidden="true" />
+        Clear filter
+      </DdOption>
+    </div>
+  );
+
+  return createPortal(content, document.body);
+}
+
+function DdOption({ children, selected, multi, danger, onClick }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
+        borderRadius: "var(--border-radius-md)", fontSize: 13, cursor: "pointer",
+        color: danger ? "var(--color-text-danger)" : selected ? "#2563eb" : "var(--color-text-primary)",
+        fontWeight: selected && !danger ? 500 : 400,
+        background: hover ? "var(--color-background-secondary)" : "transparent",
+        transition: "background 0.1s",
+      }}
+    >
+      {multi && !danger && (
+        <div style={{
+          width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+          border: selected ? "0.5px solid #2563eb" : "0.5px solid var(--color-border-secondary)",
+          background: selected ? "#2563eb" : "transparent",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          {selected && <i className="ti ti-check" style={{ fontSize: 10, color: "#fff" }} aria-hidden="true" />}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Filter chip
+// ─────────────────────────────────────────────────────────────
+
+function FilterChip({ filterKey, values, onChange, onRemove, lists, members, boardLabels, isOpen, onToggle }) {
+  const chipRef = useRef();
+  const def = FILTER_DEFS[filterKey];
+  if (!def) return null;
+
+  function chipLabel() {
+    if (!values.length) return def.label;
+    if (values.length === 1) return `${def.label}: ${values[0]}`;
+    return `${def.label}: ${values.slice(0, 2).join(", ")}${values.length > 2 ? ` +${values.length - 2}` : ""}`;
+  }
 
   return (
-    <div ref={wrapRef} style={{ display:"inline-flex", position:"relative" }}>
+    <>
       <div
-        ref={triggerRef}
-        onClick={() => hasValuePicker && setOpen(o=>!o)}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
+        ref={chipRef}
+        onClick={(e) => { if (!e.target.closest("[data-rm]")) onToggle(); }}
         style={{
-          display:"inline-flex", alignItems:"center", gap:0,
-          background: hover || open ? "#253060" : T.pillBg,
-          border:`1px solid ${open ? T.accent : T.pillBorder}`,
-          borderRadius:20, overflow:"hidden",
-          fontSize:12, cursor: hasValuePicker ? "pointer" : "default",
-          userSelect:"none", transition:"all 0.15s",
+          display: "inline-flex", alignItems: "center", gap: 5,
+          background: isOpen ? "#EFF6FF" : "var(--color-background-secondary)",
+          border: isOpen ? "0.5px solid #2563eb" : "0.5px solid var(--color-border-secondary)",
+          borderRadius: 20, padding: "5px 10px 5px 9px",
+          fontSize: 12, color: isOpen ? "#1D4ED8" : "var(--color-text-primary)",
+          cursor: "pointer", userSelect: "none", transition: "all 0.12s",
         }}
       >
-        {/* Icon badge */}
-        <span style={{
-          padding:"5px 8px 5px 10px", fontSize:13, lineHeight:1,
-          borderRight:`1px solid ${T.pillBorder}`,
-          display:"flex", alignItems:"center",
-        }}>{def.icon}</span>
-
-        {/* Key label */}
-        <span style={{ padding:"5px 6px", color:T.pillText, fontWeight:600 }}>
-          {pillKeyLabel}
-        </span>
-
-        {/* Value */}
-        {val ? (
-          <>
-            <span style={{ color:T.textMuted, fontSize:11 }}>:</span>
-            <span style={{ padding:"5px 4px 5px 4px", color:T.pillVal, fontWeight:500 }}>{val}</span>
-          </>
-        ) : hasValuePicker ? (
-          <>
-            <span style={{ color:T.textMuted, fontSize:11 }}>:</span>
-            <span style={{ padding:"5px 4px 5px 4px", color:T.textMuted }}>any</span>
-          </>
-        ) : null}
-
-        {/* chevron */}
-        {hasValuePicker && (
-          <span style={{ padding:"5px 6px 5px 2px", color:T.textMuted, fontSize:9 }}>{open?"▲":"▼"}</span>
-        )}
-
-        {/* Remove × */}
-        <span
+        <i className={`ti ${def.icon}`} style={{ fontSize: 13, color: isOpen ? "#2563eb" : "var(--color-text-secondary)" }} aria-hidden="true" />
+        <span>{chipLabel()}</span>
+        <i className="ti ti-chevron-down" style={{ fontSize: 11, color: "var(--color-text-tertiary)" }} aria-hidden="true" />
+        <i
+          data-rm="1"
+          className="ti ti-x"
+          aria-hidden="true"
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
-          style={{
-            padding:"5px 10px 5px 4px", color:T.textMuted, fontSize:13,
-            cursor:"pointer", lineHeight:1, display:"flex", alignItems:"center",
-          }}
-          onMouseEnter={e => e.currentTarget.style.color=T.danger}
-          onMouseLeave={e => e.currentTarget.style.color=T.textMuted}
-        >×</span>
+          style={{ fontSize: 11, color: "var(--color-text-tertiary)", cursor: "pointer", marginLeft: 1 }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-danger)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-tertiary)")}
+        />
       </div>
 
-      {hasValuePicker && (
-        <PortalDropdown anchorRef={triggerRef} open={open} portalRef={portalRef}>
-          {/* Dropdown header */}
-          <div style={{ padding:"8px 14px 6px", borderBottom:`1px solid ${T.border}` }}>
-            <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.08em" }}>
-              Filter by {pillKeyLabel}
-            </span>
+      {isOpen && (
+        <FilterDropdown
+          filterKey={filterKey} values={values} onChange={onChange}
+          onRemove={onRemove} anchorRef={chipRef} onClose={onToggle}
+          lists={lists} members={members} boardLabels={boardLabels}
+        />
+      )}
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Add-filter dropdown
+// ─────────────────────────────────────────────────────────────
+
+function AddFilterMenu({ activeKeys, onAdd, isPremium, onUpgradeClick }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = useRef();
+  const menuRef = useRef();
+  useOutsideClick([btnRef, menuRef], () => setOpen(false), open);
+
+  const available = Object.keys(FILTER_DEFS).filter((k) => !activeKeys.includes(k));
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        ref={btnRef}
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          fontSize: 12, color: "#2563eb", background: "none", border: "none",
+          cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
+          fontFamily: "inherit", padding: 0,
+        }}
+      >
+        <i className="ti ti-plus" style={{ fontSize: 13 }} aria-hidden="true" />
+        Add filter
+      </button>
+
+      {open && (
+        <div
+          ref={menuRef}
+          style={{
+            position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 400,
+            background: "var(--color-background-primary)",
+            border: "0.5px solid var(--color-border-secondary)",
+            borderRadius: "var(--border-radius-md)",
+            padding: 8, minWidth: 210,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+          }}
+        >
+          <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", padding: "2px 6px 6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Add a filter
           </div>
-          <div style={{ padding:"4px 0" }}>
-            <FilterValuePicker
-              filterKey={filterKey} selected={values||[]}
-              onChange={onValuesChange}
-              lists={lists} members={members} boardLabels={boardLabels}
-            />
-          </div>
-        </PortalDropdown>
+
+          {available.length === 0 && (
+            <div style={{ fontSize: 12, color: "var(--color-text-tertiary)", padding: "4px 8px" }}>All filters added</div>
+          )}
+
+          {available.map((k) => {
+            const def = FILTER_DEFS[k];
+            const blocked = def.premium && !isPremium;
+            return (
+              <AddMenuRow
+                key={k}
+                icon={def.icon}
+                label={def.label}
+                premium={def.premium}
+                onClick={() => {
+                  if (blocked) { onUpgradeClick?.(); return; }
+                  onAdd(k);
+                  setOpen(false);
+                }}
+              />
+            );
+          })}
+        </div>
       )}
     </div>
   );
 }
 
-// ── Add filter dropdown ───────────────────────────────────────────────────────
-function AddFilterDropdown({ activeKeys, onAdd, isPremium, onUpgradeClick }) {
-  const [open, setOpen] = useState(false);
-  const triggerRef = useRef();
-  const portalRef  = useRef();
-  const wrapRef    = useRef();
-
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e) {
-      if (wrapRef.current?.contains(e.target) || portalRef.current?.contains(e.target)) return;
-      setOpen(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
-
-  const available = ADDABLE_FILTERS.filter(f => !activeKeys.includes(f.key));
-
+function AddMenuRow({ icon, label, premium, onClick }) {
+  const [hover, setHover] = useState(false);
   return (
-    <div ref={wrapRef}>
-      <button ref={triggerRef} onClick={() => setOpen(o=>!o)} style={{
-        fontSize:12, color: open ? T.accentHover : T.accent,
-        background:"none", border:"none", cursor:"pointer",
-        fontFamily:"'DM Sans',sans-serif", padding:0, display:"flex", alignItems:"center", gap:4,
-      }}>
-        <span style={{ fontSize:14, lineHeight:1 }}>+</span> Add filter
-      </button>
-      <PortalDropdown anchorRef={triggerRef} open={open} portalRef={portalRef}>
-        <div style={{ padding:"8px 14px 6px", borderBottom:`1px solid ${T.border}` }}>
-          <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.08em" }}>
-            Add a filter
-          </span>
-        </div>
-        <div style={{ padding:"4px 0" }}>
-          {available.length === 0
-            ? <div style={{ padding:"12px 14px", fontSize:13, color:T.textMuted }}>All filters added</div>
-            : available.map((f) => (
-              <div key={f.key}
-                onClick={() => { if (f.premium && !isPremium) { onUpgradeClick?.(); return; } onAdd(f.key); setOpen(false); }}
-                style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"9px 14px", cursor:"pointer", fontSize:13, color:"#b0bdd4", transition:"background 0.1s" }}
-                onMouseEnter={e => e.currentTarget.style.background="#222840"}
-                onMouseLeave={e => e.currentTarget.style.background="transparent"}
-              >
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <span style={{ fontSize:15, color:T.textMuted }}>{f.icon}</span>
-                  {f.label}
-                </div>
-                {f.premium && (
-                  <span style={{ fontSize:9, fontWeight:700, color:"#c89a30", background:"#2e2200", borderRadius:4, padding:"2px 7px", textTransform:"uppercase", letterSpacing:"0.05em" }}>
-                    Premium
-                  </span>
-                )}
-              </div>
-            ))
-          }
-        </div>
-      </PortalDropdown>
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "flex", alignItems: "center", gap: 8, padding: "7px 8px",
+        borderRadius: "var(--border-radius-md)", fontSize: 13,
+        color: "var(--color-text-primary)", cursor: "pointer",
+        background: hover ? "var(--color-background-secondary)" : "transparent",
+        transition: "background 0.1s",
+      }}
+    >
+      <i className={`ti ${icon}`} style={{ fontSize: 14, color: "var(--color-text-secondary)" }} aria-hidden="true" />
+      <span style={{ flex: 1 }}>{label}</span>
+      {premium && (
+        <span style={{ fontSize: 10, background: "var(--color-background-warning)", color: "var(--color-text-warning)", padding: "1px 6px", borderRadius: 20, display: "flex", alignItems: "center", gap: 3 }}>
+          <i className="ti ti-lock" style={{ fontSize: 9 }} aria-hidden="true" /> Premium
+        </span>
+      )}
     </div>
   );
 }
 
-// ── Left sidebar active filters summary ───────────────────────────────────────
-function ActiveFiltersSummary({ activeFilters, filterValues, lists, members, boardLabels }) {
-  const active = activeFilters.filter(k => (filterValues[k]||[]).length > 0);
+// ─────────────────────────────────────────────────────────────
+// Sidebar active-filters summary
+// ─────────────────────────────────────────────────────────────
+
+function SidebarFilters({ activeFilters, filterValues }) {
+  const active = activeFilters.filter((k) => (filterValues[k] || []).length > 0);
   if (!active.length) return null;
-
-  function chip(key, val) {
-    if (key === "due")    return DUE_OPTIONS.find(o=>o.value===val)?.label || val;
-    if (key === "member") { const m=(members||[]).find(x=>x.id===val); return m?.fullName.split(" ")[0]||val; }
-    if (key === "list")   return (lists||[]).find(l=>l.id===val)?.name || val;
-    if (key === "label") {
-      const lbl=(boardLabels||[]).find(l=>l.id===val);
-      const hex=TRELLO_LABEL_COLORS[lbl?.color]||"#888";
-      const name=lbl?.name?.trim()||lbl?.color||val;
-      return <span style={{ display:"inline-flex", alignItems:"center", gap:4 }}>
-        <span style={{ width:8, height:8, borderRadius:"50%", background:hex, display:"inline-block", flexShrink:0 }} />{name}
-      </span>;
-    }
-    return val;
-  }
-
   return (
-    <div style={{ background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:8, padding:"10px 10px 6px" }}>
-      <div style={{ fontSize:9, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase", marginBottom:8 }}>
+    <div style={{ marginTop: 4 }}>
+      <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 7 }}>
         Active filters
       </div>
-      {active.map(k => {
-        const def = FILTER_DEFS[k] || {};
-        return (
-          <div key={k} style={{ display:"flex", alignItems:"flex-start", gap:6, marginBottom:6 }}>
-            <span style={{ fontSize:11, flexShrink:0, lineHeight:"18px", color:T.textMuted }}>{def.icon||"•"}</span>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:4, flex:1 }}>
-              {(filterValues[k]||[]).map(v => (
-                <span key={v} style={{
-                  display:"inline-flex", alignItems:"center", gap:3,
-                  background:"#1e2540", border:`1px solid ${T.pillBorder}`,
-                  borderRadius:4, padding:"2px 7px", fontSize:10, color:T.pillVal,
-                  lineHeight:"16px", maxWidth:"100%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-                }}>{chip(k,v)}</span>
-              ))}
+      <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+        {active.map((k) => {
+          const def = FILTER_DEFS[k];
+          const vals = filterValues[k] || [];
+          return (
+            <div key={k} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--color-text-secondary)" }}>
+              <i className={`ti ${def?.icon || "ti-filter"}`} style={{ fontSize: 12 }} aria-hidden="true" />
+              <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>
+                {vals.length ? vals.join(", ") : "Any"}
+              </span>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// ── Member badges on card cover ───────────────────────────────────────────────
-function MemberBadges({ memberIds, allMembers }) {
-  if (!memberIds?.length) return null;
-  const visible = memberIds.slice(0, 3);
-  const MC = ["#0052cc","#7e57c2","#1a7a4a","#e67e22","#c0392b","#e91e8c"];
-  return (
-    <div style={{ position:"absolute", bottom:7, right:8, display:"flex", zIndex:1 }}>
-      {visible.map((id,i) => {
-        const m = allMembers?.find(x=>x.id===id);
-        const init = m ? m.fullName.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) : id.slice(0,2).toUpperCase();
-        return (
-          <div key={id} title={m?.fullName||id} style={{
-            width:22, height:22, borderRadius:"50%", background: m?.avatarColor||MC[i%MC.length],
-            border:"2px solid rgba(0,0,0,0.4)", display:"flex", alignItems:"center",
-            justifyContent:"center", fontSize:8, fontWeight:700, color:"#fff",
-            marginLeft: i===0?0:-6, flexShrink:0,
-          }}>{init}</div>
-        );
-      })}
-      {memberIds.length > 3 && (
-        <div style={{ width:22, height:22, borderRadius:"50%", background:"#2a2a2a", border:"2px solid rgba(0,0,0,0.4)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:700, color:"#aaa", marginLeft:-6 }}>
-          +{memberIds.length-3}
-        </div>
-      )}
-    </div>
-  );
-}
+// ─────────────────────────────────────────────────────────────
+// Color swatch picker
+// ─────────────────────────────────────────────────────────────
 
-// ── Color swatch picker ───────────────────────────────────────────────────────
 function ColorSwatchPicker({ selected, onChange, isPremium, onUpgradeClick }) {
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-      <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-        {COVER_COLORS.map(({ id, hex, label }) => (
-          <button key={id} title={label} onClick={() => onChange(id)} style={{
-            width:28, height:28, borderRadius:6, background:hex, border: selected===id?"2px solid #fff":"2px solid transparent",
-            outline: selected===id?`2px solid ${hex}`:"none", cursor:"pointer", padding:0,
-            transform: selected===id?"scale(1.15)":"scale(1)", transition:"transform 0.1s", position:"relative",
-          }}>
-            {selected===id && <span style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:13, fontWeight:700, textShadow:"0 1px 2px rgba(0,0,0,0.5)" }}>✓</span>}
-          </button>
-        ))}
-      </div>
-      <div>
-        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-          <SectionLabel style={{ marginBottom:0 }}>Gradients</SectionLabel>
-          {!isPremium && <span style={{ fontSize:9, fontWeight:700, color:"#c89a30", background:"#2e2200", borderRadius:4, padding:"2px 7px", textTransform:"uppercase", letterSpacing:"0.05em" }}>Premium</span>}
-        </div>
-        <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-          {COVER_GRADIENTS.map(({ id, css, label }) => (
-            <button key={id} title={isPremium?label:`${label} — Premium`}
-              onClick={() => { if (!isPremium){onUpgradeClick?.();return;} onChange(id); }}
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {COVER_COLORS.map(({ id, hex }) => {
+          const picked = selected === id;
+          return (
+            <button
+              key={id}
+              onClick={() => onChange(id)}
+              title={id}
               style={{
-                width:28, height:28, borderRadius:6, background:css,
-                border: selected===id?"2px solid #fff":"2px solid transparent",
-                outline: selected===id?"2px solid #888":"none", cursor:"pointer", padding:0,
-                transform: selected===id?"scale(1.15)":"scale(1)", transition:"transform 0.1s",
-                position:"relative", opacity: isPremium?1:0.5,
-              }}>
-              {selected===id&&isPremium&&<span style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:13, fontWeight:700, textShadow:"0 1px 2px rgba(0,0,0,0.5)" }}>✓</span>}
-              {!isPremium&&<span style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, color:"#fff" }}>🔒</span>}
+                width: 26, height: 26, borderRadius: "50%", background: hex,
+                border: "none", cursor: "pointer", padding: 0, flexShrink: 0,
+                outline: picked ? `2.5px solid ${hex}` : "none",
+                outlineOffset: picked ? 2 : 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "transform 0.1s",
+                transform: picked ? "scale(1.1)" : "scale(1)",
+              }}
+            >
+              {picked && <i className="ti ti-check" style={{ fontSize: 12, color: "#fff" }} aria-hidden="true" />}
             </button>
-          ))}
+          );
+        })}
+      </div>
+
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: 11, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Gradients</span>
+          {!isPremium && (
+            <span style={{ fontSize: 10, fontWeight: 500, background: "var(--color-background-warning)", color: "var(--color-text-warning)", padding: "2px 8px", borderRadius: "var(--border-radius-md)" }}>
+              Premium
+            </span>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {COVER_GRADIENTS.map(({ id, css, label }) => {
+            const picked = selected === id;
+            return (
+              <button
+                key={id}
+                title={isPremium ? label : `${label} — Premium`}
+                onClick={() => { if (!isPremium) { onUpgradeClick?.(); return; } onChange(id); }}
+                style={{
+                  width: 26, height: 26, borderRadius: "50%", background: css,
+                  border: "none", cursor: "pointer", padding: 0, flexShrink: 0,
+                  opacity: isPremium ? 1 : 0.45,
+                  outline: picked && isPremium ? "2.5px solid #888" : "none",
+                  outlineOffset: 2,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "transform 0.1s",
+                  transform: picked ? "scale(1.1)" : "scale(1)",
+                }}
+              >
+                {!isPremium && <i className="ti ti-lock" style={{ fontSize: 11, color: "#fff" }} aria-hidden="true" />}
+                {picked && isPremium && <i className="ti ti-check" style={{ fontSize: 12, color: "#fff" }} aria-hidden="true" />}
+              </button>
+            );
+          })}
         </div>
         {!isPremium && (
-          <div onClick={onUpgradeClick} style={{ marginTop:8, fontSize:11, color:T.accent, cursor:"pointer", textDecoration:"underline" }}>
-            Unlock gradient covers with Premium →
-          </div>
+          <button
+            onClick={onUpgradeClick}
+            style={{ marginTop: 8, fontSize: 12, color: "#2563eb", background: "none", border: "none", padding: 0, cursor: "pointer" }}
+          >
+            Unlock with Premium →
+          </button>
         )}
       </div>
     </div>
   );
 }
 
-// ── Image upload ──────────────────────────────────────────────────────────────
-function ImageUpload({ imageUrl, onImageChange }) {
-  const fileRef = useRef();
+// ─────────────────────────────────────────────────────────────
+// Card preview (left panel)
+// ─────────────────────────────────────────────────────────────
+
+function CardPreview({ statType, count, cardName, coverColor, coverImage }) {
+  const bg = resolveCover(coverColor, coverImage);
+  const icon = STAT_ICONS[statType] || "ti-pin";
   return (
-    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-      <input ref={fileRef} type="file" accept="image/*" style={{ display:"none" }}
-        onChange={e => { const f=e.target.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=ev=>onImageChange(ev.target.result); r.readAsDataURL(f); }} />
-      <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-        <button onClick={() => fileRef.current?.click()} style={{
-          background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:6,
-          padding:"6px 12px", color:"#ccc", fontSize:12, fontFamily:"'DM Sans',sans-serif",
-          cursor:"pointer", display:"flex", alignItems:"center", gap:6,
-        }}>🖼 {imageUrl?"Change image":"Upload image"}</button>
-        {imageUrl && <button onClick={() => onImageChange(null)} style={{
-          background:"none", border:`1px solid ${T.border}`, borderRadius:6,
-          padding:"6px 10px", color:"#888", fontSize:12, fontFamily:"'DM Sans',sans-serif", cursor:"pointer",
-        }}>Remove</button>}
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div
+        style={{
+          borderRadius: "var(--border-radius-md)",
+          overflow: "hidden",
+          position: "relative",
+          minHeight: 88,
+          background: bg || "transparent",
+        }}
+      >
+        {coverImage && (
+          <img src={coverImage} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        )}
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.15)" }} />
+        <div style={{ position: "relative", zIndex: 1, padding: "14px 12px" }}>
+          <i className={`ti ${icon}`} style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", position: "absolute", top: 9, right: 9 }} aria-hidden="true" />
+          <div style={{ fontSize: 22, fontWeight: 500, color: "#fff" }}>{count}</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.85)", marginTop: 5, lineHeight: 1.4 }}>{cardName}</div>
+        </div>
       </div>
-      {imageUrl && <div style={{ width:"100%", height:48, borderRadius:6, overflow:"hidden", border:`1px solid ${T.border}` }}>
-        <img src={imageUrl} alt="Cover preview" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-      </div>}
+      <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", textAlign: "center" }}>Preview</div>
     </div>
   );
 }
 
-// ── Stat picker (step 1) ──────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Stat picker (step 1)
+// ─────────────────────────────────────────────────────────────
+
 function StatPicker({ onSelect, onClose }) {
   return (
-    <div className="customize-overlay" onClick={onClose}>
-      <div className="customize-modal" style={{ width:280 }} onClick={e=>e.stopPropagation()}>
-        <div className="customize-header">
-          <span>Customize a stat card</span>
-          <button className="customize-close" onClick={onClose}>✕</button>
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 9999, fontFamily: "inherit",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--color-background-primary)",
+          border: "0.5px solid var(--color-border-secondary)",
+          borderRadius: "var(--border-radius-lg)",
+          width: 300, overflow: "hidden",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 16px", borderBottom: "0.5px solid var(--color-border-tertiary)" }}>
+          <span style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text-primary)" }}>Dashcards — Track</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", padding: 0 }}>
+            <i className="ti ti-x" style={{ fontSize: 18 }} aria-hidden="true" />
+          </button>
         </div>
-        <p className="customize-sub">Select a stat to configure</p>
-        {STAT_LIST.map(({ type, label, emoji }) => (
-          <div key={type} className="customize-row" onClick={() => onSelect(type)} style={{ justifyContent:"space-between" }}>
-            <span className="customize-emoji">{emoji}</span>
-            <span className="customize-label">{label}</span>
-            <span style={{ color:"#555", fontSize:14 }}>›</span>
-          </div>
-        ))}
+        <div style={{ padding: "10px 8px 12px" }}>
+          <div style={{ fontSize: 12, color: "var(--color-text-secondary)", padding: "4px 8px 10px" }}>Select a stat to configure</div>
+          {STAT_LIST.map(({ type, label, icon }) => (
+            <StatPickerRow key={type} icon={icon} label={label} onClick={() => onSelect(type)} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Card config modal (step 2) ────────────────────────────────────────────────
-function CardConfigModal({ statType, statValue, lists, memberName, members, boardLabels, isPremium, computeFilteredCount, onSave, onBack, onClose, onUpgradeClick }) {
-  const [activeTab,          setActiveTab]          = useState("filters");
-  const [cardName,           setCardName]           = useState(DEFAULT_NAMES[statType]||"");
-  const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
-  const [coverColor,         setCoverColor]         = useState(DEFAULT_COVER[statType]||"blue");
+function StatPickerRow({ icon, label, onClick }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "9px 8px", borderRadius: "var(--border-radius-md)", cursor: "pointer",
+        background: hover ? "var(--color-background-secondary)" : "transparent",
+        transition: "background 0.1s",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <i className={`ti ${icon}`} style={{ fontSize: 16, color: "var(--color-text-secondary)" }} aria-hidden="true" />
+        <span style={{ fontSize: 13, color: "var(--color-text-primary)" }}>{label}</span>
+      </div>
+      <i className="ti ti-chevron-right" style={{ fontSize: 14, color: "var(--color-text-tertiary)" }} aria-hidden="true" />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Card config modal (step 2)
+// ─────────────────────────────────────────────────────────────
+
+const TABS = ["Filters", "Alerts", "Style"];
+
+function CardConfigModal({
+  statType, statValue, lists, memberName, members, boardLabels,
+  isPremium, computeFilteredCount,
+  onSave, onBack, onClose, onUpgradeClick,
+}) {
+  const [tab,                setTab]                = useState("filters");
+  const [cardName,           setCardName]           = useState(DEFAULT_NAMES[statType] || "");
+  const [nameEdited,         setNameEdited]         = useState(false);
+  const [coverColor,         setCoverColor]         = useState(DEFAULT_COVER[statType] || "blue");
   const [coverImage,         setCoverImage]         = useState(null);
   const [alertOn,            setAlertOn]            = useState(true);
   const [boardScope,         setBoardScope]         = useState("this");
   const [memberScope,        setMemberScope]        = useState("me");
+  const [activeFilters,      setActiveFilters]      = useState(() => DEFAULT_FILTERS[statType] || ["due"]);
+  const [filterValues,       setFilterValues]       = useState({ due: [], member: [], list: [], label: [], status: [], activity: [], unassigned: [] });
+  const [openChip,           setOpenChip]           = useState(null);
+  const fileRef = useRef();
 
-  const [activeFilters, setActiveFilters] = useState(() => DEFAULT_FILTERS[statType] || ["due"]);
-  const [filterValues,  setFilterValues]  = useState({ due:[], member:[], label:[], list:[], status:[], activity:[], unassigned:[] });
+  function setFV(key, vals) { setFilterValues((p) => ({ ...p, [key]: vals })); }
+  function addFilter(key)    { setActiveFilters((p) => [...p, key]); setOpenChip(key); }
+  function removeFilter(key) { setActiveFilters((p) => p.filter((k) => k !== key)); setFV(key, []); setOpenChip(null); }
 
-  function setFilterValue(key, vals) { setFilterValues(p => ({ ...p, [key]: vals })); }
-  function addFilter(key)   { if (!activeFilters.includes(key)) setActiveFilters(p=>[...p,key]); }
-  function removeFilter(key){ setActiveFilters(p=>p.filter(k=>k!==key)); setFilterValues(p=>({...p,[key]:[]})); }
+  // Smart auto-name
+  const smartName = (() => {
+    const { due, member: mems, label: labs, list: lsts } = filterValues;
+    const parts = [];
+    if (due.length === 1)    parts.push(due[0]);
+    else if (due.length > 1) parts.push(`${due.length} due filters`);
+    if (mems.length === 1)    parts.push(`· ${mems[0].split(" ")[0]}`);
+    else if (mems.length > 1) parts.push(`· ${mems.length} members`);
+    if (labs.length === 1)    parts.push(`· ${labs[0]}`);
+    else if (labs.length > 1) parts.push(`· ${labs.length} labels`);
+    if (lsts.length === 1)    parts.push(`· ${lsts[0]}`);
+    else if (lsts.length > 1) parts.push(`· ${lsts.length} lists`);
+    return parts.length ? parts.join(" ") : DEFAULT_NAMES[statType];
+  })();
 
-  const emoji     = STAT_EMOJIS[statType] || "📌";
-  const resolvedBg = coverImage ? null : resolveCoverBackground(coverColor);
-  const selectedMembers = filterValues.member || [];
+  const displayName = nameEdited ? cardName : smartName;
+  const hasVals = Object.values(filterValues).some((v) => v.length > 0);
 
   const liveCount = computeFilteredCount
-    ? computeFilteredCount(statType, { due:filterValues.due, members:filterValues.member, labels:filterValues.label, lists:filterValues.list })
-    : statValue ?? 0;
-
-  // Smart name
-  function buildSmartName() {
-    const parts = [];
-    const { due, member:mems, label:labs, list:lsts } = filterValues;
-    if (due.length===1&&due[0]!=="custom") { const l=DUE_OPTIONS.find(o=>o.value===due[0])?.label; if(l) parts.push(l); }
-    else if (due.length>1) parts.push(`${due.length} due filters`);
-    if (mems.length===1) { const m=(members||[]).find(x=>x.id===mems[0]); if(m) parts.push(`· ${m.fullName.split(" ")[0]}`); }
-    else if (mems.length>1) parts.push(`· ${mems.length} members`);
-    if (labs.length===1) { const l=(boardLabels||[]).find(x=>x.id===labs[0]); if(l?.name) parts.push(`· ${l.name}`); }
-    else if (labs.length>1) parts.push(`· ${labs.length} labels`);
-    if (lsts.length===1) { const l=(lists||[]).find(x=>x.id===lsts[0]); if(l?.name) parts.push(`· ${l.name}`); }
-    else if (lsts.length>1) parts.push(`· ${lsts.length} lists`);
-    return parts.length>0 ? parts.join(" ") : DEFAULT_NAMES[statType];
-  }
-  const smartName  = buildSmartName();
-  const previewName = nameManuallyEdited ? cardName : smartName;
-  const hasAnyValues = Object.values(filterValues).some(v=>v.length>0);
+    ? computeFilteredCount(statType, { due: filterValues.due, members: filterValues.member, labels: filterValues.label, lists: filterValues.list })
+    : (statValue ?? 0);
 
   function handleSave() {
-    onSave(statType, { cardName:previewName, cover:coverColor, coverImage, due:filterValues.due, members:filterValues.member, labels:filterValues.label, lists:filterValues.list });
+    onSave(statType, {
+      cardName: displayName, cover: coverColor, coverImage,
+      due: filterValues.due, members: filterValues.member,
+      labels: filterValues.label, lists: filterValues.list,
+    });
   }
 
   const selectStyle = {
-    background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:6,
-    color:T.text, fontSize:12, padding:"7px 28px 7px 10px",
-    fontFamily:"'DM Sans',sans-serif", outline:"none", cursor:"pointer",
-    width:"100%", appearance:"none", WebkitAppearance:"none",
+    width: "100%", fontSize: 12, padding: "7px 10px",
+    borderRadius: "var(--border-radius-md)",
+    border: "0.5px solid var(--color-border-secondary)",
+    background: "var(--color-background-secondary)",
+    color: "var(--color-text-primary)",
+    fontFamily: "inherit", cursor: "pointer",
   };
 
-  const TABS = ["Filters","Alerts","Style"];
-
   return (
-    <div style={{
-      position:"fixed", inset:0, background:"rgba(0,0,0,0.75)",
-      display:"flex", alignItems:"center", justifyContent:"center",
-      zIndex:9999, fontFamily:"'DM Sans',sans-serif",
-    }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{
-        background:T.surface, border:`1px solid ${T.border}`, borderRadius:14,
-        width:700, maxWidth:"95vw", maxHeight:"92vh",
-        display:"flex", flexDirection:"column", overflow:"hidden",
-        boxShadow:"0 20px 60px rgba(0,0,0,0.7)",
-      }}>
-
-        {/* ── Header ── */}
-        <div style={{
-          display:"flex", justifyContent:"space-between", alignItems:"center",
-          padding:"13px 18px", borderBottom:`1px solid ${T.borderLight}`, flexShrink:0,
-          background:T.bg,
-        }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <button onClick={onBack} style={{ background:"none", border:"none", color:T.textSub, fontSize:22, cursor:"pointer", padding:"0 4px", fontFamily:"inherit", lineHeight:1 }}>‹</button>
-            <span style={{ fontSize:14, fontWeight:600, color:T.text }}>Dashcards — Track</span>
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 9999, fontFamily: "inherit",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--color-background-primary)",
+          border: "0.5px solid var(--color-border-secondary)",
+          borderRadius: "var(--border-radius-lg)",
+          width: 640, maxWidth: "95vw", maxHeight: "92vh",
+          display: "flex", flexDirection: "column", overflow: "visible",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.22)",
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 18px", borderBottom: "0.5px solid var(--color-border-tertiary)", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", padding: 0, display: "flex" }}>
+              <i className="ti ti-arrow-left" style={{ fontSize: 18 }} aria-hidden="true" />
+            </button>
+            <span style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text-primary)" }}>Dashcards — Track</span>
           </div>
-          <button onClick={onClose} style={{ background:"none", border:"none", color:T.textMuted, fontSize:18, cursor:"pointer", padding:"2px 6px", borderRadius:4 }}>✕</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", padding: 0 }}>
+            <i className="ti ti-x" style={{ fontSize: 18 }} aria-hidden="true" />
+          </button>
         </div>
 
-        {/* ── Body ── */}
-        <div style={{ display:"flex", overflow:"hidden", flex:1, minHeight:0 }}>
+        {/* Body */}
+        <div style={{ display: "grid", gridTemplateColumns: "175px 1fr", flex: 1, overflow: "hidden", minHeight: 0 }}>
 
           {/* Left panel */}
           <div style={{
-            width:200, flexShrink:0, padding:14, borderRight:`1px solid ${T.borderLight}`,
-            display:"flex", flexDirection:"column", gap:10, overflowY:"auto",
-            background:T.bg,
+            background: "var(--color-background-secondary)",
+            padding: "14px 12px", borderRight: "0.5px solid var(--color-border-tertiary)",
+            display: "flex", flexDirection: "column", gap: 10, overflowY: "auto",
           }}>
-            {/* Card preview */}
-            <div style={{ background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:10, overflow:"hidden" }}>
-              <div style={{
-                background: coverImage?"transparent":resolvedBg, height:80,
-                display:"flex", alignItems:"flex-end", padding:"8px 10px",
-                position:"relative", overflow:"hidden",
-              }}>
-                {coverImage && <img src={coverImage} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />}
-                <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.22)" }} />
-                <div style={{ position:"relative", zIndex:1 }}>
-                  <div style={{ fontSize:24, fontWeight:700, color:"#fff", lineHeight:1 }}>{liveCount}</div>
-                </div>
-                <div style={{ position:"absolute", top:8, right:8, fontSize:18, zIndex:1 }}>{emoji}</div>
-                <MemberBadges memberIds={selectedMembers} allMembers={members} />
-              </div>
-              <div style={{ padding:"8px 10px 10px" }}>
-                <div style={{ fontSize:11, fontWeight:600, color:"#c0ccdd", lineHeight:1.4, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
-                  {previewName}
-                </div>
-              </div>
-            </div>
-            <div style={{ fontSize:10, color:T.textMuted, textAlign:"center" }}>Preview</div>
-
-            <ActiveFiltersSummary activeFilters={activeFilters} filterValues={filterValues} lists={lists} members={members} boardLabels={boardLabels} />
+            <CardPreview
+              statType={statType} count={liveCount}
+              cardName={displayName} coverColor={coverColor} coverImage={coverImage}
+            />
+            <SidebarFilters activeFilters={activeFilters} filterValues={filterValues} />
           </div>
 
           {/* Right panel */}
-          <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", background:T.surface }}>
+          <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
             {/* Tabs */}
-            <div style={{ display:"flex", borderBottom:`1px solid ${T.borderLight}`, flexShrink:0, paddingLeft:4 }}>
-              {TABS.map(t => {
+            <div style={{ display: "flex", borderBottom: "0.5px solid var(--color-border-tertiary)", flexShrink: 0 }}>
+              {TABS.map((t) => {
                 const k = t.toLowerCase();
-                const active = activeTab===k;
+                const active = tab === k;
                 return (
-                  <button key={k} onClick={() => setActiveTab(k)} style={{
-                    padding:"12px 20px", fontSize:13, fontWeight: active?600:400,
-                    cursor:"pointer", color: active?T.accent:T.textSub,
-                    background:"none", border:"none",
-                    borderBottom: active?`2px solid ${T.accent}`:"2px solid transparent",
-                    fontFamily:"inherit", marginBottom:-1, transition:"all 0.15s",
-                  }}>{t}</button>
+                  <button
+                    key={k}
+                    onClick={() => { setTab(k); if (k !== "filters") setOpenChip(null); }}
+                    style={{
+                      flex: 1, padding: "11px 8px", fontSize: 13, fontWeight: active ? 500 : 400,
+                      background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
+                      borderBottom: active ? "2px solid #2563eb" : "2px solid transparent",
+                      color: active ? "#2563eb" : "var(--color-text-secondary)",
+                      transition: "all 0.12s",
+                    }}
+                  >{t}</button>
                 );
               })}
             </div>
 
             {/* Tab content */}
-            <div style={{ flex:1, overflowY:"auto", padding:"16px 18px", display:"flex", flexDirection:"column", gap:16 }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 14, position: "relative" }}>
 
               {/* ── FILTERS TAB ── */}
-              {activeTab==="filters" && <>
+              {tab === "filters" && <>
                 {/* Name */}
                 <div>
-                  <SectionLabel>Card name</SectionLabel>
+                  <label style={{ fontSize: 11, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>
+                    Name
+                  </label>
                   <input
                     type="text"
-                    value={nameManuallyEdited?cardName:smartName}
-                    onChange={e => { setCardName(e.target.value); setNameManuallyEdited(true); }}
+                    value={displayName}
+                    onChange={(e) => { setCardName(e.target.value); setNameEdited(true); }}
                     placeholder={DEFAULT_NAMES[statType]}
                     style={{
-                      width:"100%", background:T.bgDeep, border:`1px solid ${T.border}`,
-                      borderRadius:7, padding:"8px 11px", color:T.text,
-                      fontSize:13, fontFamily:"'DM Sans',sans-serif",
-                      outline:"none", boxSizing:"border-box", transition:"border-color 0.15s",
+                      width: "100%", boxSizing: "border-box", fontSize: 13,
+                      padding: "8px 10px", borderRadius: "var(--border-radius-md)",
+                      border: "0.5px solid var(--color-border-secondary)",
+                      background: "var(--color-background-secondary)",
+                      color: "var(--color-text-primary)", fontFamily: "inherit",
+                      outline: "none",
                     }}
-                    onFocus={e=>e.target.style.borderColor=T.accent}
-                    onBlur={e=>e.target.style.borderColor=T.border}
+                    onFocus={(e) => (e.target.style.borderColor = "#2563eb")}
+                    onBlur={(e) => (e.target.style.borderColor = "var(--color-border-secondary)")}
                   />
-                  {!nameManuallyEdited && hasAnyValues && (
-                    <div style={{ fontSize:10, color:T.textMuted, marginTop:4 }}>
+                  {!nameEdited && hasVals && (
+                    <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 4 }}>
                       Auto-generated from filters —{" "}
-                      <span style={{ color:T.accent, cursor:"pointer" }} onClick={() => { setCardName(smartName); setNameManuallyEdited(true); }}>edit</span>
+                      <span style={{ color: "#2563eb", cursor: "pointer" }} onClick={() => { setCardName(smartName); setNameEdited(true); }}>edit</span>
                     </div>
                   )}
                 </div>
 
-                <Divider />
-
                 {/* Scope */}
                 <div>
-                  <SectionLabel>Scope</SectionLabel>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                  <label style={{ fontSize: 11, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>
+                    Scope
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     {[
-                      { lbl:"Board", val:boardScope, set:setBoardScope, opts:[{v:"this",l:"This board"},{v:"all",l:"All boards"}] },
-                      { lbl:"Member", val:memberScope, set:setMemberScope, opts:[{v:"me",l:`Me (${memberName?memberName.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2):"SB"})`},{v:"anyone",l:"Anyone"}] },
-                    ].map(({ lbl,val,set,opts }) => (
+                      { lbl: "Board", val: boardScope, set: setBoardScope, opts: [{ v: "this", l: "This board" }, { v: "all", l: "All workspace boards" }] },
+                      { lbl: "Member", val: memberScope, set: setMemberScope, opts: [{ v: "me", l: `Me (${memberName?.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "SB"})` }, { v: "anyone", l: "Any member" }] },
+                    ].map(({ lbl, val, set, opts }) => (
                       <div key={lbl}>
-                        <div style={{ fontSize:11, color:T.textMuted, marginBottom:5 }}>{lbl}</div>
-                        <div style={{ position:"relative" }}>
-                          <select value={val} onChange={e=>set(e.target.value)} style={selectStyle}>
-                            {opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
-                          </select>
-                          <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:10, color:T.textMuted, pointerEvents:"none" }}>▾</span>
-                        </div>
+                        <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginBottom: 4 }}>{lbl}</div>
+                        <select value={val} onChange={(e) => set(e.target.value)} style={selectStyle}>
+                          {opts.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+                        </select>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <Divider />
-
                 {/* Filters */}
-                <div>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                    <SectionLabel style={{ marginBottom:0 }}>Filters</SectionLabel>
-                    <AddFilterDropdown activeKeys={activeFilters} onAdd={addFilter} isPremium={isPremium} onUpgradeClick={onUpgradeClick} />
+                <div style={{ position: "relative" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
+                    <label style={{ fontSize: 11, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Filters
+                    </label>
+                    <AddFilterMenu
+                      activeKeys={activeFilters} onAdd={addFilter}
+                      isPremium={isPremium} onUpgradeClick={onUpgradeClick}
+                    />
                   </div>
 
-                  {/* Pills */}
-                  {activeFilters.length>0 && (
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:14 }}>
-                      {activeFilters.map(key => (
-                        <FilterPill
+                  {activeFilters.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
+                      {activeFilters.map((key) => (
+                        <FilterChip
                           key={key} filterKey={key}
-                          values={filterValues[key]||[]}
-                          onValuesChange={vals=>setFilterValue(key,vals)}
-                          onRemove={()=>removeFilter(key)}
+                          values={filterValues[key] || []}
+                          onChange={(vals) => setFV(key, vals)}
+                          onRemove={() => removeFilter(key)}
+                          isOpen={openChip === key}
+                          onToggle={() => setOpenChip((c) => c === key ? null : key)}
                           lists={lists} members={members} boardLabels={boardLabels}
                         />
                       ))}
                     </div>
                   )}
 
-                  {/* Matching count */}
-                  <div style={{
-                    display:"flex", alignItems:"center", gap:8,
-                    background:T.bgDeep, border:`1px solid ${T.border}`,
-                    borderRadius:8, padding:"9px 14px",
-                  }}>
-                    <span style={{ fontSize:14 }}>⧖</span>
-                    <span style={{ fontSize:13, color:T.textSub }}>Matching</span>
-                    <span style={{ fontSize:14, fontWeight:700, color:T.accent }}>{liveCount}</span>
-                    <span style={{ fontSize:13, color:T.textSub }}>cards</span>
+                  <div style={{ fontSize: 12, color: "var(--color-text-secondary)", display: "flex", alignItems: "center", gap: 5, marginTop: 4 }}>
+                    <i className="ti ti-filter" style={{ fontSize: 13 }} aria-hidden="true" />
+                    Matching{" "}
+                    <strong style={{ color: "var(--color-text-primary)", margin: "0 2px" }}>{liveCount}</strong>
+                    {" "}cards
                   </div>
-                </div>
-
-                {/* Down arrow hint */}
-                <div style={{ display:"flex", justifyContent:"center", paddingTop:4 }}>
-                  <div style={{
-                    width:30, height:30, borderRadius:"50%",
-                    background:T.bgDeep, border:`1px solid ${T.border}`,
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    color:T.textMuted, fontSize:13,
-                  }}>↓</div>
                 </div>
               </>}
 
               {/* ── ALERTS TAB ── */}
-              {activeTab==="alerts" && <>
-                <p style={{ fontSize:13, color:T.textSub, margin:"0 0 4px", lineHeight:1.6 }}>
+              {tab === "alerts" && <>
+                <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: 0 }}>
                   Get notified when this stat hits a threshold.
                 </p>
                 <div style={{
-                  display:"flex", alignItems:"center", justifyContent:"space-between",
-                  background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:9, padding:"12px 16px",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  background: "var(--color-background-secondary)",
+                  border: "0.5px solid var(--color-border-tertiary)",
+                  borderRadius: "var(--border-radius-md)", padding: "10px 12px",
                 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                    <span style={{ fontSize:18 }}>🔔</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <i className="ti ti-bell" style={{ fontSize: 16, color: "var(--color-text-warning)" }} aria-hidden="true" />
                     <div>
-                      <div style={{ fontSize:13, fontWeight:600, color:T.text }}>Count exceeds 5</div>
-                      <div style={{ fontSize:11, color:T.textMuted, marginTop:2 }}>Notify via Trello notification</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)" }}>Count exceeds 5</div>
+                      <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginTop: 2 }}>Notify via Trello notification</div>
                     </div>
                   </div>
-                  <button onClick={() => setAlertOn(v=>!v)} style={{
-                    width:38, height:22, borderRadius:11, border:"none", cursor:"pointer",
-                    position:"relative", background:alertOn?T.accent:"#2a2f3d", transition:"background 0.2s", flexShrink:0,
-                  }}>
-                    <div style={{ position:"absolute", top:3, left:alertOn?19:3, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 4px rgba(0,0,0,0.5)" }} />
+                  <button
+                    onClick={() => setAlertOn((v) => !v)}
+                    aria-label={alertOn ? "Disable alert" : "Enable alert"}
+                    style={{
+                      width: 34, height: 18, borderRadius: 20, border: "none",
+                      background: alertOn ? "#2563eb" : "var(--color-border-secondary)",
+                      cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0,
+                    }}
+                  >
+                    <div style={{
+                      position: "absolute", width: 12, height: 12, background: "#fff",
+                      borderRadius: "50%", top: 3, left: alertOn ? 19 : 3, transition: "left 0.2s",
+                    }} />
                   </button>
                 </div>
                 <button style={{
-                  width:"100%", background:"none", border:`1px dashed ${T.border}`,
-                  borderRadius:9, padding:"11px", color:T.textMuted, fontSize:13,
-                  fontFamily:"inherit", cursor:"pointer",
-                  display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+                  display: "flex", alignItems: "center", gap: 6, fontSize: 13,
+                  color: "#2563eb", background: "none",
+                  border: "0.5px dashed var(--color-border-secondary)",
+                  borderRadius: "var(--border-radius-md)", padding: "10px 12px",
+                  cursor: "pointer", width: "100%", fontFamily: "inherit",
                 }}>
-                  <span>+</span><span>Add alert</span>
+                  <i className="ti ti-plus" style={{ fontSize: 15 }} aria-hidden="true" /> Add alert
                 </button>
-                <div style={{ background:"#1e1a00", border:"1px solid #3d3200", borderRadius:9, padding:"11px 14px", fontSize:12, color:"#c0a030", display:"flex", alignItems:"flex-start", gap:8, lineHeight:1.55 }}>
-                  <span style={{ fontSize:14, flexShrink:0 }}>ⓘ</span>
+                <div style={{
+                  background: "var(--color-background-warning)",
+                  borderRadius: "var(--border-radius-md)", padding: "10px 12px",
+                  fontSize: 12, color: "var(--color-text-warning)",
+                  display: "flex", gap: 8, lineHeight: 1.55,
+                }}>
+                  <i className="ti ti-info-circle" style={{ fontSize: 15, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
                   <span>Alerts fire at most once per day. Upgrade to Pro for real-time alerts and email delivery.</span>
                 </div>
               </>}
 
               {/* ── STYLE TAB ── */}
-              {activeTab==="style" && <>
+              {tab === "style" && <>
                 <div>
-                  <SectionLabel>Cover color</SectionLabel>
+                  <label style={{ fontSize: 11, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 8 }}>
+                    Cover color
+                  </label>
                   <ColorSwatchPicker
-                    selected={coverImage?null:coverColor}
-                    onChange={id=>{ setCoverColor(id); setCoverImage(null); }}
+                    selected={coverImage ? null : coverColor}
+                    onChange={(id) => { setCoverColor(id); setCoverImage(null); }}
                     isPremium={isPremium} onUpgradeClick={onUpgradeClick}
                   />
                 </div>
-                <Divider />
+
+                <hr style={{ border: "none", borderTop: "0.5px solid var(--color-border-tertiary)", margin: "2px 0" }} />
+
                 <div>
-                  <SectionLabel>
+                  <label style={{ fontSize: 11, color: "var(--color-text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 8 }}>
                     Cover image{" "}
-                    <span style={{ color:T.textMuted, fontWeight:400, textTransform:"none", letterSpacing:0 }}>(optional — overrides color)</span>
-                  </SectionLabel>
-                  <ImageUpload imageUrl={coverImage} onImageChange={setCoverImage} />
+                    <span style={{ fontSize: 10, color: "var(--color-text-tertiary)", textTransform: "none", letterSpacing: 0, fontWeight: 400 }}>
+                      (optional — overrides color)
+                    </span>
+                  </label>
+                  <input
+                    ref={fileRef} type="file" accept="image/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const r = new FileReader();
+                      r.onload = (ev) => setCoverImage(ev.target.result);
+                      r.readAsDataURL(f);
+                    }}
+                  />
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6, fontSize: 13,
+                        padding: "8px 14px", borderRadius: "var(--border-radius-md)",
+                        border: "0.5px solid var(--color-border-secondary)",
+                        background: "var(--color-background-secondary)",
+                        color: "var(--color-text-primary)", cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      <i className="ti ti-upload" style={{ fontSize: 15 }} aria-hidden="true" />
+                      {coverImage ? "Change image" : "Upload image"}
+                    </button>
+                    {coverImage && (
+                      <button
+                        onClick={() => setCoverImage(null)}
+                        style={{
+                          fontSize: 13, padding: "8px 12px", borderRadius: "var(--border-radius-md)",
+                          border: "0.5px solid var(--color-border-secondary)",
+                          background: "none", color: "var(--color-text-secondary)",
+                          cursor: "pointer", fontFamily: "inherit",
+                        }}
+                      >Remove</button>
+                    )}
+                  </div>
+                  {coverImage && (
+                    <div style={{ marginTop: 8, width: "100%", height: 48, borderRadius: "var(--border-radius-md)", overflow: "hidden", border: "0.5px solid var(--color-border-secondary)" }}>
+                      <img src={coverImage} alt="Cover preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                  )}
                 </div>
               </>}
             </div>
           </div>
         </div>
 
-        {/* ── Footer ── */}
+        {/* Footer */}
         <div style={{
-          display:"flex", justifyContent:"flex-end", gap:10,
-          padding:"13px 18px", borderTop:`1px solid ${T.borderLight}`, flexShrink:0,
-          background:T.bg,
+          display: "flex", justifyContent: "flex-end", gap: 8,
+          padding: "12px 16px", borderTop: "0.5px solid var(--color-border-tertiary)", flexShrink: 0,
         }}>
-          <button onClick={onClose} style={{
-            background:"none", border:`1px solid ${T.border}`, borderRadius:7,
-            padding:"7px 20px", color:T.textSub, fontSize:13, fontFamily:"inherit", cursor:"pointer",
-          }}>Cancel</button>
-          <button onClick={handleSave}
-            style={{ background:T.accent, border:"none", borderRadius:7, padding:"7px 22px", color:"#fff", fontSize:13, fontWeight:600, fontFamily:"'DM Sans',sans-serif", cursor:"pointer" }}
-            onMouseEnter={e=>e.currentTarget.style.background=T.accentHover}
-            onMouseLeave={e=>e.currentTarget.style.background=T.accent}
+          <button
+            onClick={onClose}
+            style={{ fontSize: 13, padding: "8px 16px", borderRadius: "var(--border-radius-md)", border: "0.5px solid var(--color-border-secondary)", background: "none", color: "var(--color-text-secondary)", cursor: "pointer", fontFamily: "inherit" }}
+          >Cancel</button>
+          <button
+            onClick={handleSave}
+            style={{ fontSize: 13, padding: "8px 20px", borderRadius: "var(--border-radius-md)", background: "#2563eb", color: "#fff", border: "none", fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#1D4ED8")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#2563eb")}
           >Start tracking</button>
         </div>
       </div>
@@ -949,16 +1000,35 @@ function CardConfigModal({ statType, statValue, lists, memberName, members, boar
   );
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
-export function CustomizeFlow({ show, lists, stats, memberName, members, boardLabels, customizeStat, setCustomizeStat, onSave, onClose, isPremium, onUpgradeClick, computeFilteredCount }) {
+// ─────────────────────────────────────────────────────────────
+// Main export
+// ─────────────────────────────────────────────────────────────
+
+export function CustomizeFlow({
+  show, lists, stats, memberName, members, boardLabels,
+  customizeStat, setCustomizeStat,
+  onSave, onClose,
+  isPremium, onUpgradeClick,
+  computeFilteredCount,
+}) {
   if (!show) return null;
-  if (!customizeStat) return <StatPicker onSelect={type=>setCustomizeStat(type)} onClose={onClose} />;
+  if (!customizeStat) {
+    return <StatPicker onSelect={(type) => setCustomizeStat(type)} onClose={onClose} />;
+  }
   return (
     <CardConfigModal
-      statType={customizeStat} statValue={stats?.[customizeStat]??0}
-      lists={lists} memberName={memberName} members={members} boardLabels={boardLabels}
-      isPremium={isPremium} computeFilteredCount={computeFilteredCount}
-      onSave={onSave} onBack={()=>setCustomizeStat(null)} onClose={onClose} onUpgradeClick={onUpgradeClick}
+      statType={customizeStat}
+      statValue={stats?.[customizeStat] ?? 0}
+      lists={lists}
+      memberName={memberName}
+      members={members}
+      boardLabels={boardLabels}
+      isPremium={isPremium}
+      computeFilteredCount={computeFilteredCount}
+      onSave={onSave}
+      onBack={() => setCustomizeStat(null)}
+      onClose={onClose}
+      onUpgradeClick={onUpgradeClick}
     />
   );
 }
