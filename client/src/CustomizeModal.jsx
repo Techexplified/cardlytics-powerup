@@ -716,8 +716,14 @@ function CardConfigModal({
 
 
 // ── Resolve memberScope to a real ID and sync filterValues.member atomically
+  // ── Resolve memberScope to a real ID and sync filterValues.member atomically
+  const initializedScopeRef = useRef(null);
+
   useEffect(() => {
     if (!scopedMembers?.length) return;
+    if (initializedScopeRef.current === boardScope) return; // already initialized for this scope
+    initializedScopeRef.current = boardScope;
+
     const my = scopedMembers.find(m => m.fullName === memberName);
     const resolvedId = my?.id ?? "anyone";
     setMemberScope(resolvedId);
@@ -725,7 +731,7 @@ function CardConfigModal({
       ...prev,
       member: resolvedId !== "anyone" ? [resolvedId] : [],
     }));
-  }, [scopedMembers]); // re-runs when board scope switches and members reload
+  }, [scopedMembers, boardScope]); // only re-initializes when board scope actually changes
 
   const emoji     = STAT_EMOJIS[statType] || "📌";
   const resolvedBg = coverImage ? null : resolveCoverBackground(coverColor);
