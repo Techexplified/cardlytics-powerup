@@ -285,16 +285,18 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
       } catch (_) {}
     }
 
-    const filteredForStat = cardFilters
+    // Step 1: apply user filters
+    const userFiltered = cardFilters
       ? applyFilters(filteredCards, cardFilters, memberId)
       : filteredCards;
 
-    // FIX #2 + #3: use shared builder that includes cardsInList + calendar week
+    // Step 2: AND with stat's own filter (consistent with computeFilteredCount)
     const statFilterMap = buildStatFilterMap(memberId, resolvedListId);
     const statFn = statFilterMap[statType];
-    const newCount = statFn
-      ? filteredForStat.filter(statFn).length
-      : filteredForStat.length;
+    const newCount =
+      statFn && statType !== "cardsInList" && statType !== "all"
+        ? userFiltered.filter(statFn).length
+        : userFiltered.length;
 
     const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
     const oldCount = oldCountMatch ? parseInt(oldCountMatch[1]) : null;
@@ -1540,7 +1542,7 @@ setBoardLabels(labels);
               }
             : null;
 
-   const count = (() => {
+  const count = (() => {
   const hasFilters =
     filterConfig && (
       filterConfig.due.length     > 0 ||
@@ -1551,17 +1553,17 @@ setBoardLabels(labels);
       filterConfig.customDateTo   !== ""
     );
 
+  // Step 1: apply user filters
   const base = hasFilters
     ? applyFilters(allBoardCards, filterConfig, currentMemberId)
     : allBoardCards;
 
-  // Skip stat's own filter when user has defined their own filters
-  const skipStatFn = hasFilters;
-
+  // Step 2: ALSO apply stat's own filter (AND logic)
   const statFn = buildStatFilterMap(currentMemberId, null)[stat];
-  return (statFn && !skipStatFn)
-    ? base.filter(statFn).length
-    : base.length;
+  if (!statFn || stat === "cardsInList" || stat === "all") {
+    return base.length;
+  }
+  return base.filter(statFn).length;
 })();
 
           // FIX #7: also include filterStr when only customDate range is set
@@ -1676,25 +1678,26 @@ setBoardLabels(labels);
     setShowCustomize(false);
     setCustomizeStat(null);
   }}
-  computeFilteredCount={(statType, filters) => {
+computeFilteredCount={(statType, filters) => {
+  const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
+
   const hasFilters =
     filters.due?.length     > 0 ||
     filters.members?.length > 0 ||
     filters.labels?.length  > 0 ||
     filters.lists?.length   > 0;
 
+  // Step 1: apply user-selected filters
   const base = hasFilters
-    ? applyFilters(allBoardCards, filters, currentMemberId)
-    : allBoardCards;
+    ? applyFilters(cards, filters, currentMemberId)
+    : cards;
 
-  // If user picked their own due/member/label/list filters,
-  // skip the stat's built-in filter — user's choice overrides it
-  const skipStatFn = hasFilters;
-
+  // Step 2: ALSO apply the stat's own filter (AND logic)
   const statFn = buildStatFilterMap(currentMemberId, null)[statType];
-  return (statFn && !skipStatFn)
-    ? base.filter(statFn).length
-    : base.length;
+  if (!statFn || statType === "cardsInList" || statType === "all") {
+    return base.length;
+  }
+  return base.filter(statFn).length;
 }}
   boardId={currentBoardId}
   boardName={currentBoardName}

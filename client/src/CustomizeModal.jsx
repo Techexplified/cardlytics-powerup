@@ -708,40 +708,39 @@ function CardConfigModal({
   }, [boardDropOpen]);
 
   const [activeFilters, setActiveFilters] = useState(() => DEFAULT_FILTERS[statType] || ["due"]);
-  const [filterValues,  setFilterValues]  = useState({ due:[], member:[], label:[], list:[], status:[], activity:[], unassigned:[] });
+  const [filterValues,  setFilterValues]  = useState({ due:[], member:[], label:[], list:[], status:[], activity:[], unassigned:[], customDateFrom:"", customDateTo:"" });
 
   function setFilterValue(key, vals) { setFilterValues(p => ({ ...p, [key]: vals })); }
   function addFilter(key)   { if (!activeFilters.includes(key)) setActiveFilters(p=>[...p,key]); }
   function removeFilter(key){ setActiveFilters(p=>p.filter(k=>k!==key)); setFilterValues(p=>({...p,[key]:[]})); }
 
-  // ── Member scope (Me / Anyone) drives the member filter value ─────────────
-  useEffect(() => {
-  if (memberScope === "anyone") {
-    setFilterValue("member", []);
-  } else if (memberScope && memberScope !== "me") {
-    setFilterValue("member", [memberScope]);
-  }
-}, [memberScope]);
 
-useEffect(() => {
-  if (memberScope === "me" && scopedMembers?.length) {
+// ── Resolve memberScope to a real ID and sync filterValues.member atomically
+  useEffect(() => {
+    if (!scopedMembers?.length) return;
     const my = scopedMembers.find(m => m.fullName === memberName);
-    setMemberScope(my ? my.id : "anyone");
-  }
-}, [scopedMembers, memberName, memberScope]);
+    const resolvedId = my?.id ?? "anyone";
+    setMemberScope(resolvedId);
+    setFilterValues(prev => ({
+      ...prev,
+      member: resolvedId !== "anyone" ? [resolvedId] : [],
+    }));
+  }, [scopedMembers]); // re-runs when board scope switches and members reload
 
   const emoji     = STAT_EMOJIS[statType] || "📌";
   const resolvedBg = coverImage ? null : resolveCoverBackground(coverColor);
   const selectedMembers = filterValues.member || [];
 
   const liveCount = computeFilteredCount
-  ? computeFilteredCount(statType, {
-      due:     filterValues.due    || [],
-      members: filterValues.member || [],
-      labels:  filterValues.label  || [],
-      lists:   filterValues.list   || [],
-    })
-  : statValue ?? 0;
+    ? computeFilteredCount(statType, {
+        due:            filterValues.due            || [],
+        members:        filterValues.member         || [],
+        labels:         filterValues.label          || [],
+        lists:          filterValues.list           || [],
+        customDateFrom: filterValues.customDateFrom || "",
+        customDateTo:   filterValues.customDateTo   || "",
+      })
+    : statValue ?? 0;
 
  function buildSmartName() {
     return DEFAULT_NAMES[statType];
@@ -941,7 +940,18 @@ useEffect(() => {
 <div>
   <div style={{ fontSize:11, color:T.textMuted, marginBottom:5 }}>Member</div>
   <div style={{ position:"relative" }}>
-    <select value={memberScope} onChange={e=>setMemberScope(e.target.value)} style={selectStyle}>
+    <select
+      value={memberScope}
+      onChange={e => {
+        const val = e.target.value;
+        setMemberScope(val);
+        setFilterValues(prev => ({
+          ...prev,
+          member: val !== "anyone" ? [val] : [],
+        }));
+      }}
+      style={selectStyle}
+    >
       <option value="anyone">Anyone</option>
       {(scopedMembers||[]).map(m => (
         <option key={m.id} value={m.id}>
