@@ -113,7 +113,7 @@ const ADDABLE_FILTERS = [
 
 const DEFAULT_FILTERS = {
   assigned:    ["due","member"],
-  dueThisWeek: ["due","member"],
+  dueThisWeek: ["due"],
   overdue:     ["due"],
   unassigned:  ["member","list"],
   withLabel:   ["label"],
@@ -740,7 +740,7 @@ function CardConfigModal({
   const liveCount = computeFilteredCount
     ? computeFilteredCount(statType, {
         due:            filterValues.due            || [],
-        members:        filterValues.member         || [],
+        members:        activeFilters.includes("member") ? (filterValues.member || []) : [],
         labels:         filterValues.label          || [],
         lists:          filterValues.list           || [],
         customDateFrom: filterValues.customDateFrom || "",
@@ -757,15 +757,16 @@ function CardConfigModal({
 
   function handleSave() {
   onSave(statType, {
-    cardName: previewName,
-    cover: coverColor,
+    cardName:   previewName,
+    cover:      coverColor,
     coverImage,
-    due: filterValues.due || [],
-    members: memberScope !== "anyone" ? [memberScope] : [],
-    labels: filterValues.label || [],
-    lists: filterValues.list || [],
+    due:        filterValues.due    || [],
+    members:    activeFilters.includes("member") ? (filterValues.member || []) : [],
+    labels:     filterValues.label  || [],
+    lists:      filterValues.list   || [],
     boardScope,
     memberScope,
+    count:      liveCount,   // ← persist the exact preview count
   });
 }
 
