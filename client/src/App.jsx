@@ -1540,17 +1540,24 @@ setBoardLabels(labels);
               }
             : null;
 
-          const count = filterConfig
-            ? (() => {
-                const base = applyFilters(
-                  allBoardCards,
-                  filterConfig,
-                  currentMemberId,
-                );
-                const statFn = buildStatFilterMap(currentMemberId, null)[stat];
-                return statFn ? base.filter(statFn).length : base.length;
-              })()
-            : stats[stat];
+         const count = (() => {
+  const hasFilters =
+    filterConfig && (
+      filterConfig.due.length     > 0 ||
+      filterConfig.members.length > 0 ||
+      filterConfig.labels.length  > 0 ||
+      filterConfig.lists.length   > 0 ||
+      filterConfig.customDateFrom !== "" ||
+      filterConfig.customDateTo   !== ""
+    );
+
+  const base = hasFilters
+    ? applyFilters(allBoardCards, filterConfig, currentMemberId)
+    : allBoardCards;
+
+  const statFn = buildStatFilterMap(currentMemberId, null)[stat];
+  return statFn ? base.filter(statFn).length : base.length;
+})();
 
           // FIX #7: also include filterStr when only customDate range is set
           const hasActiveFilters =
@@ -1665,10 +1672,19 @@ setBoardLabels(labels);
     setCustomizeStat(null);
   }}
   computeFilteredCount={(statType, filters) => {
-    const base = applyFilters(allBoardCards, filters, currentMemberId);
-    const statFn = buildStatFilterMap(currentMemberId, null)[statType];
-    return statFn ? base.filter(statFn).length : base.length;
-  }}
+  const hasFilters =
+    filters.due?.length     > 0 ||
+    filters.members?.length > 0 ||
+    filters.labels?.length  > 0 ||
+    filters.lists?.length   > 0;
+
+  const base = hasFilters
+    ? applyFilters(allBoardCards, filters, currentMemberId)
+    : allBoardCards;
+
+  const statFn = buildStatFilterMap(currentMemberId, null)[statType];
+  return statFn ? base.filter(statFn).length : base.length;
+}}
   boardId={currentBoardId}
   boardName={currentBoardName}
   fetchWorkspaceBoards={async () => {

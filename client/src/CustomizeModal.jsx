@@ -735,8 +735,13 @@ useEffect(() => {
   const selectedMembers = filterValues.member || [];
 
   const liveCount = computeFilteredCount
-    ? computeFilteredCount(statType, { due:filterValues.due, members:filterValues.member, labels:filterValues.label, lists:filterValues.list })
-    : statValue ?? 0;
+  ? computeFilteredCount(statType, {
+      due:     filterValues.due    || [],
+      members: filterValues.member || [],
+      labels:  filterValues.label  || [],
+      lists:   filterValues.list   || [],
+    })
+  : statValue ?? 0;
 
   function buildSmartName() {
     const parts = [];
@@ -756,12 +761,18 @@ useEffect(() => {
   const hasAnyValues = Object.values(filterValues).some(v=>v.length>0);
 
   function handleSave() {
-    onSave(statType, {
-      cardName:previewName, cover:coverColor, coverImage,
-      due:filterValues.due, members:filterValues.member, labels:filterValues.label, lists:filterValues.list,
-      boardScope, memberScope,
-    });
-  }
+  onSave(statType, {
+    cardName:   previewName,
+    cover:      coverColor,
+    coverImage,
+    due:        filterValues.due    || [],
+    members:    filterValues.member || [],
+    labels:     filterValues.label  || [],
+    lists:      filterValues.list   || [],
+    boardScope,
+    memberScope,
+  });
+}
 
   const selectStyle = {
     background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:6,
