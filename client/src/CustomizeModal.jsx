@@ -751,13 +751,13 @@ function CardConfigModal({
 
   function handleSave() {
   onSave(statType, {
-    cardName:   previewName,
-    cover:      coverColor,
+    cardName: previewName,
+    cover: coverColor,
     coverImage,
-    due:        filterValues.due    || [],
-    members:    filterValues.member || [],
-    labels:     filterValues.label  || [],
-    lists:      filterValues.list   || [],
+    due: filterValues.due || [],
+    members: memberScope !== "anyone" ? [memberScope] : [],
+    labels: filterValues.label || [],
+    lists: filterValues.list || [],
     boardScope,
     memberScope,
   });
