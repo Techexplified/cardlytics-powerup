@@ -743,22 +743,12 @@ useEffect(() => {
     })
   : statValue ?? 0;
 
-  function buildSmartName() {
-    const parts = [];
-    const { due, member:mems, label:labs, list:lsts } = filterValues;
-    if (due.length===1&&due[0]!=="custom") { const l=DUE_OPTIONS.find(o=>o.value===due[0])?.label; if(l) parts.push(l); }
-    else if (due.length>1) parts.push(`${due.length} due filters`);
-    if (mems.length===1) { const m=(scopedMembers||[]).find(x=>x.id===mems[0]); if(m) parts.push(`· ${m.fullName.split(" ")[0]}`); }
-    else if (mems.length>1) parts.push(`· ${mems.length} members`);
-    if (labs.length===1) { const l=(scopedLabels||[]).find(x=>x.id===labs[0]); if(l?.name) parts.push(`· ${l.name}`); }
-    else if (labs.length>1) parts.push(`· ${labs.length} labels`);
-    if (lsts.length===1) { const l=(scopedLists||[]).find(x=>x.id===lsts[0]); if(l?.name) parts.push(`· ${l.name}`); }
-    else if (lsts.length>1) parts.push(`· ${lsts.length} lists`);
-    return parts.length>0 ? parts.join(" ") : DEFAULT_NAMES[statType];
+ function buildSmartName() {
+    return DEFAULT_NAMES[statType];
   }
   const smartName  = buildSmartName();
   const previewName = nameManuallyEdited ? cardName : smartName;
-  const hasAnyValues = Object.values(filterValues).some(v=>v.length>0);
+  
 
   function handleSave() {
   onSave(statType, {
@@ -781,7 +771,7 @@ useEffect(() => {
     width:"100%", appearance:"none", WebkitAppearance:"none",
   };
 
-  const TABS = ["Filters","Alerts","Style"];
+  const TABS = ["Filters","Style"];
 
   // Label shown on the Board dropdown trigger
   function boardScopeLabel() {
@@ -894,12 +884,7 @@ useEffect(() => {
                     onFocus={e=>e.target.style.borderColor=T.accent}
                     onBlur={e=>e.target.style.borderColor=T.border}
                   />
-                  {!nameManuallyEdited && hasAnyValues && (
-                    <div style={{ fontSize:10, color:T.textMuted, marginTop:4 }}>
-                      Auto-generated from filters —{" "}
-                      <span style={{ color:T.accent, cursor:"pointer" }} onClick={() => { setCardName(smartName); setNameManuallyEdited(true); }}>edit</span>
-                    </div>
-                  )}
+                
                 </div>
 
                 <Divider />
@@ -907,7 +892,7 @@ useEffect(() => {
                 {/* Scope */}
                 <div>
                   <SectionLabel>Scope</SectionLabel>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
                    <div>
   <div style={{ fontSize:11, color:T.textMuted, marginBottom:5 }}>Board</div>
   <div ref={boardDropRef} style={{ position:"relative" }}>
@@ -1025,53 +1010,8 @@ useEffect(() => {
                   </div>
                 </div>
 
-                {/* Down arrow hint */}
-                <div style={{ display:"flex", justifyContent:"center", paddingTop:4 }}>
-                  <div style={{
-                    width:30, height:30, borderRadius:"50%",
-                    background:T.bgDeep, border:`1px solid ${T.border}`,
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    color:T.textMuted, fontSize:13,
-                  }}>↓</div>
-                </div>
-              </>}
+                 </>}  {/* ← closes the filters tab */}
 
-              {/* ── ALERTS TAB ── */}
-              {activeTab==="alerts" && <>
-                <p style={{ fontSize:13, color:T.textSub, margin:"0 0 4px", lineHeight:1.6 }}>
-                  Get notified when this stat hits a threshold.
-                </p>
-                <div style={{
-                  display:"flex", alignItems:"center", justifyContent:"space-between",
-                  background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:9, padding:"12px 16px",
-                }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                    <span style={{ fontSize:18 }}>🔔</span>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:600, color:T.text }}>Count exceeds 5</div>
-                      <div style={{ fontSize:11, color:T.textMuted, marginTop:2 }}>Notify via Trello notification</div>
-                    </div>
-                  </div>
-                  <button onClick={() => setAlertOn(v=>!v)} style={{
-                    width:38, height:22, borderRadius:11, border:"none", cursor:"pointer",
-                    position:"relative", background:alertOn?T.accent:"#2a2f3d", transition:"background 0.2s", flexShrink:0,
-                  }}>
-                    <div style={{ position:"absolute", top:3, left:alertOn?19:3, width:16, height:16, borderRadius:"50%", background:"#fff", transition:"left 0.2s", boxShadow:"0 1px 4px rgba(0,0,0,0.5)" }} />
-                  </button>
-                </div>
-                <button style={{
-                  width:"100%", background:"none", border:`1px dashed ${T.border}`,
-                  borderRadius:9, padding:"11px", color:T.textMuted, fontSize:13,
-                  fontFamily:"inherit", cursor:"pointer",
-                  display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-                }}>
-                  <span>+</span><span>Add alert</span>
-                </button>
-                <div style={{ background:"#1e1a00", border:"1px solid #3d3200", borderRadius:9, padding:"11px 14px", fontSize:12, color:"#c0a030", display:"flex", alignItems:"flex-start", gap:8, lineHeight:1.55 }}>
-                  <span style={{ fontSize:14, flexShrink:0 }}>ⓘ</span>
-                  <span>Alerts fire at most once per day. Upgrade to Pro for real-time alerts and email delivery.</span>
-                </div>
-              </>}
 
               {/* ── STYLE TAB ── */}
               {activeTab==="style" && <>
