@@ -716,13 +716,19 @@ function CardConfigModal({
 
   // ── Member scope (Me / Anyone) drives the member filter value ─────────────
   useEffect(() => {
-    if (memberScope === "me") {
-      const myId = scopedMembers?.find(m => m.fullName === memberName)?.id;
-      setFilterValue("member", myId ? [myId] : []);
-    } else {
-      setFilterValue("member", []);
-    }
-  }, [memberScope, scopedMembers, memberName]);
+  if (memberScope === "anyone") {
+    setFilterValue("member", []);
+  } else if (memberScope && memberScope !== "me") {
+    setFilterValue("member", [memberScope]);
+  }
+}, [memberScope]);
+
+useEffect(() => {
+  if (memberScope === "me" && scopedMembers?.length) {
+    const my = scopedMembers.find(m => m.fullName === memberName);
+    setMemberScope(my ? my.id : "anyone");
+  }
+}, [scopedMembers, memberName, memberScope]);
 
   const emoji     = STAT_EMOJIS[statType] || "📌";
   const resolvedBg = coverImage ? null : resolveCoverBackground(coverColor);
@@ -940,8 +946,12 @@ function CardConfigModal({
   <div style={{ fontSize:11, color:T.textMuted, marginBottom:5 }}>Member</div>
   <div style={{ position:"relative" }}>
     <select value={memberScope} onChange={e=>setMemberScope(e.target.value)} style={selectStyle}>
-      <option value="me">Me ({memberName?memberName.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2):"SB"})</option>
       <option value="anyone">Anyone</option>
+      {(scopedMembers||[]).map(m => (
+        <option key={m.id} value={m.id}>
+          {m.fullName}{m.fullName === memberName ? " (you)" : ""}
+        </option>
+      ))}
     </select>
     <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:10, color:T.textMuted, pointerEvents:"none" }}>▾</span>
   </div>
