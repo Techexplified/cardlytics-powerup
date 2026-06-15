@@ -1540,7 +1540,7 @@ setBoardLabels(labels);
               }
             : null;
 
-         const count = (() => {
+   const count = (() => {
   const hasFilters =
     filterConfig && (
       filterConfig.due.length     > 0 ||
@@ -1555,8 +1555,13 @@ setBoardLabels(labels);
     ? applyFilters(allBoardCards, filterConfig, currentMemberId)
     : allBoardCards;
 
+  // Skip stat's own filter when user has defined their own filters
+  const skipStatFn = hasFilters;
+
   const statFn = buildStatFilterMap(currentMemberId, null)[stat];
-  return statFn ? base.filter(statFn).length : base.length;
+  return (statFn && !skipStatFn)
+    ? base.filter(statFn).length
+    : base.length;
 })();
 
           // FIX #7: also include filterStr when only customDate range is set
@@ -1682,8 +1687,14 @@ setBoardLabels(labels);
     ? applyFilters(allBoardCards, filters, currentMemberId)
     : allBoardCards;
 
+  // If user picked their own due/member/label/list filters,
+  // skip the stat's built-in filter — user's choice overrides it
+  const skipStatFn = hasFilters;
+
   const statFn = buildStatFilterMap(currentMemberId, null)[statType];
-  return statFn ? base.filter(statFn).length : base.length;
+  return (statFn && !skipStatFn)
+    ? base.filter(statFn).length
+    : base.length;
 }}
   boardId={currentBoardId}
   boardName={currentBoardName}
