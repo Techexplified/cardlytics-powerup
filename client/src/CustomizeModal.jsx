@@ -91,6 +91,8 @@ const DUE_OPTIONS = [
   { value:"nodate",  label:"No due date"    },
 ];
 
+const DUE_RANGE_ORDER = ["overdue","nodate","2days","1week","2weeks","1month"];
+
 // Filter definitions — icon + label shown in the pill
 const FILTER_DEFS = {
   due:    { icon:"📅", label:"Due date",  valueKey:"due"    },
@@ -112,14 +114,14 @@ const ADDABLE_FILTERS = [
 ];
 
 const DEFAULT_FILTERS = {
-  assigned:    ["due","member"],
-  dueThisWeek: ["due"],
-  overdue:     ["due"],
-  unassigned:  ["member","list"],
-  withLabel:   ["label"],
-  stale:       ["list"],
-  createdToday:["member"],
-  cardsInList: ["list"],
+  assigned:    ["due","member","label","list"],
+  dueThisWeek: ["due","member","label","list"],
+  overdue:     ["due","member","label","list"],
+  unassigned:  ["due","member","label","list"],
+  withLabel:   ["due","member","label","list"],
+  stale:       ["due","member","label","list"],
+  createdToday:["due","member","label","list"],
+  cardsInList: ["due","member","label","list"],
 };
 
 // ── Tiny shared components ────────────────────────────────────────────────────
@@ -650,7 +652,7 @@ function CardConfigModal({
   const [coverImage,         setCoverImage]         = useState(null);
   const [alertOn,            setAlertOn]            = useState(true);
   const [boardScope,         setBoardScope]         = useState("this");
-  const [memberScope,        setMemberScope]        = useState("me");
+  const [memberScope, setMemberScope] = useState("anyone");
   const [boardDropOpen, setBoardDropOpen] = useState(false);
   const boardDropRef = useRef();
 
@@ -720,18 +722,20 @@ function CardConfigModal({
   const initializedScopeRef = useRef(null);
 
   useEffect(() => {
-    if (!scopedMembers?.length) return;
-    if (initializedScopeRef.current === boardScope) return; // already initialized for this scope
-    initializedScopeRef.current = boardScope;
+  if (!scopedMembers?.length) return;
+  if (initializedScopeRef.current === boardScope) return;
 
-    const my = scopedMembers.find(m => m.fullName === memberName);
-    const resolvedId = my?.id ?? "anyone";
-    setMemberScope(resolvedId);
-    setFilterValues(prev => ({
-      ...prev,
-      member: resolvedId !== "anyone" ? [resolvedId] : [],
-    }));
-  }, [scopedMembers, boardScope]); // only re-initializes when board scope actually changes
+  initializedScopeRef.current = boardScope;
+
+  // ✅ Always default to neutral state
+  setMemberScope("anyone");
+
+  setFilterValues(prev => ({
+    ...prev,
+    member: [],
+  }));
+
+}, [scopedMembers, boardScope]);
 
   const emoji     = STAT_EMOJIS[statType] || "📌";
   const resolvedBg = coverImage ? null : resolveCoverBackground(coverColor);
@@ -749,6 +753,18 @@ function CardConfigModal({
     : statValue ?? 0;
 
  function buildSmartName() {
+    if (filterValues.due?.length) {
+      if (filterValues.due.length === 1) {
+        const opt = DUE_OPTIONS.find(o => o.value === filterValues.due[0]);
+        if (opt) return opt.label;
+      } else {
+        const broadest = filterValues.due.reduce((a, b) =>
+          DUE_RANGE_ORDER.indexOf(b) > DUE_RANGE_ORDER.indexOf(a) ? b : a
+        );
+        const opt = DUE_OPTIONS.find(o => o.value === broadest);
+        if (opt) return opt.label;
+      }
+    }
     return DEFAULT_NAMES[statType];
   }
   const smartName  = buildSmartName();
