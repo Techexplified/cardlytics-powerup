@@ -1345,7 +1345,12 @@ export default function App() {
   const [memberFullName, setMemberFullName] = useState("");
   const [boardMembers, setBoardMembers] = useState([]);
   const [showCustomize, setShowCustomize] = useState(false);
-  const [scopeListId, setScopeListId] = useState("board");
+  const [scopeListId, setScopeListId] = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    const m = p.get("mode");
+    const l = p.get("listId");
+    return m === "list" && l ? l : "board";
+  });
   const [customizeStat, setCustomizeStat] = useState(null);
   const [cardConfig, setCardConfig] = useState({});
   const [isTracking, setIsTracking] = useState(false);
@@ -1358,7 +1363,14 @@ export default function App() {
 
   // FIX #9: track current scopeListId in a ref so the setInterval closure
   // always reads the latest value instead of the stale initial one
-  const scopeListIdRef = useRef(scopeListId);
+  const scopeListIdRef = useRef(
+    (() => {
+      const p = new URLSearchParams(window.location.search);
+      const m = p.get("mode");
+      const l = p.get("listId");
+      return m === "list" && l ? l : "board";
+    })()
+  );
   useEffect(() => {
     scopeListIdRef.current = scopeListId;
   }, [scopeListId]);
