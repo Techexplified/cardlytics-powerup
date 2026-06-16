@@ -25,6 +25,8 @@ import jsPDF from "jspdf";
 
 const TRELLO_BASE = "https://api.trello.com/1";
 
+let _workspaceBoardsCache = null;
+
 // ── Initialize Trello iframe context ONCE at module level ─────────────────────
 const trelloT = (() => {
   try {
@@ -1746,9 +1748,12 @@ export default function App() {
         boardId={currentBoardId}
         boardName={currentBoardName}
         fetchWorkspaceBoards={async () => {
+          if (_workspaceBoardsCache) return _workspaceBoardsCache;
           const key = TRELLO_API_KEY;
           const tkn = getStoredToken();
-          return getWorkspaceBoards(key, tkn);
+          const boards = await getWorkspaceBoards(key, tkn);
+          _workspaceBoardsCache = boards;
+          return boards;
         }}
         fetchBoardScopedData={async (targetBoardId, boards) => {
           const key = TRELLO_API_KEY;

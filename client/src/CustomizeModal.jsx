@@ -95,10 +95,12 @@ const DUE_RANGE_ORDER = ["overdue","nodate","2days","1week","2weeks","1month"];
 
 // Filter definitions — icon + label shown in the pill
 const FILTER_DEFS = {
-  due:    { icon:"📅", label:"Due date",  valueKey:"due"    },
-  member: { icon:"👤", label:"Member",    valueKey:"members" },
-  list:   { icon:"☰",  label:"List",      valueKey:"lists"  },
-  label:  { icon:"🏷", label:"Label",     valueKey:"labels" },
+  due:      { icon:"📅", label:"Due date",  valueKey:"due"      },
+  member:   { icon:"👤", label:"Member",    valueKey:"members"  },
+  list:     { icon:"☰",  label:"List",      valueKey:"lists"    },
+  label:    { icon:"🏷", label:"Label",     valueKey:"labels"   },
+  status:   { icon:"📋", label:"Status",    valueKey:"status"   },
+  activity: { icon:"🕐", label:"Activity",  valueKey:"activity" },
 };
 
 const ADDABLE_FILTERS = [
@@ -273,6 +275,45 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
       );
     })}</>;
   }
+
+  if (filterKey === "status") {
+    const STATUS_OPTIONS = [
+      { value:"incomplete", label:"Incomplete" },
+      { value:"complete",   label:"Complete"   },
+      { value:"overdue",    label:"Overdue"    },
+    ];
+    return <>{STATUS_OPTIONS.map((opt) => (
+      <DropdownItem key={opt.value} checked={selected.includes(opt.value)}
+        onClick={() => onChange(selected.includes(opt.value) ? selected.filter(v=>v!==opt.value) : [...selected,opt.value])}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <span style={{
+            width:10, height:10, borderRadius:"50%", flexShrink:0, display:"inline-block",
+            background: opt.value==="complete" ? "#4caf50" : opt.value==="overdue" ? "#ff5252" : "#f9c74f",
+          }}/>
+          {opt.label}
+        </div>
+      </DropdownItem>
+    ))}</>;
+  }
+
+  if (filterKey === "activity") {
+    const ACTIVITY_OPTIONS = [
+      { value:"1day",    label:"Active in last 1 day"   },
+      { value:"3days",   label:"Active in last 3 days"  },
+      { value:"7days",   label:"Active in last 7 days"  },
+      { value:"14days",  label:"Active in last 14 days" },
+      { value:"30days",  label:"Active in last 30 days" },
+      { value:"stale14", label:"Stale — 14+ days"       },
+      { value:"stale30", label:"Stale — 30+ days"       },
+    ];
+    return <>{ACTIVITY_OPTIONS.map((opt) => (
+      <DropdownItem key={opt.value} checked={selected.includes(opt.value)}
+        onClick={() => onChange(selected.includes(opt.value) ? selected.filter(v=>v!==opt.value) : [...selected,opt.value])}>
+        {opt.label}
+      </DropdownItem>
+    ))}</>;
+  }
+
   return null;
 }
 
@@ -295,7 +336,23 @@ function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, member
 
   const def = FILTER_DEFS[filterKey];
   if (!def) return null;
-  const hasValuePicker = ["due","member","label","list"].includes(filterKey);
+  const hasValuePicker = ["due","member","label","list","status","activity"].includes(filterKey);
+
+  const STATUS_OPTIONS = [
+    { value:"incomplete", label:"Incomplete" },
+    { value:"complete",   label:"Complete"   },
+    { value:"overdue",    label:"Overdue"    },
+  ];
+
+  const ACTIVITY_OPTIONS = [
+    { value:"1day",    label:"Active in last 1 day"   },
+    { value:"3days",   label:"Active in last 3 days"  },
+    { value:"7days",   label:"Active in last 7 days"  },
+    { value:"14days",  label:"Active in last 14 days" },
+    { value:"30days",  label:"Active in last 30 days" },
+    { value:"stale14", label:"Stale — 14+ days"       },
+    { value:"stale30", label:"Stale — 30+ days"       },
+  ];
 
   function pillValue() {
     if (!values || !values.length) return null;
@@ -315,6 +372,14 @@ function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, member
       if (values.length === 1) return (lists||[]).find(l=>l.id===values[0])?.name||values[0];
       return `${values.length} lists`;
     }
+    if (filterKey === "status") {
+      if (values.length === 1) return STATUS_OPTIONS.find(o=>o.value===values[0])?.label || values[0];
+      return `${values.length} statuses`;
+    }
+    if (filterKey === "activity") {
+      if (values.length === 1) return ACTIVITY_OPTIONS.find(o=>o.value===values[0])?.label || values[0];
+      return `${values.length} ranges`;
+    }
     return null;
   }
 
@@ -322,10 +387,12 @@ function FilterPill({ filterKey, values, onValuesChange, onRemove, lists, member
   const [hover, setHover] = useState(false);
 
   const pillKeyLabel = {
-    due:    "Due date",
-    member: "Member",
-    list:   "List",
-    label:  "Label",
+    due:      "Due date",
+    member:   "Member",
+    list:     "List",
+    label:    "Label",
+    status:   "Status",
+    activity: "Activity",
   }[filterKey] || def.label;
 
   return (
@@ -709,7 +776,7 @@ function CardConfigModal({
     return () => document.removeEventListener("mousedown", onDown);
   }, [boardDropOpen]);
 
-  const [activeFilters, setActiveFilters] = useState(() => DEFAULT_FILTERS[statType] || ["due"]);
+  const [activeFilters, setActiveFilters] = useState(() => DEFAULT_FILTERS[statType] || ["due","member","label","list"]);
   const [filterValues,  setFilterValues]  = useState({ due:[], member:[], label:[], list:[], status:[], activity:[], unassigned:[], customDateFrom:"", customDateTo:"" });
 
   function setFilterValue(key, vals) { setFilterValues(p => ({ ...p, [key]: vals })); }
