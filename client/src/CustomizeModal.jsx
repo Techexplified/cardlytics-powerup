@@ -276,27 +276,30 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
     })}</>;
   }
 
-  if (filterKey === "status") {
+ if (filterKey === "status") {
     const STATUS_OPTIONS = [
       { value:"incomplete", label:"Incomplete" },
       { value:"complete",   label:"Complete"   },
       { value:"overdue",    label:"Overdue"    },
     ];
-    return <>{STATUS_OPTIONS.map((opt) => (
-      <DropdownItem key={opt.value} checked={selected.includes(opt.value)}
-        onClick={() => onChange(selected.includes(opt.value) ? selected.filter(v=>v!==opt.value) : [...selected,opt.value])}>
-        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-          <span style={{
-            width:10, height:10, borderRadius:"50%", flexShrink:0, display:"inline-block",
-            background: opt.value==="complete" ? "#4caf50" : opt.value==="overdue" ? "#ff5252" : "#f9c74f",
-          }}/>
-          {opt.label}
-        </div>
-      </DropdownItem>
-    ))}</>;
+    return <>{STATUS_OPTIONS.map((opt) => {
+      const isSelected = selected.includes(opt.value);
+      return (
+        <DropdownItem key={opt.value} checked={isSelected}
+          onClick={() => onChange(isSelected ? [] : [opt.value])}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{
+              width:10, height:10, borderRadius:"50%", flexShrink:0, display:"inline-block",
+              background: opt.value==="complete" ? "#4caf50" : opt.value==="overdue" ? "#ff5252" : "#f9c74f",
+            }}/>
+            {opt.label}
+          </div>
+        </DropdownItem>
+      );
+    })}</>;
   }
 
-  if (filterKey === "activity") {
+ if (filterKey === "activity") {
     const ACTIVITY_OPTIONS = [
       { value:"1day",    label:"Active in last 1 day"   },
       { value:"3days",   label:"Active in last 3 days"  },
@@ -306,12 +309,15 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
       { value:"stale14", label:"Stale — 14+ days"       },
       { value:"stale30", label:"Stale — 30+ days"       },
     ];
-    return <>{ACTIVITY_OPTIONS.map((opt) => (
-      <DropdownItem key={opt.value} checked={selected.includes(opt.value)}
-        onClick={() => onChange(selected.includes(opt.value) ? selected.filter(v=>v!==opt.value) : [...selected,opt.value])}>
-        {opt.label}
-      </DropdownItem>
-    ))}</>;
+    return <>{ACTIVITY_OPTIONS.map((opt) => {
+      const isSelected = selected.includes(opt.value);
+      return (
+        <DropdownItem key={opt.value} checked={isSelected}
+          onClick={() => onChange(isSelected ? [] : [opt.value])}>
+          {opt.label}
+        </DropdownItem>
+      );
+    })}</>;
   }
 
   return null;
@@ -810,10 +816,12 @@ function CardConfigModal({
 
   const liveCount = computeFilteredCount
     ? computeFilteredCount(statType, {
-        due:            filterValues.due            || [],
+        due:            filterValues.due                                          || [],
         members:        activeFilters.includes("member") ? (filterValues.member || []) : [],
-        labels:         filterValues.label          || [],
-        lists:          filterValues.list           || [],
+        labels:         filterValues.label                                        || [],
+        lists:          filterValues.list                                         || [],
+        status:         activeFilters.includes("status")   ? (filterValues.status   || []) : [],
+        activity:       activeFilters.includes("activity") ? (filterValues.activity || []) : [],
         customDateFrom: filterValues.customDateFrom || "",
         customDateTo:   filterValues.customDateTo   || "",
       })
@@ -844,12 +852,14 @@ function CardConfigModal({
     cover:      coverColor,
     coverImage,
     due:        filterValues.due    || [],
-    members:    activeFilters.includes("member") ? (filterValues.member || []) : [],
+    members:    activeFilters.includes("member")   ? (filterValues.member   || []) : [],
     labels:     filterValues.label  || [],
     lists:      filterValues.list   || [],
+    status:     activeFilters.includes("status")   ? (filterValues.status   || []) : [],
+    activity:   activeFilters.includes("activity") ? (filterValues.activity || []) : [],
     boardScope,
     memberScope,
-    count:      liveCount,   // ← persist the exact preview count
+    count:      liveCount,
   });
 }
 

@@ -308,8 +308,40 @@ export function applyFilters(cards, filters, memberId) {
     }
 
     // ── List filter ───────────────────────────────────────────────────────────
+   // ── List filter ───────────────────────────────────────────────────────────
     if (filters.lists && filters.lists.length > 0) {
       if (!filters.lists.includes(card.idList)) return false;
+    }
+
+    // ── Status filter ─────────────────────────────────────────────────────────
+    if (filters.status && filters.status.length > 0) {
+      const now = new Date();
+      const matches = filters.status.some(s => {
+        if (s === "complete")   return card.dueComplete === true;
+        if (s === "incomplete") return !card.dueComplete;
+        if (s === "overdue")    return card.due && new Date(card.due) < now && !card.dueComplete;
+        return false;
+      });
+      if (!matches) return false;
+    }
+
+    // ── Activity filter ───────────────────────────────────────────────────────
+    if (filters.activity && filters.activity.length > 0) {
+      const now = new Date();
+      const last = card.dateLastActivity ? new Date(card.dateLastActivity) : null;
+      const matches = filters.activity.some(a => {
+        if (!last) return false;
+        const diffDays = (now - last) / 86400000;
+        if (a === "1day")    return diffDays <= 1;
+        if (a === "3days")   return diffDays <= 3;
+        if (a === "7days")   return diffDays <= 7;
+        if (a === "14days")  return diffDays <= 14;
+        if (a === "30days")  return diffDays <= 30;
+        if (a === "stale14") return diffDays > 14;
+        if (a === "stale30") return diffDays > 30;
+        return false;
+      });
+      if (!matches) return false;
     }
 
     return true;

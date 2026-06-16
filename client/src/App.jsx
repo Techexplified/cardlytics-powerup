@@ -1731,7 +1731,9 @@ export default function App() {
             filters.due?.length > 0 ||
             filters.members?.length > 0 ||
             filters.labels?.length > 0 ||
-            filters.lists?.length > 0;
+            filters.lists?.length > 0 ||
+            filters.status?.length > 0 ||
+            filters.activity?.length > 0;
 
           // Step 1: apply user-selected filters
           const base = hasFilters
