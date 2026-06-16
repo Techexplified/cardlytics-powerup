@@ -1584,6 +1584,8 @@ export default function App() {
                 members: saved.members || [],
                 labels: saved.labels || [],
                 lists: saved.lists || [],
+                status: saved.status || [],
+                activity: saved.activity || [],
                 customDateFrom: saved.customDateFrom || "",
                 customDateTo: saved.customDateTo || "",
               }
@@ -1596,6 +1598,8 @@ export default function App() {
                 filterConfig.members.length > 0 ||
                 filterConfig.labels.length > 0 ||
                 filterConfig.lists.length > 0 ||
+                (filterConfig.status?.length > 0) ||
+                (filterConfig.activity?.length > 0) ||
                 filterConfig.customDateFrom !== "" ||
                 filterConfig.customDateTo !== "");
 
@@ -1613,14 +1617,16 @@ export default function App() {
           })();
 
           // FIX #7: also include filterStr when only customDate range is set
-          const hasActiveFilters =
+         const hasActiveFilters =
             filterConfig &&
             (filterConfig.due.length > 0 ||
               filterConfig.members.length > 0 ||
               filterConfig.labels.length > 0 ||
               filterConfig.lists.length > 0 ||
-              filterConfig.customDateFrom !== "" || // ✅ was missing
-              filterConfig.customDateTo !== ""); // ✅ was missing
+              (filterConfig.status?.length > 0) ||
+              (filterConfig.activity?.length > 0) ||
+              filterConfig.customDateFrom !== "" ||
+              filterConfig.customDateTo !== "");
 
           const filterStr = hasActiveFilters
             ? `:filters:${encodeURIComponent(JSON.stringify(filterConfig))}`
