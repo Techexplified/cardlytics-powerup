@@ -550,6 +550,7 @@ function CardDetailsView() {
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState("name");
   const [sortAsc, setSortAsc] = useState(true);
+  const [leftTab, setLeftTab] = useState("general");
 
   const key = TRELLO_API_KEY;
   const token = getStoredToken();
@@ -962,10 +963,26 @@ function SortArrow({ col }) {
   return (
     <div className="cd-root">
       <div className="cd-left">
+        <div className="cd-left-tabs">
+          <button
+            className={`cd-left-tab ${leftTab === "general" ? "active" : ""}`}
+            onClick={() => setLeftTab("general")}
+          >
+            General
+          </button>
+          <button
+            className={`cd-left-tab ${leftTab === "personalized" ? "active" : ""}`}
+            onClick={() => setLeftTab("personalized")}
+          >
+            Personalized
+          </button>
+        </div>
+
         <div className="cd-list-label">
           {isListScoped ? listName : boardName}
         </div>
-        {leftStats.map((s, i) => (
+
+        {leftTab === "general" && leftStats.map((s, i) => (
           <div
             key={i}
             className="cd-stat-card"
@@ -994,14 +1011,33 @@ function SortArrow({ col }) {
             </div>
             <div className="cd-stat-lbl">{s.label}</div>
           </div>
-        ))}
-        <div
-          className="add-filter-card"
-          style={{ marginTop: 4 }}
-          onClick={() => comingSoon("Add filter")}
-        >
-          + Add filter
-        </div>
+       ))}
+
+        {leftTab === "general" && (
+          <div
+            className="add-filter-card"
+            style={{ marginTop: 4 }}
+            onClick={() => comingSoon("Add filter")}
+          >
+            + Add filter
+          </div>
+        )}
+
+        {leftTab === "personalized" && (
+          <div className="cd-personalized-empty">
+            <div className="cd-personalized-icon">👤</div>
+            <div className="cd-personalized-title">Your custom views</div>
+            <div className="cd-personalized-desc">
+              Save filtered views here for quick access.
+            </div>
+            <button
+              className="cd-personalized-cta"
+              onClick={() => comingSoon("Personalized views")}
+            >
+              + Create view
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="cd-right">
