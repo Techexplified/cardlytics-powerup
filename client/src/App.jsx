@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
-   getBoard,  
+  getBoard,
   getBoardCards,
   computeStats,
   computeDetailStats,
@@ -8,13 +8,13 @@ import {
   getMemberDetails,
   getListCards,
   getBoardLists,
-   getBoardLabels,
+  getBoardLabels,
   createCard,
   createList,
   applyFilters,
   getWeekBounds, // FIX #3: imported so dueThisWeek is consistent everywhere
-  getWorkspaceBoards,      // ← new
-  getBoardScopedData,  
+  getWorkspaceBoards, // ← new
+  getBoardScopedData,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
@@ -831,7 +831,33 @@ function CardDetailsView() {
     }
   }
 
-  function SortArrow({ col }) {
+  async function toggleDone(cardId, currentDone) {
+  const key = TRELLO_API_KEY;
+  const tkn = getStoredToken();
+  const newValue = !currentDone;
+
+  setCards(prev =>
+    prev.map(c => c.id === cardId ? { ...c, dueComplete: newValue } : c)
+  );
+
+  try {
+    await fetch(
+      `${TRELLO_BASE}/cards/${cardId}?key=${key}&token=${tkn}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dueComplete: newValue }),
+      }
+    );
+  } catch (err) {
+    setCards(prev =>
+      prev.map(c => c.id === cardId ? { ...c, dueComplete: currentDone } : c)
+    );
+    console.error("Failed to update dueComplete:", err);
+  }
+}
+
+function SortArrow({ col }) {
     if (sortCol !== col)
       return <span style={{ color: "#444", marginLeft: 3 }}>↕</span>;
     return (
@@ -1122,12 +1148,12 @@ function CardDetailsView() {
             <table className="cd-table">
               <thead>
                 <tr>
+                  <th style={{ width: 60, textAlign: "center" }}>Status</th>
                   <th onClick={() => handleSort("name")}>
                     Name <SortArrow col="name" />
                   </th>
                   <th>Assigned</th>
                   <th>Board</th>
-                  <th>Done</th>
                   <th onClick={() => handleSort("created")}>
                     Created <SortArrow col="created" />
                   </th>
@@ -1155,8 +1181,31 @@ function CardDetailsView() {
                     </td>
                   </tr>
                 )}
-                {filtered.map((card) => (
+               {filtered.map((card) => (
                   <tr key={card.id}>
+
+                    <td style={{ textAlign: "center" }}>
+                      <span
+                        onClick={() => toggleDone(card.id, card.dueComplete)}
+                        style={{
+                          width: 16,
+                          height: 16,
+                          border: `1px solid ${card.dueComplete ? "#4caf50" : "#444"}`,
+                          borderRadius: 3,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: card.dueComplete ? "#0a3d0a" : "transparent",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {card.dueComplete && (
+                          <span style={{ color: "#4caf50", fontSize: 10 }}>✓</span>
+                        )}
+                      </span>
+                    </td>
+
                     <td className="td-name">
                       {card.labels?.length > 0 && (
                         <span
@@ -1183,6 +1232,7 @@ function CardDetailsView() {
                       )}
                       {card.name}
                     </td>
+
                     <td>
                       {card.idMembers?.length > 0 ? (
                         <div style={{ display: "flex", gap: 3 }}>
@@ -1203,43 +1253,27 @@ function CardDetailsView() {
                         <span style={{ color: "#555" }}>—</span>
                       )}
                     </td>
+
                     <td className="td-board">● {boardName}</td>
-                    <td>
-                      <span
-                        style={{
-                          width: 14,
-                          height: 14,
-                          border: "1px solid #444",
-                          borderRadius: 3,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          background: card.dueComplete
-                            ? "#0a3d0a"
-                            : "transparent",
-                        }}
-                      >
-                        {card.dueComplete && (
-                          <span style={{ color: "#4caf50", fontSize: 10 }}>
-                            ✓
-                          </span>
-                        )}
-                      </span>
-                    </td>
+
                     <td className="td-date">
                       {formatDate(cardCreatedDate(card.id).toISOString())}
                     </td>
+
                     <td>
                       <DueChip due={card.due} dueComplete={card.dueComplete} />
                     </td>
+
                     <td className="td-date">
                       {formatDate(card.dateLastActivity)}
                     </td>
+
                     <td>
                       <span className="td-list-tag">
                         {listMap[card.idList] || listName}
                       </span>
                     </td>
+
                   </tr>
                 ))}
               </tbody>
@@ -1319,8 +1353,8 @@ export default function App() {
   const [allBoardCards, setAllBoardCards] = useState([]);
   const [currentMemberId, setCurrentMemberId] = useState(null);
   const [boardLabels, setBoardLabels] = useState([]);
-const [currentBoardId, setCurrentBoardId] = useState(null);
-const [currentBoardName, setCurrentBoardName] = useState("");
+  const [currentBoardId, setCurrentBoardId] = useState(null);
+  const [currentBoardName, setCurrentBoardName] = useState("");
 
   // FIX #9: track current scopeListId in a ref so the setInterval closure
   // always reads the latest value instead of the stale initial one
@@ -1357,35 +1391,34 @@ const [currentBoardName, setCurrentBoardName] = useState("");
 
       // FIX #9: use ref so interval calls always get the current scope
       const resolvedScope = overrideScope ?? scopeListIdRef.current;
-const activeScope = resolvedScope !== "board" ? resolvedScope : null;
+      const activeScope = resolvedScope !== "board" ? resolvedScope : null;
 
-// Fetch full board cards once — reused for both stats scope and customize preview
-const fullBoardCards = await getBoardCards(key, tkn, boardId);
+      // Fetch full board cards once — reused for both stats scope and customize preview
+      const fullBoardCards = await getBoardCards(key, tkn, boardId);
 
-const cards =
-  mode === "list" && listId
-    ? await getListCards(key, tkn, listId)
-    : activeScope
-      ? await getListCards(key, tkn, activeScope)
-      : fullBoardCards; // ✅ reuse instead of fetching again
+      const cards =
+        mode === "list" && listId
+          ? await getListCards(key, tkn, listId)
+          : activeScope
+            ? await getListCards(key, tkn, activeScope)
+            : fullBoardCards; // ✅ reuse instead of fetching again
 
-const allLists = await getBoardLists(key, tkn, boardId);
-const cardlyticsListIds = allLists
-  .filter((l) => l.name.toLowerCase() === "cardlytics")
-  .map((l) => l.id);
+      const allLists = await getBoardLists(key, tkn, boardId);
+      const cardlyticsListIds = allLists
+        .filter((l) => l.name.toLowerCase() === "cardlytics")
+        .map((l) => l.id);
 
-const filteredForStats = cards.filter(
-  (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
-);
-const memberId = await getMemberId(key, tkn);
-setCurrentMemberId(memberId);
+      const filteredForStats = cards.filter(
+        (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
+      );
+      const memberId = await getMemberId(key, tkn);
+      setCurrentMemberId(memberId);
 
-// Full board cards for customize preview — already fetched above, no extra call
-const fullFiltered = fullBoardCards.filter(
-  (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
-);
-setAllBoardCards(fullFiltered);
-
+      // Full board cards for customize preview — already fetched above, no extra call
+      const fullFiltered = fullBoardCards.filter(
+        (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
+      );
+      setAllBoardCards(fullFiltered);
 
       if (trelloT) {
         trelloT
@@ -1405,10 +1438,10 @@ setAllBoardCards(fullFiltered);
         }
       }
       const boardInfo = await getBoard(key, tkn, boardId);
-setCurrentBoardName(boardInfo?.name || "");
+      setCurrentBoardName(boardInfo?.name || "");
 
-const labels = await getBoardLabels(key, tkn, boardId);
-setBoardLabels(labels);
+      const labels = await getBoardLabels(key, tkn, boardId);
+      setBoardLabels(labels);
 
       const computed = computeStats(filteredForStats, memberId);
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
@@ -1542,29 +1575,28 @@ setBoardLabels(labels);
               }
             : null;
 
-  const count = (() => {
-  const hasFilters =
-    filterConfig && (
-      filterConfig.due.length     > 0 ||
-      filterConfig.members.length > 0 ||
-      filterConfig.labels.length  > 0 ||
-      filterConfig.lists.length   > 0 ||
-      filterConfig.customDateFrom !== "" ||
-      filterConfig.customDateTo   !== ""
-    );
+          const count = (() => {
+            const hasFilters =
+              filterConfig &&
+              (filterConfig.due.length > 0 ||
+                filterConfig.members.length > 0 ||
+                filterConfig.labels.length > 0 ||
+                filterConfig.lists.length > 0 ||
+                filterConfig.customDateFrom !== "" ||
+                filterConfig.customDateTo !== "");
 
-  // Step 1: apply user filters
-  const base = hasFilters
-    ? applyFilters(allBoardCards, filterConfig, currentMemberId)
-    : allBoardCards;
+            // Step 1: apply user filters
+            const base = hasFilters
+              ? applyFilters(allBoardCards, filterConfig, currentMemberId)
+              : allBoardCards;
 
-  // Step 2: ALSO apply stat's own filter (AND logic)
-  const statFn = buildStatFilterMap(currentMemberId, null)[stat];
-  if (!statFn || stat === "cardsInList" || stat === "all") {
-    return base.length;
-  }
-  return base.filter(statFn).length;
-})();
+            // Step 2: ALSO apply stat's own filter (AND logic)
+            const statFn = buildStatFilterMap(currentMemberId, null)[stat];
+            if (!statFn || stat === "cardsInList" || stat === "all") {
+              return base.length;
+            }
+            return base.filter(statFn).length;
+          })();
 
           // FIX #7: also include filterStr when only customDate range is set
           const hasActiveFilters =
@@ -1658,60 +1690,60 @@ setBoardLabels(labels);
     <div className="popup">
       <Toast toast={toast} />
 
-     <CustomizeFlow
-  show={showCustomize}
-  lists={lists}
-  stats={stats}
-  memberName={memberFullName}
-  members={boardMembers}
-  boardLabels={boardLabels}
-  customizeStat={customizeStat}
-  setCustomizeStat={setCustomizeStat}
-  onSave={async (type, cfg) => {
-    const newConfig = { ...cardConfig, [type]: cfg };
-    setCardConfig(newConfig);
-    setShowCustomize(false);
-    setCustomizeStat(null);
-    await handleTrack([type], newConfig);
-  }}
-  onClose={() => {
-    setShowCustomize(false);
-    setCustomizeStat(null);
-  }}
-computeFilteredCount={(statType, filters) => {
-  const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
+      <CustomizeFlow
+        show={showCustomize}
+        lists={lists}
+        stats={stats}
+        memberName={memberFullName}
+        members={boardMembers}
+        boardLabels={boardLabels}
+        customizeStat={customizeStat}
+        setCustomizeStat={setCustomizeStat}
+        onSave={async (type, cfg) => {
+          const newConfig = { ...cardConfig, [type]: cfg };
+          setCardConfig(newConfig);
+          setShowCustomize(false);
+          setCustomizeStat(null);
+          await handleTrack([type], newConfig);
+        }}
+        onClose={() => {
+          setShowCustomize(false);
+          setCustomizeStat(null);
+        }}
+        computeFilteredCount={(statType, filters) => {
+          const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
 
-  const hasFilters =
-    filters.due?.length     > 0 ||
-    filters.members?.length > 0 ||
-    filters.labels?.length  > 0 ||
-    filters.lists?.length   > 0;
+          const hasFilters =
+            filters.due?.length > 0 ||
+            filters.members?.length > 0 ||
+            filters.labels?.length > 0 ||
+            filters.lists?.length > 0;
 
-  // Step 1: apply user-selected filters
-  const base = hasFilters
-    ? applyFilters(cards, filters, currentMemberId)
-    : cards;
+          // Step 1: apply user-selected filters
+          const base = hasFilters
+            ? applyFilters(cards, filters, currentMemberId)
+            : cards;
 
-  // Step 2: ALSO apply the stat's own filter (AND logic)
-  const statFn = buildStatFilterMap(currentMemberId, null)[statType];
-  if (!statFn || statType === "cardsInList" || statType === "all") {
-    return base.length;
-  }
-  return base.filter(statFn).length;
-}}
-  boardId={currentBoardId}
-  boardName={currentBoardName}
-  fetchWorkspaceBoards={async () => {
-    const key = TRELLO_API_KEY;
-    const tkn = getStoredToken();
-    return getWorkspaceBoards(key, tkn);
-  }}
-  fetchBoardScopedData={async (targetBoardId, boards) => {
-    const key = TRELLO_API_KEY;
-    const tkn = getStoredToken();
-    return getBoardScopedData(key, tkn, targetBoardId, boards);
-  }}
-/>
+          // Step 2: ALSO apply the stat's own filter (AND logic)
+          const statFn = buildStatFilterMap(currentMemberId, null)[statType];
+          if (!statFn || statType === "cardsInList" || statType === "all") {
+            return base.length;
+          }
+          return base.filter(statFn).length;
+        }}
+        boardId={currentBoardId}
+        boardName={currentBoardName}
+        fetchWorkspaceBoards={async () => {
+          const key = TRELLO_API_KEY;
+          const tkn = getStoredToken();
+          return getWorkspaceBoards(key, tkn);
+        }}
+        fetchBoardScopedData={async (targetBoardId, boards) => {
+          const key = TRELLO_API_KEY;
+          const tkn = getStoredToken();
+          return getBoardScopedData(key, tkn, targetBoardId, boards);
+        }}
+      />
       <div
         className="header"
         style={{
