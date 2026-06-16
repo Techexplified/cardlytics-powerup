@@ -875,3 +875,76 @@ body {
   from { opacity: 0; transform: translateX(-50%) translateY(8px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+
+/* ── Premium scrollbar — all scrollable areas ── */
+.cd-root *::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.cd-root *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cd-root *::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 99px;
+  transition: background 0.2s;
+}
+
+.cd-root *::-webkit-scrollbar-thumb:hover {
+  background: #4c8fff;
+}
+
+.cd-root *::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+.cd-root * {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a3a transparent;
+}
+
+/* Left panel specifically */
+.cd-left {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a3a transparent;
+}
+
+.cd-left::-webkit-scrollbar {
+  width: 3px;
+}
+
+.cd-left::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cd-left::-webkit-scrollbar-thumb {
+  background: #2e2e2e;
+  border-radius: 99px;
+}
+
+.cd-left::-webkit-scrollbar-thumb:hover {
+  background: #4c8fff;
+}
+
+/* Table scroll area */
+.cd-table-wrap::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.cd-table-wrap::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 99px;
+}
+
+.cd-table-wrap::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 99px;
+}
+
+.cd-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: #4c8fff;
+}
