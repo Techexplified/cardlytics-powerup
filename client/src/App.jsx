@@ -1366,6 +1366,7 @@ export default function App() {
   const [boardLabels, setBoardLabels] = useState([]);
   const [currentBoardId, setCurrentBoardId] = useState(null);
   const [currentBoardName, setCurrentBoardName] = useState("");
+  const [trackingMode, setTrackingMode] = useState("general");
 
   // FIX #9: track current scopeListId in a ref so the setInterval closure
   // always reads the latest value instead of the stale initial one
@@ -1823,21 +1824,42 @@ export default function App() {
 
         <div style={{ borderTop: "1px solid #333", margin: "8px 16px" }} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span
-            style={{
-              fontSize: 11,
-              color: "#8c9bab",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              fontWeight: 600,
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-            }}
-          >
-            📋 Board
-          </span>
+        <div className="tracking-mode-section">
+          <div className="tracking-mode-header">
+            <span className="tracking-mode-title">Tracking Mode</span>
+            <span className="tracking-mode-badge">New</span>
+          </div>
+          <p className="tracking-mode-sub">Choose how you want to track your work.</p>
+          <div className="tracking-mode-options">
+            <div
+              className={`tracking-mode-option ${trackingMode === "general" ? "active" : ""}`}
+              onClick={() => setTrackingMode("general")}
+            >
+              <div className="tracking-mode-radio" />
+              <div className="tracking-mode-icon">📊</div>
+              <div className="tracking-mode-info">
+                <div className="tracking-mode-name">General</div>
+                <div className="tracking-mode-desc">Track with a standard, predefined set of categories.</div>
+                <div className="tracking-mode-tag">For all users</div>
+              </div>
+            </div>
+            <div
+              className={`tracking-mode-option ${trackingMode === "personalised" ? "active" : ""}`}
+              onClick={() => setTrackingMode("personalised")}
+            >
+              <div className="tracking-mode-radio" />
+              <div className="tracking-mode-icon">👤</div>
+              <div className="tracking-mode-info">
+                <div className="tracking-mode-name">Personalised</div>
+                <div className="tracking-mode-desc">Track with custom categories tailored to your workflow.</div>
+                <div className="tracking-mode-premium">⭐ Premium</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="scope-row">
+          <span className="scope-label">📋 Board</span>
           <select
             value={scopeListId}
             onChange={(e) => {
@@ -1846,12 +1868,7 @@ export default function App() {
               fetchData(newScope);
             }}
             className="list-dropdown"
-            style={{
-              fontSize: 12,
-              padding: "4px 10px",
-              maxWidth: 160,
-              borderRadius: 6,
-            }}
+            style={{ fontSize: 12, padding: "4px 10px", maxWidth: 160, borderRadius: 6 }}
           >
             <option value="board">Throughout the board</option>
             {lists

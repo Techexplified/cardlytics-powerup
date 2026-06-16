@@ -948,3 +948,126 @@ body {
 .cd-table-wrap::-webkit-scrollbar-thumb:hover {
   background: #4c8fff;
 }
+
+/* ─── TRACKING MODE ─── */
+.tracking-mode-section {
+  padding: 0 16px 10px;
+}
+.tracking-mode-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.tracking-mode-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #8c9bab;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.tracking-mode-badge {
+  font-size: 10px;
+  font-weight: 600;
+  background: #1d4ed8;
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.tracking-mode-sub {
+  font-size: 11px;
+  color: #8c9bab;
+  margin: 0 0 8px;
+}
+.tracking-mode-options {
+  display: flex;
+  gap: 8px;
+}
+.tracking-mode-option {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1.5px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 10px 10px;
+  cursor: pointer;
+  background: #1a1a1a;
+  transition: border-color 0.15s, background 0.15s;
+}
+.tracking-mode-option.active {
+  border-color: #4ea1ff;
+  background: #0d1f36;
+}
+.tracking-mode-radio {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #555;
+  background: transparent;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.tracking-mode-option.active .tracking-mode-radio {
+  border-color: #4ea1ff;
+  background: #4ea1ff;
+}
+.tracking-mode-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.tracking-mode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tracking-mode-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+.tracking-mode-desc {
+  font-size: 10px;
+  color: #8c9bab;
+  line-height: 1.4;
+}
+.tracking-mode-tag {
+  font-size: 10px;
+  color: #8c9bab;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 1px 6px;
+  display: inline-block;
+  margin-top: 3px;
+  width: fit-content;
+}
+.tracking-mode-premium {
+  font-size: 10px;
+  color: #4ea1ff;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ─── SCOPE ROW ─── */
+.scope-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 6px;
+}
+.scope-label {
+  font-size: 11px;
+  color: #8c9bab;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
