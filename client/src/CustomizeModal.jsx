@@ -840,20 +840,20 @@ function CardConfigModal({
         if (opt) return opt.label;
       }
     }
-    // If user set status/label/member/list filters but no due, build a contextual name
     if (filterValues.status?.length === 1) {
       const statusLabel = { complete: "Completed", incomplete: "Incomplete", overdue: "Overdue" }[filterValues.status[0]];
       if (statusLabel) return statusLabel + " cards";
     }
-    if (filterValues.labels?.length > 0 && !filterValues.due?.length) {
+    if (filterValues.label?.length > 0 && !filterValues.due?.length) {
       return "Cards with label";
     }
     if (filterValues.member?.length > 0 && !filterValues.due?.length) {
       return "Assigned cards";
     }
     return DEFAULT_NAMES[statType];
+  }
 
-  const smartName  = buildSmartName();
+  const smartName   = buildSmartName();
   const previewName = nameManuallyEdited ? cardName : smartName;
   
 
