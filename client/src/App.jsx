@@ -1591,8 +1591,8 @@ export default function App() {
               }
             : null;
 
-          const count = (() => {
-            const hasFilters =
+           const count = (() => {
+            const hasExplicitFilters =
               filterConfig &&
               (filterConfig.due.length > 0 ||
                 filterConfig.members.length > 0 ||
@@ -1603,17 +1603,17 @@ export default function App() {
                 filterConfig.customDateFrom !== "" ||
                 filterConfig.customDateTo !== "");
 
-            // Step 1: apply user filters
-            const base = hasFilters
-              ? applyFilters(allBoardCards, filterConfig, currentMemberId)
-              : allBoardCards;
+            if (hasExplicitFilters) {
+              // User configured filters — apply ONLY those
+              return applyFilters(allBoardCards, filterConfig, currentMemberId).length;
+            }
 
-            // Step 2: ALSO apply stat's own filter (AND logic)
+            // No filters — apply stat's own base filter
             const statFn = buildStatFilterMap(currentMemberId, null)[stat];
             if (!statFn || stat === "cardsInList" || stat === "all") {
-              return base.length;
+              return allBoardCards.length;
             }
-            return base.filter(statFn).length;
+            return allBoardCards.filter(statFn).length;
           })();
 
           // FIX #7: also include filterStr when only customDate range is set
@@ -1730,10 +1730,10 @@ export default function App() {
           setShowCustomize(false);
           setCustomizeStat(null);
         }}
-        computeFilteredCount={(statType, filters) => {
+         computeFilteredCount={(statType, filters) => {
           const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
 
-          const hasFilters =
+          const hasExplicitFilters =
             filters.due?.length > 0 ||
             filters.members?.length > 0 ||
             filters.labels?.length > 0 ||
@@ -1741,17 +1741,17 @@ export default function App() {
             filters.status?.length > 0 ||
             filters.activity?.length > 0;
 
-          // Step 1: apply user-selected filters
-          const base = hasFilters
-            ? applyFilters(cards, filters, currentMemberId)
-            : cards;
+          if (hasExplicitFilters) {
+            // User has configured filters — apply ONLY those, ignore stat's own filter
+            return applyFilters(cards, filters, currentMemberId).length;
+          }
 
-          // Step 2: ALSO apply the stat's own filter (AND logic)
+          // No filters set — apply the stat's own base filter (default behavior)
           const statFn = buildStatFilterMap(currentMemberId, null)[statType];
           if (!statFn || statType === "cardsInList" || statType === "all") {
-            return base.length;
+            return cards.length;
           }
-          return base.filter(statFn).length;
+          return cards.filter(statFn).length;
         }}
         boardId={currentBoardId}
         boardName={currentBoardName}
