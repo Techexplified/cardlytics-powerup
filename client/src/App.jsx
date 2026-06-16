@@ -459,11 +459,11 @@ function CardBackView() {
       }
 
       trelloT.board("id").then((board) => {
-        trelloT.modal({
-          title: "Cardlytics",
-          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}${filtersRaw ? `&filters=${filtersRaw}` : ""}`,
-          fullscreen: true,
-        });
+          trelloT.modal({
+        title: "Cardlytics",
+        url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}${filtersRaw ? `&filters=${filtersRaw}` : ""}&cardName=${encodeURIComponent(card.name)}`,
+        fullscreen: true,
+      });
       });
     });
   }
@@ -615,15 +615,17 @@ function CardDetailsView() {
           } catch (_) {}
         }
 
-        const fn = filterMap[statType] || (() => true);
+         const fn = filterMap[statType] || (() => true);
         const filteredCards = allCards
           .filter((c) => !isTrackerCard(c.name))
-          .filter(fn)
-          .filter((c) =>
-            savedFilters
-              ? applyFilters([c], savedFilters, mid).length > 0
-              : true,
-          );
+          .filter((c) => {
+            // If user configured explicit filters, use ONLY those — skip the stat's own filter
+            if (savedFilters) {
+              return applyFilters([c], savedFilters, mid).length > 0;
+            }
+            // No saved filters — apply the stat's default filter
+            return fn(c);
+          });
 
         setCards(filteredCards);
         setDetailStats(computeDetailStats(filteredCards));
@@ -1007,8 +1009,10 @@ function SortArrow({ col }) {
           <div className="cd-banner-count">{detailStats.total}</div>
           <div>
             <div className="cd-banner-title">
-              {STAT_LABELS[statType] || "Cards"}
-            </div>
+            {params.current.get("cardName")
+              ? decodeURIComponent(params.current.get("cardName"))
+              : STAT_LABELS[statType] || "Cards"}
+          </div>
             <div className="cd-banner-sub">
               {isListScoped ? `In list: ${listName}` : `Board: ${boardName}`}
             </div>
