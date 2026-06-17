@@ -662,6 +662,55 @@ function CardDetailsView() {
 
         setFullStats(computed);
 
+        // Prune personalized views whose underlying tracker card no longer
+        // exists on the board, then compute a live count for what's left
+        const liveCardIds = new Set(rawBoardCards.map((c) => c.id));
+        const savedViews = JSON.parse(
+          localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
+        );
+        const stillValidViews = savedViews.filter(
+          (view) => !view.cardId || liveCardIds.has(view.cardId),
+        );
+        if (stillValidViews.length !== savedViews.length) {
+          localStorage.setItem(
+            `cardlytics:personalized:${boardId}`,
+            JSON.stringify(stillValidViews),
+          );
+        }
+
+        const viewsWithCounts = stillValidViews.map((view) => {
+          const scopedCards =
+            view.mode === "list" && view.listId
+              ? boardWideCards.filter((c) => c.idList === view.listId)
+              : boardWideCards;
+
+          const f = view.filters || {};
+          const hasFilters =
+            f.due?.length > 0 ||
+            f.members?.length > 0 ||
+            f.labels?.length > 0 ||
+            f.lists?.length > 0 ||
+            f.status?.length > 0 ||
+            f.activity?.length > 0;
+
+          let count;
+          if (hasFilters) {
+            count = applyFilters(scopedCards, f, mid).length;
+          } else {
+            const statFilterMap = buildStatFilterMap(mid, view.listId || null);
+            const statFn = statFilterMap[view.statType];
+            count =
+              statFn &&
+              view.statType !== "cardsInList" &&
+              view.statType !== "all"
+                ? scopedCards.filter(statFn).length
+                : scopedCards.length;
+          }
+
+          return { ...view, count };
+        });
+        setPersonalizedViews(viewsWithCounts);
+
         if (listId) {
           const listRes = await fetch(
             `${TRELLO_BASE}/lists/${listId}?key=${key}&token=${token}&fields=name,idBoard`,
@@ -700,10 +749,6 @@ function CardDetailsView() {
       } catch (err) {
         console.error(err);
       } finally {
-        const saved = JSON.parse(
-          localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]"
-        );
-        setPersonalizedViews(saved);
         setLoading(false);
       }
     }
@@ -1083,9 +1128,14 @@ function CardDetailsView() {
                 >
                   <div
                     className="cd-stat-num"
-                    style={{ color: COVER_BG_COLORS[view.cover] || "#4ea1ff", fontSize: 14 }}
+                    style={{
+                      color:
+                        view.count > 0
+                          ? COVER_BG_COLORS[view.cover] || "#4ea1ff"
+                          : "#666",
+                    }}
                   >
-                    {STAT_EMOJIS[view.statType] || "📌"}
+                    {view.count ?? 0}
                   </div>
                   <div className="cd-stat-lbl">{view.cardName}</div>
                 </div>
