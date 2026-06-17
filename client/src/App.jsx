@@ -134,6 +134,17 @@ const DEFAULT_STAT_CONFIG = {
   cardsInList: { name: "📋 Cards in List", cover: "sky" },
 };
 
+const STAT_EMOJIS = {
+  assigned: "📌",
+  dueThisWeek: "📅",
+  overdue: "⚠️",
+  unassigned: "👤",
+  withLabel: "🏷️",
+  stale: "💤",
+  createdToday: "✨",
+  cardsInList: "📋",
+};
+
 const COVER_BG_COLORS = {
   blue: "#1565c0",
   yellow: "#f57f17",
@@ -287,7 +298,7 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
       } catch (_) {}
     }
 
-   // Filters OVERRIDE the base stat — they never stack on top of it.
+    // Filters OVERRIDE the base stat — they never stack on top of it.
     // This now matches CardDetailsView's load() and handleTrack's count logic.
     let newCount;
     if (cardFilters) {
@@ -460,11 +471,11 @@ function CardBackView() {
       }
 
       trelloT.board("id").then((board) => {
-          trelloT.modal({
-        title: "Cardlytics",
-        url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}${filtersRaw ? `&filters=${filtersRaw}` : ""}&cardName=${encodeURIComponent(card.name)}`,
-        fullscreen: true,
-      });
+        trelloT.modal({
+          title: "Cardlytics",
+          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}${filtersRaw ? `&filters=${filtersRaw}` : ""}&cardName=${encodeURIComponent(card.name)}`,
+          fullscreen: true,
+        });
       });
     });
   }
@@ -552,6 +563,7 @@ function CardDetailsView() {
   const [sortCol, setSortCol] = useState("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [leftTab, setLeftTab] = useState("general");
+  const [personalizedViews, setPersonalizedViews] = useState([]);
 
   const key = TRELLO_API_KEY;
   const token = getStoredToken();
@@ -617,7 +629,7 @@ function CardDetailsView() {
           } catch (_) {}
         }
 
-         const fn = filterMap[statType] || (() => true);
+        const fn = filterMap[statType] || (() => true);
         const filteredCards = allCards
           .filter((c) => !isTrackerCard(c.name))
           .filter((c) => {
@@ -688,6 +700,10 @@ function CardDetailsView() {
       } catch (err) {
         console.error(err);
       } finally {
+        const saved = JSON.parse(
+          localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]"
+        );
+        setPersonalizedViews(saved);
         setLoading(false);
       }
     }
@@ -838,37 +854,39 @@ function CardDetailsView() {
   }
 
   async function toggleDone(cardId, currentDone) {
-  const key = TRELLO_API_KEY;
-  const tkn = getStoredToken();
-  const newValue = !currentDone;
+    const key = TRELLO_API_KEY;
+    const tkn = getStoredToken();
+    const newValue = !currentDone;
 
-  setCards(prev =>
-    prev.map(c => c.id === cardId ? { ...c, dueComplete: newValue } : c)
-  );
+    setCards((prev) =>
+      prev.map((c) => (c.id === cardId ? { ...c, dueComplete: newValue } : c)),
+    );
 
-  try {
-    await fetch(
-      `${TRELLO_BASE}/cards/${cardId}?key=${key}&token=${tkn}`,
-      {
+    try {
+      await fetch(`${TRELLO_BASE}/cards/${cardId}?key=${key}&token=${tkn}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dueComplete: newValue }),
+      });
+      if (trelloT) {
+        runTrackerRefresh(key, tkn, trelloT).catch((err) =>
+          console.error(
+            "Immediate tracker refresh after toggleDone failed:",
+            err,
+          ),
+        );
       }
-    );
-    if (trelloT) {
-      runTrackerRefresh(key, tkn, trelloT).catch(err =>
-        console.error("Immediate tracker refresh after toggleDone failed:", err)
+    } catch (err) {
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === cardId ? { ...c, dueComplete: currentDone } : c,
+        ),
       );
+      console.error("Failed to update dueComplete:", err);
     }
-  } catch (err) {
-    setCards(prev =>
-      prev.map(c => c.id === cardId ? { ...c, dueComplete: currentDone } : c)
-    );
-    console.error("Failed to update dueComplete:", err);
   }
-}
 
-function SortArrow({ col }) {
+  function SortArrow({ col }) {
     if (sortCol !== col)
       return <span style={{ color: "#444", marginLeft: 3 }}>↕</span>;
     return (
@@ -988,36 +1006,37 @@ function SortArrow({ col }) {
           {isListScoped ? listName : boardName}
         </div>
 
-        {leftTab === "general" && leftStats.map((s, i) => (
-          <div
-            key={i}
-            className="cd-stat-card"
-            style={{
-              borderLeft: `3px solid ${s.accent}`,
-              cursor: s.statType ? "pointer" : "default",
-              opacity: statType === s.statType ? 1 : 0.85,
-              background: statType === s.statType ? "#1e1e1e" : "transparent",
-            }}
-            onClick={() => {
-              if (!s.statType || !trelloT) return;
-              trelloT.board("id").then((board) => {
-                trelloT.modal({
-                  title: `Cardlytics — ${s.label}`,
-                  url: `./index.html?view=card-details&boardId=${board.id}&statType=${s.statType}&mode=board`,
-                  fullscreen: true,
-                });
-              });
-            }}
-          >
+        {leftTab === "general" &&
+          leftStats.map((s, i) => (
             <div
-              className="cd-stat-num"
-              style={{ color: s.value > 0 ? s.accent : "#666" }}
+              key={i}
+              className="cd-stat-card"
+              style={{
+                borderLeft: `3px solid ${s.accent}`,
+                cursor: s.statType ? "pointer" : "default",
+                opacity: statType === s.statType ? 1 : 0.85,
+                background: statType === s.statType ? "#1e1e1e" : "transparent",
+              }}
+              onClick={() => {
+                if (!s.statType || !trelloT) return;
+                trelloT.board("id").then((board) => {
+                  trelloT.modal({
+                    title: `Cardlytics — ${s.label}`,
+                    url: `./index.html?view=card-details&boardId=${board.id}&statType=${s.statType}&mode=board`,
+                    fullscreen: true,
+                  });
+                });
+              }}
             >
-              {s.value}
+              <div
+                className="cd-stat-num"
+                style={{ color: s.value > 0 ? s.accent : "#666" }}
+              >
+                {s.value}
+              </div>
+              <div className="cd-stat-lbl">{s.label}</div>
             </div>
-            <div className="cd-stat-lbl">{s.label}</div>
-          </div>
-       ))}
+          ))}
 
         {leftTab === "general" && (
           <div
@@ -1030,19 +1049,49 @@ function SortArrow({ col }) {
         )}
 
         {leftTab === "personalized" && (
-          <div className="cd-personalized-empty">
-            <div className="cd-personalized-icon">👤</div>
-            <div className="cd-personalized-title">Your custom views</div>
-            <div className="cd-personalized-desc">
-              Save filtered views here for quick access.
-            </div>
-            <button
-              className="cd-personalized-cta"
-              onClick={() => comingSoon("Personalized views")}
-            >
-              + Create view
-            </button>
-          </div>
+          <>
+            {personalizedViews.length === 0 ? (
+              <div className="cd-personalized-empty">
+                <div className="cd-personalized-icon">👤</div>
+                <div className="cd-personalized-title">Your custom views</div>
+                <div className="cd-personalized-desc">
+                  Customize a stat card to save views here.
+                </div>
+              </div>
+            ) : (
+              personalizedViews.map((view) => (
+                <div
+                  key={view.id}
+                  className="cd-stat-card"
+                  style={{
+                    borderLeft: `3px solid ${COVER_BG_COLORS[view.cover] || "#4ea1ff"}`,
+                    cursor: "pointer",
+                    opacity: statType === view.statType ? 1 : 0.85,
+                    background: statType === view.statType ? "#1e1e1e" : "transparent",
+                  }}
+                  onClick={() => {
+                    if (!trelloT) return;
+                    trelloT.board("id").then((board) => {
+                      const filtersStr = encodeURIComponent(JSON.stringify(view.filters));
+                      trelloT.modal({
+                        title: `Cardlytics — ${view.cardName}`,
+                        url: `./index.html?view=card-details&boardId=${board.id}&statType=${view.statType}&mode=${view.mode}${view.listId ? `&listId=${view.listId}` : ""}&filters=${filtersStr}&cardName=${encodeURIComponent(view.cardName)}`,
+                        fullscreen: true,
+                      });
+                    });
+                  }}
+                >
+                  <div
+                    className="cd-stat-num"
+                    style={{ color: COVER_BG_COLORS[view.cover] || "#4ea1ff", fontSize: 14 }}
+                  >
+                    {STAT_EMOJIS[view.statType] || "📌"}
+                  </div>
+                  <div className="cd-stat-lbl">{view.cardName}</div>
+                </div>
+              ))
+            )}
+          </>
         )}
       </div>
 
@@ -1051,10 +1100,10 @@ function SortArrow({ col }) {
           <div className="cd-banner-count">{detailStats.total}</div>
           <div>
             <div className="cd-banner-title">
-            {params.current.get("cardName")
-              ? decodeURIComponent(params.current.get("cardName"))
-              : STAT_LABELS[statType] || "Cards"}
-          </div>
+              {params.current.get("cardName")
+                ? decodeURIComponent(params.current.get("cardName"))
+                : STAT_LABELS[statType] || "Cards"}
+            </div>
             <div className="cd-banner-sub">
               {isListScoped ? `In list: ${listName}` : `Board: ${boardName}`}
             </div>
@@ -1229,9 +1278,8 @@ function SortArrow({ col }) {
                     </td>
                   </tr>
                 )}
-               {filtered.map((card) => (
+                {filtered.map((card) => (
                   <tr key={card.id}>
-
                     <td style={{ textAlign: "center" }}>
                       <span
                         onClick={() => toggleDone(card.id, card.dueComplete)}
@@ -1243,13 +1291,17 @@ function SortArrow({ col }) {
                           display: "inline-flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          background: card.dueComplete ? "#0a3d0a" : "transparent",
+                          background: card.dueComplete
+                            ? "#0a3d0a"
+                            : "transparent",
                           cursor: "pointer",
                           transition: "all 0.15s ease",
                         }}
                       >
                         {card.dueComplete && (
-                          <span style={{ color: "#4caf50", fontSize: 10 }}>✓</span>
+                          <span style={{ color: "#4caf50", fontSize: 10 }}>
+                            ✓
+                          </span>
                         )}
                       </span>
                     </td>
@@ -1321,7 +1373,6 @@ function SortArrow({ col }) {
                         {listMap[card.idList] || listName}
                       </span>
                     </td>
-
                   </tr>
                 ))}
               </tbody>
@@ -1418,7 +1469,7 @@ export default function App() {
       const m = p.get("mode");
       const l = p.get("listId");
       return m === "list" && l ? l : "board";
-    })()
+    })(),
   );
   useEffect(() => {
     scopeListIdRef.current = scopeListId;
@@ -1638,21 +1689,22 @@ export default function App() {
               }
             : null;
 
-           const count = (() => {
+          const count = (() => {
             const hasExplicitFilters =
               filterConfig &&
               (filterConfig.due.length > 0 ||
                 filterConfig.members.length > 0 ||
                 filterConfig.labels.length > 0 ||
                 filterConfig.lists.length > 0 ||
-                (filterConfig.status?.length > 0) ||
-                (filterConfig.activity?.length > 0) ||
+                filterConfig.status?.length > 0 ||
+                filterConfig.activity?.length > 0 ||
                 filterConfig.customDateFrom !== "" ||
                 filterConfig.customDateTo !== "");
 
             if (hasExplicitFilters) {
               // User configured filters — apply ONLY those
-              return applyFilters(allBoardCards, filterConfig, currentMemberId).length;
+              return applyFilters(allBoardCards, filterConfig, currentMemberId)
+                .length;
             }
 
             // No filters — apply stat's own base filter
@@ -1664,14 +1716,14 @@ export default function App() {
           })();
 
           // FIX #7: also include filterStr when only customDate range is set
-         const hasActiveFilters =
+          const hasActiveFilters =
             filterConfig &&
             (filterConfig.due.length > 0 ||
               filterConfig.members.length > 0 ||
               filterConfig.labels.length > 0 ||
               filterConfig.lists.length > 0 ||
-              (filterConfig.status?.length > 0) ||
-              (filterConfig.activity?.length > 0) ||
+              filterConfig.status?.length > 0 ||
+              filterConfig.activity?.length > 0 ||
               filterConfig.customDateFrom !== "" ||
               filterConfig.customDateTo !== "");
 
@@ -1737,6 +1789,37 @@ export default function App() {
       showToast(
         `${statsToTrack.length} card(s) added to "${trackingListName}" ✅`,
       );
+
+      const boardPersonalized = JSON.parse(
+        localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
+      );
+      const newViews = statsToTrack.map((stat) => {
+        const saved = configToUse[stat];
+        const defaults = DEFAULT_STAT_CONFIG[stat];
+        return {
+          id: `${stat}-${Date.now()}`,
+          statType: stat,
+          cardName: saved?.cardName || defaults.name,
+          cover: saved?.cover || defaults.cover,
+          filters: {
+            due: saved?.due || [],
+            members: saved?.members || [],
+            labels: saved?.labels || [],
+            lists: saved?.lists || [],
+            status: saved?.status || [],
+            activity: saved?.activity || [],
+          },
+          createdAt: new Date().toISOString(),
+          boardId,
+          mode: mode === "list" && listId ? "list" : "board",
+          listId: mode === "list" ? listId : null,
+        };
+      });
+      localStorage.setItem(
+        `cardlytics:personalized:${boardId}`,
+        JSON.stringify([...boardPersonalized, ...newViews]),
+      );
+
       setSelectedStats([]);
       await new Promise((resolve) => setTimeout(resolve, 1500));
       if (trelloT) trelloT.closeModal();
@@ -1777,7 +1860,7 @@ export default function App() {
           setShowCustomize(false);
           setCustomizeStat(null);
         }}
-         computeFilteredCount={(statType, filters) => {
+        computeFilteredCount={(statType, filters) => {
           const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
 
           const hasExplicitFilters =
@@ -1876,7 +1959,12 @@ export default function App() {
               fetchData(newScope);
             }}
             className="list-dropdown"
-            style={{ fontSize: 12, padding: "4px 10px", maxWidth: 160, borderRadius: 6 }}
+            style={{
+              fontSize: 12,
+              padding: "4px 10px",
+              maxWidth: 160,
+              borderRadius: 6,
+            }}
           >
             <option value="board">Throughout the board</option>
             {lists
