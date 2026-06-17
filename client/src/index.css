@@ -76,27 +76,27 @@ body {
 
 /* ─── BODY ─── */
 .body {
-  padding: 8px 14px 8px;
+  padding: 14px 16px 16px;
   flex: 1;
   overflow-y: auto;
 }
 
 /* ─── SECTION ─── */
-.section { margin-top: 8px; }
+.section { margin-top: 16px; }
 .section-title {
   font-size: 10px;
   font-weight: 600;
   color: #666;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
 /* ─── GRID ─── */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 12px;
 }
 
 /* ─── CARD ─── */
@@ -104,7 +104,7 @@ body {
   background: #252525;
   border: 1px solid #2e2e2e;
   border-radius: 10px;
-  padding: 8px 10px;
+  padding: 14px;
   position: relative;
   transition: 0.15s;
   cursor: pointer;
@@ -117,15 +117,12 @@ body {
   font-size: 18px;
   font-weight: 700;
   color: #fff;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 .card-label {
-  font-size: 10px;
+  font-size: 11px;
   color: #888;
   line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ─── TAGS ─── */
@@ -133,9 +130,9 @@ body {
   position: absolute;
   top: 6px;
   right: 6px;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 5px;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 600;
 }
 .tag.live { background: #0a3d0a; color: #4caf50; }
@@ -952,110 +949,6 @@ body {
   background: #4c8fff;
 }
 
-/* ─── TRACKING MODE ─── */
-.tracking-mode-section {
-  padding: 0 14px 6px;
-}
-.tracking-mode-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-.tracking-mode-title {
-  font-size: 10px;
-  font-weight: 700;
-  color: #8c9bab;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.tracking-mode-badge {
-  font-size: 10px;
-  font-weight: 600;
-  background: #1d4ed8;
-  color: #fff;
-  border-radius: 4px;
-  padding: 1px 6px;
-}
-.tracking-mode-sub {
-  font-size: 11px;
-  color: #8c9bab;
-  margin: 0 0 8px;
-}
-.tracking-mode-options {
-  display: flex;
-  gap: 8px;
-}
-.tracking-mode-option {
-  flex: 1;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  border: 1.5px solid #2a2a2a;
-  border-radius: 8px;
-  padding: 6px 8px;
-  cursor: pointer;
-  background: #1a1a1a;
-  transition: border-color 0.15s, background 0.15s;
-}
-.tracking-mode-option.active {
-  border-color: #4ea1ff;
-  background: #0d1f36;
-}
-.tracking-mode-radio {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid #555;
-  background: transparent;
-  flex-shrink: 0;
-  margin-top: 2px;
-  transition: border-color 0.15s, background 0.15s;
-}
-.tracking-mode-option.active .tracking-mode-radio {
-  border-color: #4ea1ff;
-  background: #4ea1ff;
-}
-.tracking-mode-icon {
-  font-size: 16px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.tracking-mode-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-.tracking-mode-name {
-  font-size: 11px;
-  font-weight: 700;
-  color: #e0e0e0;
-}
-.tracking-mode-desc {
-  font-size: 9px;
-  color: #8c9bab;
-  line-height: 1.4;
-}
-.tracking-mode-tag {
-  font-size: 10px;
-  color: #8c9bab;
-  border: 1px solid #333;
-  border-radius: 4px;
-  padding: 1px 6px;
-  display: inline-block;
-  margin-top: 3px;
-  width: fit-content;
-}
-.tracking-mode-premium {
-  font-size: 10px;
-  color: #4ea1ff;
-  margin-top: 3px;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
 /* ─── SCOPE ROW ─── */
 .scope-row {
   display: flex;
@@ -1073,80 +966,4 @@ body {
   align-items: center;
   gap: 4px;
   white-space: nowrap;
-}
-
-/* ─── LEFT PANEL TABS ─── */
-.cd-left-tabs {
-  display: flex;
-  background: #141414;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
-  padding: 3px;
-  gap: 2px;
-  flex-shrink: 0;
-  margin-bottom: 4px;
-}
-.cd-left-tab {
-  flex: 1;
-  background: none;
-  border: none;
-  border-radius: 6px;
-  padding: 5px 0;
-  font-size: 11px;
-  font-weight: 500;
-  color: #555;
-  cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-.cd-left-tab:hover:not(.active) {
-  color: #888;
-  background: #1e1e1e;
-}
-.cd-left-tab.active {
-  background: #1e2a3a;
-  color: #4ea1ff;
-  font-weight: 600;
-}
-
-/* ─── PERSONALIZED EMPTY STATE ─── */
-.cd-personalized-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 24px 10px 16px;
-  text-align: center;
-}
-.cd-personalized-icon {
-  font-size: 24px;
-  line-height: 1;
-  opacity: 0.5;
-}
-.cd-personalized-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: #888;
-}
-.cd-personalized-desc {
-  font-size: 10px;
-  color: #555;
-  line-height: 1.5;
-}
-.cd-personalized-cta {
-  margin-top: 4px;
-  background: none;
-  border: 1px solid #333;
-  border-radius: 6px;
-  padding: 5px 12px;
-  color: #4ea1ff;
-  font-size: 11px;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-.cd-personalized-cta:hover {
-  background: #1a2a3a;
-  border-color: #4ea1ff;
 }
