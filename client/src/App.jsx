@@ -580,11 +580,13 @@ function CardDetailsView() {
           getBoardLists(key, token, boardId),
         ]);
 
+        const activeBoardCards = rawBoardCards.filter((c) => !c.closed);
+
         let allCards;
         if (isListScoped && listId) {
           allCards = await getListCards(key, token, listId);
         } else {
-          allCards = rawBoardCards;
+          allCards = activeBoardCards;
         }
 
         const cardlyticsListIds = allBoardLists
@@ -652,7 +654,7 @@ function CardDetailsView() {
           ? allCards.filter((c) => !isTrackerCard(c.name)).length
           : 0;
 
-        const boardWideCards = rawBoardCards.filter(
+        const boardWideCards = activeBoardCards.filter(
           (c) =>
             !isTrackerCardDisplay(c.name) &&
             !cardlyticsListIds.includes(c.idList) &&
@@ -664,13 +666,28 @@ function CardDetailsView() {
 
         // Prune personalized views whose underlying tracker card no longer
         // exists on the board, then compute a live count for what's left
-        const liveCardIds = new Set(rawBoardCards.map((c) => c.id));
+        if (!boardId) return;
+
         const savedViews = JSON.parse(
           localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
         );
-        const stillValidViews = savedViews.filter(
-          (view) => !view.cardId || liveCardIds.has(view.cardId),
+
+        // Fetch only the cards still alive in the Cardlytics list
+        const cardlyticsListsOnBoard = allBoardLists.filter(
+          (l) => l.name.toLowerCase() === "cardlytics",
         );
+        const cardlyticsCardArrays = await Promise.all(
+          cardlyticsListsOnBoard.map((l) => getListCards(key, token, l.id)),
+        );
+        const liveTrackerCardIds = new Set(
+          cardlyticsCardArrays.flat().map((c) => c.id),
+        );
+
+        // A view is valid only if its tracker card still exists in the Cardlytics list
+        const stillValidViews = savedViews.filter(
+          (view) => !view.cardId || liveTrackerCardIds.has(view.cardId),
+        );
+
         if (stillValidViews.length !== savedViews.length) {
           localStorage.setItem(
             `cardlytics:personalized:${boardId}`,
@@ -1112,12 +1129,15 @@ function CardDetailsView() {
                     borderLeft: `3px solid ${COVER_BG_COLORS[view.cover] || "#4ea1ff"}`,
                     cursor: "pointer",
                     opacity: statType === view.statType ? 1 : 0.85,
-                    background: statType === view.statType ? "#1e1e1e" : "transparent",
+                    background:
+                      statType === view.statType ? "#1e1e1e" : "transparent",
                   }}
                   onClick={() => {
                     if (!trelloT) return;
                     trelloT.board("id").then((board) => {
-                      const filtersStr = encodeURIComponent(JSON.stringify(view.filters));
+                      const filtersStr = encodeURIComponent(
+                        JSON.stringify(view.filters),
+                      );
                       trelloT.modal({
                         title: `Cardlytics — ${view.cardName}`,
                         url: `./index.html?view=card-details&boardId=${board.id}&statType=${view.statType}&mode=${view.mode}${view.listId ? `&listId=${view.listId}` : ""}&filters=${filtersStr}&cardName=${encodeURIComponent(view.cardName)}`,
