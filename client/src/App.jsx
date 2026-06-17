@@ -1671,7 +1671,7 @@ export default function App() {
         return;
       }
 
-      await Promise.all(
+      const createdCards = await Promise.all(
         statsToTrack.map(async (stat) => {
           const defaults = DEFAULT_STAT_CONFIG[stat];
           const saved = configToUse[stat];
@@ -1783,6 +1783,7 @@ export default function App() {
               console.error("❌ customBg save failed", err);
             }
           }
+          return { stat, cardId: newCard.id };
         }),
       );
 
@@ -1798,6 +1799,7 @@ export default function App() {
         const defaults = DEFAULT_STAT_CONFIG[stat];
         return {
           id: `${stat}-${Date.now()}`,
+          cardId: createdCards.find((c) => c.stat === stat)?.cardId || null,
           statType: stat,
           cardName: saved?.cardName || defaults.name,
           cover: saved?.cover || defaults.cover,
