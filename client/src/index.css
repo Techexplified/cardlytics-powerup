@@ -967,3 +967,79 @@ body {
   gap: 4px;
   white-space: nowrap;
 }
+
+/* ─── LEFT PANEL TABS ─── */
+.cd-left-tabs {
+  display: flex;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+.cd-left-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.cd-left-tab:hover:not(.active) {
+  color: #888;
+  background: #1e1e1e;
+}
+.cd-left-tab.active {
+  background: #1e2a3a;
+  color: #4ea1ff;
+  font-weight: 600;
+}
+
+/* ─── PERSONALIZED EMPTY STATE ─── */
+.cd-personalized-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 10px 16px;
+  text-align: center;
+}
+.cd-personalized-icon {
+  font-size: 24px;
+  line-height: 1;
+  opacity: 0.5;
+}
+.cd-personalized-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+}
+.cd-personalized-desc {
+  font-size: 10px;
+  color: #555;
+  line-height: 1.5;
+}
+.cd-personalized-cta {
+  margin-top: 4px;
+  background: none;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 5px 12px;
+  color: #4ea1ff;
+  font-size: 11px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cd-personalized-cta:hover {
+  background: #1a2a3a;
+  border-color: #4ea1ff;
+}
