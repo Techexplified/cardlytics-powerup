@@ -854,6 +854,11 @@ function CardDetailsView() {
         body: JSON.stringify({ dueComplete: newValue }),
       }
     );
+    if (trelloT) {
+      runTrackerRefresh(key, tkn, trelloT).catch(err =>
+        console.error("Immediate tracker refresh after toggleDone failed:", err)
+      );
+    }
   } catch (err) {
     setCards(prev =>
       prev.map(c => c.id === cardId ? { ...c, dueComplete: currentDone } : c)
@@ -1539,7 +1544,7 @@ export default function App() {
 
     const intervalId = setInterval(() => {
       fetchData(); // FIX #9: fetchData now reads scopeListIdRef.current internally
-    }, 15000);
+    }, 5000);
 
     return () => {
       clearInterval(intervalId);
