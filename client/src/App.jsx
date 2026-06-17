@@ -287,18 +287,19 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
       } catch (_) {}
     }
 
-    // Step 1: apply user filters
-    const userFiltered = cardFilters
-      ? applyFilters(filteredCards, cardFilters, memberId)
-      : filteredCards;
-
-    // Step 2: AND with stat's own filter (consistent with computeFilteredCount)
-    const statFilterMap = buildStatFilterMap(memberId, resolvedListId);
-    const statFn = statFilterMap[statType];
-    const newCount =
-      statFn && statType !== "cardsInList" && statType !== "all"
-        ? userFiltered.filter(statFn).length
-        : userFiltered.length;
+   // Filters OVERRIDE the base stat — they never stack on top of it.
+    // This now matches CardDetailsView's load() and handleTrack's count logic.
+    let newCount;
+    if (cardFilters) {
+      newCount = applyFilters(filteredCards, cardFilters, memberId).length;
+    } else {
+      const statFilterMap = buildStatFilterMap(memberId, resolvedListId);
+      const statFn = statFilterMap[statType];
+      newCount =
+        statFn && statType !== "cardsInList" && statType !== "all"
+          ? filteredCards.filter(statFn).length
+          : filteredCards.length;
+    }
 
     const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
     const oldCount = oldCountMatch ? parseInt(oldCountMatch[1]) : null;
