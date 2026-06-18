@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 
 // ── Theme tokens ──────────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ const T = {
   sectionNum:  "#79c0ff",
 };
 
-// ── Cover palette (Style tab — solids & gradients used for card backgrounds) ──
+// ── Cover palette ─────────────────────────────────────────────────────────────
 const COVER_COLORS = [
   { id: "blue",   hex: "#0052cc", label: "Blue"   },
   { id: "sky",    hex: "#29b6f6", label: "Sky"    },
@@ -58,7 +58,7 @@ function resolveCoverBackground(id, customHex) {
   return COVER_COLORS.find((x) => x.id === id)?.hex || "#0052cc";
 }
 
-// ── Text color options (Style tab) ────────────────────────────────────────────
+// ── Text color options ────────────────────────────────────────────────────────
 const TEXT_COLORS = [
   { id: "white",    hex: "#FFFFFF", label: "White"    },
   { id: "light",    hex: "#E5E7EB", label: "Light"    },
@@ -70,7 +70,7 @@ const TEXT_COLORS = [
   { id: "gradient", css: "linear-gradient(90deg,#F472B6,#818CF8)", label: "Gradient" },
 ];
 
-// ── Layout options (Style tab) ────────────────────────────────────────────────
+// ── Layout options ────────────────────────────────────────────────────────────
 const LAYOUTS = [
   { id: "center",      label: "Center"       },
   { id: "bottomLeft",  label: "Bottom Left"  },
@@ -85,9 +85,9 @@ const TRELLO_LABEL_COLORS = {
   lime:"#51e898", black:"#374151", null:"#888888",
 };
 
-const STAT_EMOJIS   = { assigned:"📌", dueThisWeek:"📅", overdue:"⚠️", unassigned:"👤", withLabel:"🏷️", stale:"💤", createdToday:"✨"};
-const DEFAULT_COVER = { assigned:"blue", dueThisWeek:"yellow", overdue:"red", unassigned:"purple", withLabel:"orange", stale:"black", createdToday:"green"};
-const DEFAULT_NAMES = {
+const STAT_EMOJIS    = { assigned:"📌", dueThisWeek:"📅", overdue:"⚠️", unassigned:"👤", withLabel:"🏷️", stale:"💤", createdToday:"✨" };
+const DEFAULT_COVER  = { assigned:"blue", dueThisWeek:"yellow", overdue:"red", unassigned:"purple", withLabel:"orange", stale:"black", createdToday:"green" };
+const DEFAULT_NAMES  = {
   assigned:    "Assigned to Me",
   dueThisWeek: "Due This Week",
   overdue:     "Overdue Cards",
@@ -99,12 +99,12 @@ const DEFAULT_NAMES = {
 
 const STAT_LIST = [
   { type:"assigned",     label:"Assigned to Me",   emoji:"📌" },
-  { type:"dueThisWeek", label:"Due This Week",     emoji:"📅" },
-  { type:"overdue",     label:"Overdue Cards",     emoji:"⚠️" },
-  { type:"unassigned",  label:"Unassigned Cards",  emoji:"👤" },
-  { type:"withLabel",   label:"Cards With Label",  emoji:"🏷️" },
-  { type:"stale",       label:"Stale Cards",       emoji:"💤" },
-  { type:"createdToday",label:"Created Today",     emoji:"✨" },
+  { type:"dueThisWeek",  label:"Due This Week",     emoji:"📅" },
+  { type:"overdue",      label:"Overdue Cards",     emoji:"⚠️" },
+  { type:"unassigned",   label:"Unassigned Cards",  emoji:"👤" },
+  { type:"withLabel",    label:"Cards With Label",  emoji:"🏷️" },
+  { type:"stale",        label:"Stale Cards",       emoji:"💤" },
+  { type:"createdToday", label:"Created Today",     emoji:"✨" },
 ];
 
 const DUE_OPTIONS = [
@@ -116,7 +116,6 @@ const DUE_OPTIONS = [
   { value:"nodate",  label:"No due date"    },
 ];
 
-// The filter grid items shown in section 4
 const FILTER_GRID_ITEMS = [
   { key:"assignedTo",    icon:"👤", label:"Assigned To",    sub:"Filter by card assignee",      color:"#7e57c2" },
   { key:"dueDate",       icon:"📅", label:"Due Date",       sub:"Filter by due dates",           color:"#1565c0" },
@@ -193,6 +192,25 @@ function SectionSub({ children }) {
 
 function StyleDivider() {
   return <div style={{ borderTop: `1px solid ${T.border}`, margin: "20px 0" }} />;
+}
+
+// ── Live results banner (between tab content and footer) ──────────────────────
+function LiveResultsSection({ liveCount }) {
+  return (
+    <div style={{
+      display:"flex", alignItems:"center", gap:10,
+      padding:"9px 20px", borderTop:`1px solid ${T.border}`,
+      background: T.bg, flexShrink:0,
+    }}>
+      <span style={{ fontSize:12, color:T.textMuted }}>Live results:</span>
+      <span style={{
+        fontSize:13, fontWeight:700, color:T.success,
+        background:T.successDim, borderRadius:6,
+        padding:"2px 10px",
+      }}>{liveCount} cards match</span>
+      <span style={{ fontSize:11, color:T.textMuted }}>based on current filters and scope</span>
+    </div>
+  );
 }
 
 // ── Portal dropdown ───────────────────────────────────────────────────────────
@@ -480,7 +498,6 @@ function FilterGridItem({ item, active, onClick }) {
 // ── Stat card preview (left panel, Filters tab) ──────────────────────────────
 function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage, customHex }) {
   const emoji = STAT_EMOJIS[statType] || "📌";
-
   return (
     <div style={{
       background: resolveCoverBackground(coverColor, customHex),
@@ -496,9 +513,7 @@ function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage
       </div>
       <div style={{ position:"relative", zIndex:1, padding:"10px 16px 14px", background:"rgba(0,0,0,0.18)" }}>
         <div style={{ fontSize:13, fontWeight:700, color:"#fff", lineHeight:1.4 }}>{cardName}</div>
-        <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)", marginTop:3 }}>
-          Across 3 boards
-        </div>
+        <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)", marginTop:3 }}>Across 3 boards</div>
       </div>
     </div>
   );
@@ -553,10 +568,8 @@ function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout })
   return (
     <div style={{
       width:"100%", minHeight:110, aspectRatio:"3/2",
-      background: cardBg,
-      borderRadius:12, overflow:"hidden",
-      position:"relative",
-      boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
+      background: cardBg, borderRadius:12, overflow:"hidden",
+      position:"relative", boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
     }}>
       <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.08)" }} />
       <div style={{ position:"absolute", top:10, right:12, fontSize:20, zIndex:1 }}>📌</div>
@@ -911,8 +924,12 @@ function CardConfigModal({
         background: T.bgSection,
         border: `1px solid ${T.border}`,
         borderRadius: 14,
-       width: "min(1050px, 90vw)", maxWidth: "90vw", maxHeight: "85vh",
-        display: "flex", flexDirection: "column", overflow: "hidden",
+        width: "min(1050px, 90vw)",
+        maxWidth: "90vw",
+        maxHeight: "85vh",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
         boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
       }}>
 
@@ -1086,7 +1103,7 @@ function CardConfigModal({
                     <div style={{ padding:"18px 20px 18px" }}>
                       <SectionHeader number="2" title="Scope" />
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                       <ScopeSelect
+                        <ScopeSelect
                           label="Workspace" value="my-workspace" onChange={() => {}}
                           options={workspaceOptions} icon="👤" iconBg="#7e57c2"
                         />
@@ -1220,6 +1237,7 @@ function CardConfigModal({
           </div>
         </div>
 
+        {/* ── Live Results Banner ── */}
         <LiveResultsSection liveCount={liveCount} />
 
         {/* ── Footer ── */}
