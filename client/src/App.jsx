@@ -12,7 +12,7 @@ import {
   createCard,
   createList,
   applyFilters,
-  getWeekBounds, // FIX #3: imported so dueThisWeek is consistent everywhere
+  getWeekBounds, 
   getWorkspaceBoards, // ← new
   getBoardScopedData,
 } from "./trello";
@@ -37,7 +37,6 @@ const trelloT = (() => {
 })();
 
 // ── module-level helper (used by refreshTrackerCards + createCard flow) ───────
-// FIX #10: defined once here only — removed duplicate in trello.js
 function dataUrlToBlob(dataUrl) {
   const base64Data = dataUrl.split(",")[1];
   const byteCharacters = atob(base64Data);
@@ -299,8 +298,6 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
     (c) => !isTrackerCard(c.name) && c.idList !== cardlyticsList.id,
   );
 
-  // FIX #1: removed dead statCountMap — counts are computed per-card below
-
   for (const card of trackerCards) {
     const statMatch = card.desc?.match(
       /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
@@ -318,8 +315,6 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
       } catch (_) {}
     }
 
-    // Filters OVERRIDE the base stat — they never stack on top of it.
-    // This now matches CardDetailsView's load() and handleTrack's count logic.
     let newCount;
     if (cardFilters) {
       newCount = applyFilters(filteredCards, cardFilters, memberId).length;
@@ -412,7 +407,6 @@ function CardBackView() {
   useEffect(() => {
     if (!trelloT) return;
     trelloT.card("name", "idList", "desc").then((card) => {
-      // FIX #6: use prefix-based isTrackerCard (now consistent)
       const matchesPrefix = isTrackerCard(card.name);
       const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
 
@@ -444,7 +438,6 @@ function CardBackView() {
     const tkn = getStoredToken();
     if (!tkn || !trelloT) return;
 
-    // FIX #1 + #2 + #3: use shared runTrackerRefresh — dead statCountMap gone,
     // cardsInList handled, dueThisWeek uses calendar week
     runTrackerRefresh(key, tkn, trelloT).catch((err) =>
       console.error("CardBackView cover refresh error:", err),
@@ -549,7 +542,6 @@ function CardBackView() {
 
 // ─── CARD DETAILS VIEW ────────────────────────────────────────────────────────
 function CardDetailsView() {
-  // FIX #8: memoize params so the stale closure issue is avoided
   const params = useRef(new URLSearchParams(window.location.search));
   const listId = params.current.get("listId");
   const boardId = params.current.get("boardId");
@@ -582,7 +574,9 @@ function CardDetailsView() {
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState("name");
   const [sortAsc, setSortAsc] = useState(true);
-  const [leftTab, setLeftTab] = useState("general");
+  const [leftTab, setLeftTab] = useState(() =>
+    params.current.get("cardName") ? "personalized" : "general",
+  );
   const [personalizedViews, setPersonalizedViews] = useState(() => {
     // Pre-populate from localStorage so sidebar isn't blank on first render,
     // but these will be pruned/validated inside load()
@@ -641,7 +635,6 @@ function CardDetailsView() {
             !cardlyticsListIds.includes(c.idList),
         );
 
-        // FIX #3: use getWeekBounds for consistent dueThisWeek definition
         const now = new Date();
         const { startOfWeek, endOfWeek } = getWeekBounds(now);
         const fourteenAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
@@ -664,7 +657,6 @@ function CardDetailsView() {
           all: () => true,
         };
 
-        // FIX #8: read filters from the memoized params ref
         const filtersParam = params.current.get("filters");
         let savedFilters = null;
         if (filtersParam) {
@@ -1731,7 +1723,6 @@ export default function App() {
       setStats(computed);
       setLastUpdated(new Date().toLocaleTimeString());
 
-      // FIX #4: reuse allLists instead of calling getBoardLists again
       setLists(allLists);
 
       if (mode === "list" && listId) {
@@ -1765,14 +1756,13 @@ export default function App() {
     fetchData();
 
     const intervalId = setInterval(() => {
-      fetchData(); // FIX #9: fetchData now reads scopeListIdRef.current internally
+      fetchData(); 
     }, 5000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [token]); // FIX #9: removed scopeListId from deps — ref handles currency
-
+  }, [token]); 
   if (!token)
     return (
       <LoginScreen
