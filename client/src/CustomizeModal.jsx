@@ -680,9 +680,6 @@ function ImageUpload({ imageUrl, onImageChange }) {
           padding:"6px 10px", color:"#888", fontSize:12, fontFamily:"'DM Sans',sans-serif", cursor:"pointer",
         }}>Remove</button>}
       </div>
-      {imageUrl && <div style={{ width:"100%", height:48, borderRadius:6, overflow:"hidden", border:`1px solid ${T.border}` }}>
-        <img src={imageUrl} alt="Cover preview" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-      </div>}
     </div>
   );
 }
@@ -722,7 +719,10 @@ function CardConfigModal({
   const [coverImage,         setCoverImage]         = useState(null);
   const [alertOn,            setAlertOn]            = useState(true);
   const [boardScope,         setBoardScope]         = useState("this");
-  const [memberScope, setMemberScope] = useState("anyone");
+  const [memberScope, setMemberScope] = useState(() => {
+    const self = (members || []).find(m => m.fullName === memberName);
+    return self ? self.id : "anyone";
+  });
   const [boardDropOpen, setBoardDropOpen] = useState(false);
   const boardDropRef = useRef();
 
@@ -791,21 +791,15 @@ function CardConfigModal({
   // ── Resolve memberScope to a real ID and sync filterValues.member atomically
   const initializedScopeRef = useRef(null);
 
-  useEffect(() => {
-  if (!scopedMembers?.length) return;
-  if (initializedScopeRef.current === boardScope) return;
+ useEffect(() => {
+    if (!scopedMembers?.length) return;
+    if (initializedScopeRef.current === boardScope) return;
 
-  initializedScopeRef.current = boardScope;
+    initializedScopeRef.current = boardScope;
 
-  // ✅ Always default to neutral state
-  setMemberScope("anyone");
-
-  setFilterValues(prev => ({
-    ...prev,
-    member: [],
-  }));
-
-}, [scopedMembers, boardScope]);
+    const self = scopedMembers.find(m => m.fullName === memberName);
+    setMemberScope(self ? self.id : "anyone");
+  }, [scopedMembers, boardScope, memberName]);
 
   const emoji     = STAT_EMOJIS[statType] || "📌";
   const resolvedBg = coverImage ? null : resolveCoverBackground(coverColor);
@@ -1050,14 +1044,7 @@ function CardConfigModal({
   <div style={{ position:"relative" }}>
     <select
       value={memberScope}
-      onChange={e => {
-        const val = e.target.value;
-        setMemberScope(val);
-        setFilterValues(prev => ({
-          ...prev,
-          member: val !== "anyone" ? [val] : [],
-        }));
-      }}
+      onChange={e => setMemberScope(e.target.value)}
       style={selectStyle}
     >
       <option value="anyone">Anyone</option>
