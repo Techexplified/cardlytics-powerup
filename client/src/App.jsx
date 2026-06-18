@@ -234,8 +234,28 @@ function Toast({ toast }) {
   );
 }
 
+function TrashIcon({ size = 14 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  );
+}
+
 // ── Shared helper: build the statFilterMap used in refresh loops ──────────────
-// FIX #2: cardsInList now included; FIX #3: uses getWeekBounds for dueThisWeek
 function buildStatFilterMap(memberId, resolvedListId) {
   const now = new Date();
   const { startOfWeek, endOfWeek } = getWeekBounds(now);
@@ -970,6 +990,38 @@ function CardDetailsView() {
     }
   }
 
+  async function handleDeletePersonalizedView(view, e) {
+  e.stopPropagation(); // don't trigger the card's own onClick (opening it)
+
+  const confirmMsg = view.cardId
+    ? `Remove "${view.cardName}"? This will also delete its tracker card from the board.`
+    : `Remove "${view.cardName}" from your personalized views?`;
+  if (!window.confirm(confirmMsg)) return;
+
+  if (view.cardId) {
+    try {
+      await fetch(
+        `${TRELLO_BASE}/cards/${view.cardId}?key=${key}&token=${token}`,
+        { method: "DELETE" },
+      );
+    } catch (err) {
+      console.error("Failed to delete tracker card:", err);
+    }
+  }
+
+  setPersonalizedViews((prev) => prev.filter((v) => v.id !== view.id));
+
+  if (boardId) {
+    const saved = JSON.parse(
+      localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
+    );
+    localStorage.setItem(
+      `cardlytics:personalized:${boardId}`,
+      JSON.stringify(saved.filter((v) => v.id !== view.id)),
+    );
+  }
+}
+
   function SortArrow({ col }) {
     if (sortCol !== col)
       return <span style={{ color: "#444", marginLeft: 3 }}>↕</span>;
@@ -1132,7 +1184,7 @@ function CardDetailsView() {
           </div>
         )}
 
-        {leftTab === "personalized" && (
+       {leftTab === "personalized" && (
           <>
             {personalizedViews.length === 0 ? (
               <div className="cd-personalized-empty">
@@ -1153,6 +1205,7 @@ function CardDetailsView() {
                     opacity: statType === view.statType ? 1 : 0.85,
                     background:
                       statType === view.statType ? "#1e1e1e" : "transparent",
+                    position: "relative",
                   }}
                   onClick={() => {
                     if (!trelloT) return;
@@ -1168,6 +1221,35 @@ function CardDetailsView() {
                     });
                   }}
                 >
+                  <button
+                    onClick={(e) => handleDeletePersonalizedView(view, e)}
+                    title="Remove this view"
+                    style={{
+                      position: "absolute",
+                      top: 6,
+                      right: 6,
+                      background: "transparent",
+                      border: "none",
+                      color: "#666",
+                      cursor: "pointer",
+                      padding: 5,
+                      borderRadius: 6,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "background 0.15s ease, color 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(255, 82, 82, 0.12)";
+                      e.currentTarget.style.color = "#ff5252";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "#666";
+                    }}
+                  >
+                    <TrashIcon size={13} />
+                  </button>
                   <div
                     className="cd-stat-num"
                     style={{
