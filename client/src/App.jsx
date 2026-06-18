@@ -224,11 +224,11 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function Toast({ toast }) {
   if (!toast) return null;
+  const icon =
+    toast.type === "success" ? "✅" : toast.type === "premium" ? "⭐" : "❌";
   return (
     <div className={`toast toast-${toast.type}`}>
-      <span className="toast-icon">
-        {toast.type === "success" ? "✅" : "❌"}
-      </span>
+      <span className="toast-icon">{icon}</span>
       <span className="toast-msg">{toast.message}</span>
     </div>
   );
@@ -564,37 +564,37 @@ function CardDetailsView() {
   const [sortAsc, setSortAsc] = useState(true);
   const [leftTab, setLeftTab] = useState("general");
   const [personalizedViews, setPersonalizedViews] = useState(() => {
-  // Pre-populate from localStorage so sidebar isn't blank on first render,
-  // but these will be pruned/validated inside load()
-  if (!boardId) return [];
-  try {
-    return JSON.parse(
-      localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]"
-    ).map((v) => ({ ...v, count: 0 }));
-  } catch {
-    return [];
-  }
-});
+    // Pre-populate from localStorage so sidebar isn't blank on first render,
+    // but these will be pruned/validated inside load()
+    if (!boardId) return [];
+    try {
+      return JSON.parse(
+        localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
+      ).map((v) => ({ ...v, count: 0 }));
+    } catch {
+      return [];
+    }
+  });
 
   const key = TRELLO_API_KEY;
   const token = getStoredToken();
 
   useEffect(() => {
     async function load() {
-  setLoading(true);
+      setLoading(true);
 
-  // Immediately clear stale personalized views so sidebar doesn't show deleted cards
-  if (boardId) {
-    const existing = JSON.parse(
-      localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]"
-    );
-    setPersonalizedViews(existing.map((v) => ({ ...v, count: 0 })));
-  } else {
-    setPersonalizedViews([]);
-  }
+      // Immediately clear stale personalized views so sidebar doesn't show deleted cards
+      if (boardId) {
+        const existing = JSON.parse(
+          localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
+        );
+        setPersonalizedViews(existing.map((v) => ({ ...v, count: 0 })));
+      } else {
+        setPersonalizedViews([]);
+      }
 
-  try {
-    const isListScoped = mode === "list" || statType === "cardsInList";
+      try {
+        const isListScoped = mode === "list" || statType === "cardsInList";
 
         const [rawBoardCards, mid, allBoardLists] = await Promise.all([
           boardId ? getBoardCards(key, token, boardId) : Promise.resolve([]),
@@ -2069,6 +2069,48 @@ export default function App() {
                 </option>
               ))}
           </select>
+        </div>
+
+        <div className="tracking-mode-section">
+          <div className="tracking-mode-header">
+            <span className="tracking-mode-title">Tracking Mode</span>
+          </div>
+          <p className="tracking-mode-sub">Choose what these stats reflect</p>
+          <div className="tracking-mode-options">
+            <div
+              className={`tracking-mode-option ${trackingMode === "general" ? "active" : ""}`}
+              onClick={() => setTrackingMode("general")}
+            >
+              <span className="tracking-mode-radio" />
+              <span className="tracking-mode-icon">🌐</span>
+              <div className="tracking-mode-info">
+                <span className="tracking-mode-name">General</span>
+                <span className="tracking-mode-desc">
+                  Board-wide stats, visible to everyone
+                </span>
+              </div>
+            </div>
+
+            <div
+              className="tracking-mode-option locked"
+              onClick={() =>
+                showToast(
+                  "Personalized tracking is a Premium feature — upgrade to unlock",
+                  "premium",
+                )
+              }
+            >
+              <span className="tracking-mode-radio" />
+              <span className="tracking-mode-icon">🔒</span>
+              <div className="tracking-mode-info">
+                <span className="tracking-mode-name">Personalized</span>
+                <span className="tracking-mode-desc">
+                  Just your own assigned cards
+                </span>
+                <span className="tracking-mode-premium">⭐ Premium</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
