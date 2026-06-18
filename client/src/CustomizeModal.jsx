@@ -494,7 +494,7 @@ function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage
     <div style={{
       background: resolveCoverBackground(coverColor, customHex),
       borderRadius:12, overflow:"hidden", width:"100%",
-      position:"relative", minHeight:140,
+      position:"relative", minHeight:110,
       boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
     }}>
       {coverImage && <img src={coverImage} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />}
@@ -505,7 +505,7 @@ function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage
 
       {/* Count */}
       <div style={{ position:"relative", zIndex:1, padding:"20px 16px 14px" }}>
-        <div style={{ fontSize:36, fontWeight:800, color:"#fff", lineHeight:1 }}>{liveCount}</div>
+        <div style={{fontSize:26 }}>{liveCount}</div>
       </div>
 
       {/* Name bar */}
@@ -525,7 +525,7 @@ function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout })
     || TEXT_COLORS.find(t => t.id === textColor)?.hex
     || "#FFFFFF";
 
-  const numStyle = { fontSize: 36, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
+  const numStyle = { fontSize: 26 };
   const lblStyle = { fontSize: 13, fontWeight: 700, color: resolvedTextColor, lineHeight: 1.4 };
   const subStyle = { fontSize: 11, color: resolvedTextColor, opacity: 0.75, lineHeight: 1.3 };
 
@@ -567,7 +567,7 @@ function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout })
 
   return (
     <div style={{
-      width: "100%", minHeight: 140, aspectRatio: "4/3",
+      width: "100%", minHeight: 110, aspectRatio: "3/2",
       background: cardBg,
       borderRadius: 12, overflow: "hidden",
       position: "relative",
@@ -830,6 +830,51 @@ function StatPicker({ onSelect, onClose }) {
   );
 }
 
+function LiveResultsSection({ liveCount }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderTop:`1px solid ${T.border}`, background:T.bg, flexShrink:0 }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 20px", cursor:"pointer", userSelect:"none" }}>
+        <SectionNumber n="5" />
+        <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase", flex:1 }}>Live Results</span>
+        <span style={{ color:T.textMuted, fontSize:13, display:"inline-block", transition:"transform 0.2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+      </div>
+      {open && (
+        <div style={{ padding:"0 20px 14px" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:24 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <div style={{ width:28, height:28, borderRadius:"50%", background:T.successDim, border:`2px solid ${T.success}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                <span style={{ color:T.success, fontSize:12, fontWeight:700 }}>✓</span>
+              </div>
+              <div>
+                <span style={{ fontSize:22, fontWeight:800, color:T.text }}>{liveCount}</span>
+                <span style={{ fontSize:13, color:T.textSub, marginLeft:6 }}>cards found</span>
+                <div style={{ fontSize:11, color:T.textMuted }}>Across 3 boards in My Workspace</div>
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:28, marginLeft:"auto" }}>
+              <div>
+                <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>Included in count</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:T.success }}>✓</span> Cards matching all active filters</div>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:T.success }}>✓</span> Based on selected scope</div>
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>Excluded from count</div>
+                <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:"#e6a817" }}>–</span> Archived cards</div>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:"#e6a817" }}>–</span> Deleted cards</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main CardConfigModal ──────────────────────────────────────────────────────
 function CardConfigModal({
   statType, statValue, lists, memberName, members, boardLabels,
@@ -965,7 +1010,7 @@ function CardConfigModal({
 
           {/* ── LEFT PANEL: Preview ── */}
           <div style={{
-            width:240, flexShrink:0, padding:18, borderRight:`1px solid ${T.border}`,
+            width:200, flexShrink:0, padding:14, borderRight:`1px solid ${T.border}`,
             display:"flex", flexDirection:"column", gap:14, overflowY:"auto",
             background:T.bg,
           }}>
@@ -1280,61 +1325,8 @@ function CardConfigModal({
               )}
             </div>
 
-            {/* ── Section 5: Live Results ── */}
-            <div style={{
-              borderTop:`1px solid ${T.border}`, background:T.bg,
-              padding:"14px 20px", flexShrink:0,
-            }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-                <SectionNumber n="5" />
-                <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>Live Results</span>
-              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:24 }}>
-                {/* Count display */}
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <div style={{
-                    width:28, height:28, borderRadius:"50%",
-                    background:T.successDim, border:`2px solid ${T.success}`,
-                    display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
-                  }}>
-                    <span style={{ color:T.success, fontSize:12, fontWeight:700 }}>✓</span>
-                  </div>
-                  <div>
-                    <span style={{ fontSize:22, fontWeight:800, color:T.text }}>{liveCount}</span>
-                    <span style={{ fontSize:13, color:T.textSub, marginLeft:6 }}>cards found</span>
-                    <div style={{ fontSize:11, color:T.textMuted }}>Across 3 boards in My Workspace</div>
-                  </div>
-                </div>
-
-                {/* Included / Excluded */}
-                <div style={{ display:"flex", gap:28, marginLeft:"auto" }}>
-                  <div>
-                    <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>Included in count</div>
-                    <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}>
-                        <span style={{ color:T.success, fontSize:12 }}>✓</span> Cards matching all active filters
-                      </div>
-                      <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}>
-                        <span style={{ color:T.success, fontSize:12 }}>✓</span> Based on selected scope
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>Excluded from count</div>
-                    <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}>
-                        <span style={{ color:"#e6a817", fontSize:12 }}>–</span> Archived cards
-                      </div>
-                      <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}>
-                        <span style={{ color:"#e6a817", fontSize:12 }}>–</span> Deleted cards
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+           {/* ── Section 5: Live Results ── */}
+<LiveResultsSection liveCount={liveCount} />
 
         {/* ── Footer ── */}
         <div style={{
