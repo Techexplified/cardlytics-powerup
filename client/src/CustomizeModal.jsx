@@ -1324,8 +1324,9 @@ function CardConfigModal({
                 </div>
               )}
             </div>
+             </div>
+              </div>
 
-           {/* ── Section 5: Live Results ── */}
 <LiveResultsSection liveCount={liveCount} />
 
         {/* ── Footer ── */}
@@ -1421,13 +1422,14 @@ export function CustomizeFlow({
       boardName={boardName} boardId={boardId} workspaceBoards={workspaceBoards}
       fetchWorkspaceBoards={fetchWorkspaceBoards}
       fetchBoardScopedData={fetchBoardScopedData}
-    />
-  );
+   />
+);
 }
 
 // ── Standalone demo (for preview) ────────────────────────────────────────────
 export default function App() {
   const [show, setShow] = useState(true);
+
   const [stat, setStat] = useState("assigned");
 
   return (
