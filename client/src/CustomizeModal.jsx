@@ -159,7 +159,7 @@ function SectionNumber({ n }) {
 
 function SectionHeader({ number, title, style }) {
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10, ...style }}>
+    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14, ...style }}>
       <SectionNumber n={number} />
       <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>
         {title}
@@ -424,7 +424,7 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
         fontSize:14, flexShrink:0,
       }}>{def.icon}</div>
 
-      <div style={{ flex:"0 0 100px", fontSize:12, color:T.textSub, fontWeight:500 }}>{def.label}</div>
+      <div style={{ flex:"0 0 130px", fontSize:13, color:T.textSub, fontWeight:500 }}>{def.label}</div>
 
       <div ref={triggerRef} onClick={() => setOpen(o=>!o)} style={{
         flex:1, display:"flex", alignItems:"center", justifyContent:"space-between",
@@ -474,8 +474,8 @@ function FilterGridItem({ item, active, onClick }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display:"flex", alignItems:"center", gap:8,
-        padding:"8px 10px", borderRadius:8, cursor:"pointer",
+        display:"flex", alignItems:"center", gap:10,
+        padding:"10px 12px", borderRadius:8, cursor:"pointer",
         background: active ? T.accentDim : hover ? T.bgItem : "transparent",
         border:`1px solid ${active ? T.accent : hover ? T.border : "transparent"}`,
         transition:"all 0.15s",
@@ -796,8 +796,9 @@ function ScopeSelect({ label, value, onChange, options, loading, icon, iconBg })
 
 // ── Stat picker (step 1) ──────────────────────────────────────────────────────
 function StatPicker({ onSelect, onClose }) {
-  return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:9999, fontFamily:"'DM Sans',sans-serif" }} onClick={onClose}>
+  const portalRoot = (() => { try { return window.top.document.body; } catch { return document.body; } })();
+  return createPortal(
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:2147483647, fontFamily:"'DM Sans',sans-serif" }} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{ background:T.bgSection, border:`1px solid ${T.border}`, borderRadius:14, width:300, overflow:"hidden", boxShadow:"0 20px 60px rgba(0,0,0,0.7)" }}>
         <div style={{ padding:"14px 18px", borderBottom:`1px solid ${T.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span style={{ fontSize:14, fontWeight:600, color:T.text }}>Create Stat Card</span>
@@ -818,7 +819,7 @@ function StatPicker({ onSelect, onClose }) {
         </div>
       </div>
     </div>
-  );
+  , portalRoot);
 }
 
 // ── Main CardConfigModal ──────────────────────────────────────────────────────
@@ -914,24 +915,30 @@ function CardConfigModal({
     { key:"style",   label:"Style"   },
   ];
 
-  return (
+  // Escape the Trello Power-Up iframe: portal into window.top so the modal
+  // covers the real browser window instead of the tiny iframe.
+  const portalRoot = (() => {
+    try { return window.top.document.body; } catch { return document.body; }
+  })();
+
+  const modalContent = (
     <div style={{
-      position:"fixed", inset:0, background:"rgba(0,0,0,0.8)",
+      position:"fixed", inset:0, background:"rgba(0,0,0,0.78)",
       display:"flex", alignItems:"center", justifyContent:"center",
-      zIndex:9999, fontFamily:"'DM Sans', -apple-system, sans-serif",
+      zIndex:2147483647, fontFamily:"'DM Sans', -apple-system, sans-serif",
     }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{
         background: T.bgSection,
         border: `1px solid ${T.border}`,
         borderRadius: 14,
-        width: "calc(100vw - 16px)",
-        maxWidth: "calc(100vw - 16px)",
-        height: "calc(100vh - 16px)",
-        maxHeight: "calc(100vh - 16px)",
+        width: "min(1240px, 92vw)",
+        maxWidth: "92vw",
+        height: "min(800px, 88vh)",
+        maxHeight: "88vh",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.9)",
       }}>
 
         {/* ── Header ── */}
@@ -962,7 +969,7 @@ function CardConfigModal({
 
           {/* Left Panel */}
           <div style={{
-            width:200, flexShrink:0, padding:12, borderRight:`1px solid ${T.border}`,
+            width:230, flexShrink:0, padding:14, borderRight:`1px solid ${T.border}`,
             display:"flex", flexDirection:"column", gap:14, overflowY:"auto",
             background: T.bg,
           }}>
@@ -1030,7 +1037,7 @@ function CardConfigModal({
                   <div style={{ borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column" }}>
 
                     {/* Section 1: Card Details */}
-                    <div style={{ padding:"14px 16px" }}>
+                    <div style={{ padding:"18px 20px" }}>
                       <SectionHeader number="1" title="Card Details" />
                       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                         <div>
@@ -1073,7 +1080,7 @@ function CardConfigModal({
                     <Divider />
 
                     {/* Section 3: Active Filters */}
-                    <div style={{ padding:"14px 16px", flex:1 }}>
+                    <div style={{ padding:"18px 20px", flex:1 }}>
                       <SectionHeader number="3" title="Active Filters" />
                       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                         {activeFilters.map(key => (
@@ -1101,7 +1108,7 @@ function CardConfigModal({
                   <div style={{ display:"flex", flexDirection:"column" }}>
 
                     {/* Section 2: Scope */}
-                    <div style={{ padding:"14px 16px" }}>
+                    <div style={{ padding:"18px 20px" }}>
                       <SectionHeader number="2" title="Scope" />
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         <ScopeSelect
@@ -1122,7 +1129,7 @@ function CardConfigModal({
                     <Divider />
 
                     {/* Section 4: Add More Filters */}
-                    <div style={{ padding:"14px 16px", flex:1, overflowY:"auto" }}>
+                    <div style={{ padding:"18px 20px", flex:1, overflowY:"auto" }}>
                       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                           <SectionNumber n="4" />
@@ -1148,7 +1155,7 @@ function CardConfigModal({
                       <p style={{ fontSize:11, color:T.textMuted, margin:"0 0 12px", lineHeight:1.5 }}>
                         Choose from the available filters to refine your results.
                       </p>
-                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                      <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:8 }}>
                         {filteredGridItems.map(item => (
                           <FilterGridItem
                             key={item.key} item={item}
@@ -1314,6 +1321,8 @@ function CardConfigModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, portalRoot);
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
