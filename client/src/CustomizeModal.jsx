@@ -27,7 +27,7 @@ const T = {
   sectionNum:  "#79c0ff",
 };
 
-// ── Cover palette ─────────────────────────────────────────────────────────────
+// ── Cover palette (Style tab — solids & gradients used for card backgrounds) ──
 const COVER_COLORS = [
   { id: "blue",   hex: "#0052cc", label: "Blue"   },
   { id: "sky",    hex: "#29b6f6", label: "Sky"    },
@@ -51,11 +51,32 @@ const COVER_GRADIENTS = [
   { id: "grad-multi",         css: "linear-gradient(135deg,#0052cc,#7e57c2,#e91e8c)", label: "Blue → Purple → Pink" },
 ];
 
-function resolveCoverBackground(id) {
+function resolveCoverBackground(id, customHex) {
+  if (id === "custom" && customHex) return customHex;
   const g = COVER_GRADIENTS.find((x) => x.id === id);
   if (g) return g.css;
   return COVER_COLORS.find((x) => x.id === id)?.hex || "#0052cc";
 }
+
+// ── Text color options (Style tab) ────────────────────────────────────────────
+const TEXT_COLORS = [
+  { id: "white",    hex: "#FFFFFF", label: "White"    },
+  { id: "light",    hex: "#E5E7EB", label: "Light"    },
+  { id: "muted",    hex: "#9CA3AF", label: "Muted"    },
+  { id: "dark",     hex: "#374151", label: "Dark"     },
+  { id: "blue",     hex: "#3B82F6", label: "Blue"     },
+  { id: "green",    hex: "#10B981", label: "Green"    },
+  { id: "yellow",   hex: "#FBBF24", label: "Yellow"   },
+  { id: "gradient", css: "linear-gradient(90deg,#F472B6,#818CF8)", label: "Gradient" },
+];
+
+// ── Layout options (Style tab) ────────────────────────────────────────────────
+const LAYOUTS = [
+  { id: "center",      label: "Center"       },
+  { id: "bottomLeft",  label: "Bottom Left"  },
+  { id: "bottomRight", label: "Bottom Right" },
+  { id: "topBottom",   label: "Top & Bottom" },
+];
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const TRELLO_LABEL_COLORS = {
@@ -152,6 +173,29 @@ function SectionHeader({ number, title, style }) {
 
 function Divider() {
   return <div style={{ borderTop:`1px solid ${T.borderLight}`, margin:"0" }} />;
+}
+
+// ── Style-tab specific small helpers ──────────────────────────────────────────
+function SectionLabel({ n, title }) {
+  return (
+    <div style={{ marginBottom: 6 }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color: T.text, letterSpacing: "0.01em" }}>
+        {n}. {title.toUpperCase()}
+      </span>
+    </div>
+  );
+}
+
+function SectionSub({ children }) {
+  return (
+    <p style={{ fontSize: 12, color: T.textMuted, margin: "0 0 14px", lineHeight: 1.5 }}>
+      {children}
+    </p>
+  );
+}
+
+function StyleDivider() {
+  return <div style={{ borderTop: `1px solid ${T.border}`, margin: "20px 0" }} />;
 }
 
 // ── Portal dropdown ───────────────────────────────────────────────────────────
@@ -441,15 +485,14 @@ function FilterGridItem({ item, active, onClick }) {
   );
 }
 
-// ── Stat card preview (left panel) ───────────────────────────────────────────
-function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage, members, selectedMemberIds }) {
+// ── Stat card preview (left panel, Filters tab) ──────────────────────────────
+function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage, customHex, members, selectedMemberIds }) {
   const emoji = STAT_EMOJIS[statType] || "📌";
-  const resolvedBg = coverImage ? null : resolveCoverBackground(coverColor);
   const boardCount = 3; // demo
 
   return (
     <div style={{
-      background: resolveCoverBackground(coverColor),
+      background: resolveCoverBackground(coverColor, customHex),
       borderRadius:12, overflow:"hidden", width:"100%",
       position:"relative", minHeight:140,
       boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
@@ -471,6 +514,262 @@ function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage
         <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)", marginTop:3 }}>
           Across {boardCount} boards
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Live styled preview (left panel, Style tab) ──────────────────────────────
+function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout }) {
+  const resolvedTextColor = TEXT_COLORS.find(t => t.id === textColor)?.css
+    || TEXT_COLORS.find(t => t.id === textColor)?.hex
+    || "#FFFFFF";
+
+  const numStyle = { fontSize: 36, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
+  const lblStyle = { fontSize: 13, fontWeight: 700, color: resolvedTextColor, lineHeight: 1.4 };
+  const subStyle = { fontSize: 11, color: resolvedTextColor, opacity: 0.75, lineHeight: 1.3 };
+
+  function LayoutContent() {
+    if (layout === "center") return (
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: 16 }}>
+        <span style={numStyle}>{count}</span>
+        <span style={lblStyle}>{title}</span>
+        <span style={subStyle}>{subtitle}</span>
+      </div>
+    );
+    if (layout === "bottomLeft") return (
+      <div style={{ position: "absolute", bottom: 16, left: 16, display: "flex", flexDirection: "column", gap: 3 }}>
+        <span style={numStyle}>{count}</span>
+        <span style={lblStyle}>{title}</span>
+        <span style={subStyle}>{subtitle}</span>
+      </div>
+    );
+    if (layout === "bottomRight") return (
+      <div style={{ position: "absolute", bottom: 16, right: 16, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+        <span style={numStyle}>{count}</span>
+        <span style={lblStyle}>{title}</span>
+        <span style={subStyle}>{subtitle}</span>
+      </div>
+    );
+    if (layout === "topBottom") return (
+      <>
+        <div style={{ position: "absolute", top: 16, right: 16, textAlign: "right" }}>
+          <span style={numStyle}>{count}</span>
+          <span style={{ ...lblStyle, display: "block" }}>{title}</span>
+        </div>
+        <div style={{ position: "absolute", bottom: 12, left: 16 }}>
+          <span style={subStyle}>{subtitle}</span>
+        </div>
+      </>
+    );
+    return null;
+  }
+
+  return (
+    <div style={{
+      width: "100%", minHeight: 140, aspectRatio: "4/3",
+      background: cardBg,
+      borderRadius: 12, overflow: "hidden",
+      position: "relative",
+      boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+    }}>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.08)" }} />
+      <div style={{ position: "absolute", top: 10, right: 12, fontSize: 20, zIndex: 1 }}>📌</div>
+      <LayoutContent />
+    </div>
+  );
+}
+
+// ── Mini card layout preview (Style tab, layout picker) ──────────────────────
+function LayoutMini({ layout, count, title, subtitle, textColor, cardBg, selected, onClick }) {
+  const resolvedTextColor = TEXT_COLORS.find(t => t.id === textColor)?.hex || "#FFFFFF";
+
+  const baseCard = {
+    width: "100%", aspectRatio: "4/3",
+    background: cardBg, borderRadius: 8,
+    position: "relative", overflow: "hidden",
+    display: "flex", flexDirection: "column",
+    justifyContent: "flex-end",
+  };
+
+  const numStyle = { fontSize: 20, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
+  const lblStyle = { fontSize: 8, fontWeight: 600, color: resolvedTextColor, opacity: 0.9, lineHeight: 1.3 };
+  const subStyle = { fontSize: 7, color: resolvedTextColor, opacity: 0.7, lineHeight: 1.3 };
+
+  function Content() {
+    if (layout === "center") return (
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: 10 }}>
+        <span style={numStyle}>{count}</span>
+        <span style={lblStyle}>{title}</span>
+        <span style={subStyle}>{subtitle}</span>
+      </div>
+    );
+    if (layout === "bottomLeft") return (
+      <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={numStyle}>{count}</span>
+        <span style={lblStyle}>{title}</span>
+        <span style={subStyle}>{subtitle}</span>
+      </div>
+    );
+    if (layout === "bottomRight") return (
+      <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+        <span style={numStyle}>{count}</span>
+        <span style={lblStyle}>{title}</span>
+        <span style={subStyle}>{subtitle}</span>
+      </div>
+    );
+    if (layout === "topBottom") return (
+      <>
+        <div style={{ position: "absolute", top: 10, right: 10 }}>
+          <span style={numStyle}>{count}</span>
+          <span style={{ ...lblStyle, display: "block", textAlign: "right" }}>{title}</span>
+        </div>
+        <div style={{ padding: "0 10px 8px" }}>
+          <span style={{ ...subStyle, fontSize: 7, opacity: 0.6, textDecoration: "line-through" }}>{subtitle}</span>
+        </div>
+      </>
+    );
+    return null;
+  }
+
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        display: "flex", flexDirection: "column", gap: 8,
+        cursor: "pointer",
+      }}
+    >
+      <div style={{
+        ...baseCard,
+        border: selected ? `2px solid ${T.accent}` : `2px solid ${T.border}`,
+        transition: "border-color 0.15s",
+      }}>
+        {selected && (
+          <div style={{
+            position: "absolute", top: 6, left: 6, zIndex: 2,
+            width: 16, height: 16, borderRadius: "50%",
+            background: T.accent,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <span style={{ color: "#fff", fontSize: 9, fontWeight: 700 }}>✓</span>
+          </div>
+        )}
+        <Content />
+      </div>
+      <span style={{
+        fontSize: 11, textAlign: "center",
+        color: selected ? T.accent : T.textMuted,
+        fontWeight: selected ? 600 : 400,
+      }}>
+        {LAYOUTS.find(l => l.id === layout)?.label}
+      </span>
+    </div>
+  );
+}
+
+// ── Color swatch button (Style tab) ───────────────────────────────────────────
+function Swatch({ bg, selected, onClick, size = 32 }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: size, height: size,
+        borderRadius: 8,
+        background: bg,
+        border: selected ? "2px solid #fff" : "2px solid transparent",
+        outline: selected ? `2px solid ${T.accent}` : "2px solid transparent",
+        cursor: "pointer", padding: 0, flexShrink: 0,
+        transform: selected ? "scale(1.15)" : "scale(1)",
+        transition: "transform 0.12s, outline 0.12s",
+        position: "relative",
+      }}
+    >
+      {selected && (
+        <span style={{
+          position: "absolute", inset: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "#fff", fontSize: 13, fontWeight: 800,
+          textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+        }}>✓</span>
+      )}
+    </button>
+  );
+}
+
+// ── Custom hex input (Style tab) ──────────────────────────────────────────────
+function CustomHexInput({ value, onChange }) {
+  const [focused, setFocused] = useState(false);
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      background: T.bgDeep,
+      border: `1px solid ${focused ? T.accent : T.border}`,
+      borderRadius: 8, padding: "9px 14px",
+      transition: "border-color 0.15s", cursor: "text",
+      width: "100%", boxSizing: "border-box",
+    }}>
+      {/* Color dot */}
+      <div style={{
+        width: 22, height: 22, borderRadius: "50%",
+        background: value, flexShrink: 0,
+        border: `1px solid ${T.border}`,
+      }} />
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          flex: 1, background: "none", border: "none", outline: "none",
+          color: T.text, fontSize: 13, fontFamily: "'DM Mono', monospace",
+          letterSpacing: "0.04em",
+        }}
+      />
+      <span style={{ color: T.textMuted, fontSize: 14, cursor: "pointer" }}>✏️</span>
+    </div>
+  );
+}
+
+// ── Character-counted text input (Style tab) ──────────────────────────────────
+function LimitedInput({ label, value, onChange, max, placeholder }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{ flex: 1 }}>
+      <label style={{ fontSize: 11, color: T.textMuted, fontWeight: 500, display: "block", marginBottom: 5 }}>
+        {label}
+      </label>
+      <div style={{
+        position: "relative",
+        background: T.bgDeep,
+        border: `1px solid ${focused ? T.accent : T.border}`,
+        borderRadius: 8, transition: "border-color 0.15s",
+      }}>
+        <input
+          type="text"
+          value={value}
+          maxLength={max}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={{
+            width: "100%", background: "none", border: "none", outline: "none",
+            color: T.text, fontSize: 13, fontFamily: "inherit",
+            padding: "9px 52px 9px 12px",
+            boxSizing: "border-box",
+          }}
+        />
+        <span style={{
+          position: "absolute", right: 10, top: "50%",
+          transform: "translateY(-50%)",
+          fontSize: 11, color: T.textMuted,
+          pointerEvents: "none",
+        }}>
+          {value.length}/{max}
+        </span>
       </div>
     </div>
   );
@@ -541,11 +840,17 @@ function CardConfigModal({
   const [cardName,           setCardName]           = useState(DEFAULT_NAMES[statType] || "");
   const [description,        setDescription]        = useState("");
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
-  const [coverColor,         setCoverColor]         = useState(DEFAULT_COVER[statType] || "blue");
-  const [coverImage,         setCoverImage]         = useState(null);
   const [boardScope,         setBoardScope]         = useState("all");
   const [memberScope,        setMemberScope]        = useState("me");
   const [filterSearch,       setFilterSearch]       = useState("");
+
+  // ── Style state (drives both the Style tab UI and the live preview) ────────
+  const [coverColor,   setCoverColor]   = useState(DEFAULT_COVER[statType] || "blue");
+  const [coverImage,   setCoverImage]   = useState(null);
+  const [styleSubtitle,setStyleSubtitle]= useState("Across 3 boards");
+  const [textColor,    setTextColor]    = useState("white");
+  const [layout,        setLayout]      = useState("center");
+  const [customHex,     setCustomHex]   = useState("#3B82F6");
 
   // Active filters (keys from FILTER_DEFS)
   const [activeFilters, setActiveFilters] = useState(["assignedTo"]);
@@ -593,10 +898,14 @@ function CardConfigModal({
     !filterSearch || item.label.toLowerCase().includes(filterSearch.toLowerCase()) || item.sub.toLowerCase().includes(filterSearch.toLowerCase())
   );
 
+  const cardBg = resolveCoverBackground(coverColor, customHex);
+
   function handleSave() {
     onSave(statType, {
       cardName: previewName,
-      cover: coverColor, coverImage,
+      description,
+      cover: coverColor, coverImage, customHex,
+      subtitle: styleSubtitle, textColor, layout,
       members: filterValues.assignedTo || [],
       due: filterValues.dueDate || [],
       labels: filterValues.label || [],
@@ -660,15 +969,27 @@ function CardConfigModal({
             display:"flex", flexDirection:"column", gap:14, overflowY:"auto",
             background:T.bg,
           }}>
-            <StatCardPreview
-              statType={statType}
-              liveCount={liveCount}
-              cardName={previewName}
-              coverColor={coverColor}
-              coverImage={coverImage}
-            />
+            {activeTab === "filters" ? (
+              <StatCardPreview
+                statType={statType}
+                liveCount={liveCount}
+                cardName={previewName}
+                coverColor={coverColor}
+                coverImage={coverImage}
+                customHex={customHex}
+              />
+            ) : (
+              <LiveStylePreview
+                count={liveCount}
+                title={previewName}
+                subtitle={styleSubtitle}
+                textColor={textColor}
+                cardBg={cardBg}
+                layout={layout}
+              />
+            )}
             <div style={{ fontSize:10, color:T.textMuted, textAlign:"center" }}>
-              This is a live preview of your card based on the selected scope and filters.
+              This is a live preview of your card based on the selected scope, filters, and style.
             </div>
 
             {/* About this card */}
@@ -681,7 +1002,9 @@ function CardConfigModal({
                 <span style={{ fontSize:11, fontWeight:700, color:T.textSub }}>About this card</span>
               </div>
               <p style={{ fontSize:11, color:T.textMuted, margin:0, lineHeight:1.6 }}>
-                Counts all cards that are assigned to you based on the selected scope and filters.
+                {activeTab === "filters"
+                  ? "Counts all cards that are assigned to you based on the selected scope and filters."
+                  : "Customize how your card looks on your dashboard. You can always change this later."}
               </p>
             </div>
           </div>
@@ -864,40 +1187,94 @@ function CardConfigModal({
 
               {/* ── STYLE TAB ── */}
               {activeTab === "style" && (
-                <div style={{ padding:"20px 24px", display:"flex", flexDirection:"column", gap:20 }}>
-                  <div>
-                    <div style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase", marginBottom:12 }}>Cover Color</div>
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                      {COVER_COLORS.map(({ id, hex, label }) => (
-                        <button key={id} title={label} onClick={() => { setCoverColor(id); setCoverImage(null); }} style={{
-                          width:32, height:32, borderRadius:8, background:hex,
-                          border: coverColor===id ? "2px solid #fff" : "2px solid transparent",
-                          outline: coverColor===id ? `2px solid ${hex}` : "none",
-                          cursor:"pointer", padding:0,
-                          transform: coverColor===id ? "scale(1.15)" : "scale(1)", transition:"transform 0.1s",
-                          position:"relative",
-                        }}>
-                          {coverColor===id && <span style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:14, fontWeight:700 }}>✓</span>}
-                        </button>
-                      ))}
+                <div style={{ padding:"22px 28px" }}>
+
+                  {/* 1. Text Customization */}
+                  <SectionLabel n="1" title="Text Customization" />
+                  <SectionSub>Customize the text shown on your card.</SectionSub>
+                  <div style={{ display: "flex", gap: 14 }}>
+                    <LimitedInput
+                      label="Title (Label)"
+                      value={previewName}
+                      onChange={v => { setCardName(v); setNameManuallyEdited(true); }}
+                      max={30}
+                      placeholder="Card title"
+                    />
+                    <LimitedInput
+                      label="Subtitle (Optional)"
+                      value={styleSubtitle}
+                      onChange={setStyleSubtitle}
+                      max={30}
+                      placeholder="e.g. Across 3 boards"
+                    />
+                  </div>
+
+                  <StyleDivider />
+
+                  {/* 2. Text Color */}
+                  <SectionLabel n="2" title="Text Color" />
+                  <SectionSub>Choose text color for the title and subtitle.</SectionSub>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {TEXT_COLORS.map(({ id, hex, css }) => (
+                      <Swatch
+                        key={id}
+                        bg={css || hex}
+                        selected={textColor === id}
+                        onClick={() => setTextColor(id)}
+                      />
+                    ))}
+                  </div>
+
+                  <StyleDivider />
+
+                  {/* 3. Card Color */}
+                  <SectionLabel n="3" title="Card Color" />
+                  <SectionSub>Choose a color for your card.</SectionSub>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                    {/* Solid colors */}
+                    {COVER_COLORS.map(({ id, hex }) => (
+                      <Swatch key={id} bg={hex} selected={coverColor === id} onClick={() => { setCoverColor(id); setCoverImage(null); }} />
+                    ))}
+                    {/* Gradient swatches */}
+                    {COVER_GRADIENTS.map(({ id, css }) => (
+                      <Swatch key={id} bg={css} selected={coverColor === id} onClick={() => { setCoverColor(id); setCoverImage(null); }} />
+                    ))}
+                  </div>
+
+                  {/* Custom Color */}
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ fontSize: 12, color: T.textMuted, fontWeight: 500, marginBottom: 8 }}>Custom Color</div>
+                    <div style={{ maxWidth: 340 }}>
+                      <CustomHexInput
+                        value={customHex}
+                        onChange={(v) => { setCustomHex(v); setCoverColor("custom"); setCoverImage(null); }}
+                      />
                     </div>
                   </div>
-                  <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:20 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase", marginBottom:12 }}>Gradients</div>
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                      {COVER_GRADIENTS.map(({ id, css, label }) => (
-                        <button key={id} title={label} onClick={() => { setCoverColor(id); setCoverImage(null); }} style={{
-                          width:32, height:32, borderRadius:8, background:css,
-                          border: coverColor===id ? "2px solid #fff" : "2px solid transparent",
-                          outline: coverColor===id ? "2px solid #888" : "none",
-                          cursor:"pointer", padding:0,
-                          transform: coverColor===id ? "scale(1.15)" : "scale(1)", transition:"transform 0.1s",
-                          position:"relative",
-                        }}>
-                          {coverColor===id && <span style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:14, fontWeight:700 }}>✓</span>}
-                        </button>
-                      ))}
-                    </div>
+
+                  <StyleDivider />
+
+                  {/* 4. Card Layout */}
+                  <SectionLabel n="4" title="Card Layout" />
+                  <SectionSub>Choose where the text appears on your card.</SectionSub>
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(4, 1fr)",
+                    gap: 12,
+                  }}>
+                    {LAYOUTS.map(({ id }) => (
+                      <LayoutMini
+                        key={id}
+                        layout={id}
+                        count={liveCount}
+                        title={previewName}
+                        subtitle={styleSubtitle}
+                        textColor={textColor}
+                        cardBg={cardBg}
+                        selected={layout === id}
+                        onClick={() => setLayout(id)}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
@@ -961,30 +1338,74 @@ function CardConfigModal({
 
         {/* ── Footer ── */}
         <div style={{
-          display:"flex", justifyContent:"flex-end", gap:10, alignItems:"center",
+          display:"flex", justifyContent:"space-between", alignItems:"center",
           padding:"13px 20px", borderTop:`1px solid ${T.border}`, flexShrink:0,
           background:T.bg,
         }}>
-          <button onClick={onClose} style={{
+          {/* Save as Draft — only meaningful once styling is in play */}
+          <button style={{
             background:"none", border:`1px solid ${T.border}`, borderRadius:7,
-            padding:"8px 22px", color:T.textSub, fontSize:13, fontFamily:"inherit",
-            cursor:"pointer", transition:"border-color 0.15s",
+            padding:"8px 18px", color:T.textSub, fontSize:13, fontFamily:"inherit",
+            cursor:"pointer", display:"flex", alignItems:"center", gap:6,
+            transition:"border-color 0.15s",
           }}
             onMouseEnter={e => e.currentTarget.style.borderColor = T.textMuted}
             onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
-          >Cancel</button>
+          >🔖 Save as Draft</button>
 
-          <button onClick={handleSave} style={{
-            background:T.accent, border:"none", borderRadius:7,
-            padding:"8px 22px", color:"#fff", fontSize:13, fontWeight:600,
-            fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", gap:6,
-            transition:"background 0.15s",
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = T.accentHover}
-            onMouseLeave={e => e.currentTarget.style.background = T.accent}
-          >
-            Next: Style <span style={{ fontSize:14 }}>→</span>
-          </button>
+          <div style={{ display:"flex", gap:10 }}>
+            <button onClick={onClose} style={{
+              background:"none", border:`1px solid ${T.border}`, borderRadius:7,
+              padding:"8px 22px", color:T.textSub, fontSize:13, fontFamily:"inherit",
+              cursor:"pointer", transition:"border-color 0.15s",
+            }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = T.textMuted}
+              onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
+            >Cancel</button>
+
+            {activeTab === "filters" ? (
+              <button onClick={() => setActiveTab("style")} style={{
+                background:T.accent, border:"none", borderRadius:7,
+                padding:"8px 22px", color:"#fff", fontSize:13, fontWeight:600,
+                fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", gap:6,
+                transition:"background 0.15s",
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = T.accentHover}
+                onMouseLeave={e => e.currentTarget.style.background = T.accent}
+              >
+                Next: Style <span style={{ fontSize:14 }}>→</span>
+              </button>
+            ) : (
+              <>
+                <button onClick={() => setActiveTab("filters")} style={{
+                  background:"none", border:`1px solid ${T.border}`, borderRadius:7,
+                  padding:"8px 22px", color:T.textSub, fontSize:13, fontFamily:"inherit",
+                  cursor:"pointer", transition:"border-color 0.15s",
+                }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = T.textMuted}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
+                >← Back</button>
+
+                <button onClick={handleSave} style={{
+                  background:T.accent, border:"none", borderRadius:7,
+                  padding:"8px 22px", color:"#fff", fontSize:13, fontWeight:600,
+                  fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", gap:8,
+                  transition:"background 0.15s",
+                }}
+                  onMouseEnter={e => e.currentTarget.style.background = T.accentHover}
+                  onMouseLeave={e => e.currentTarget.style.background = T.accent}
+                >
+                  Create Card
+                  <span style={{
+                    width:18, height:18, borderRadius:4,
+                    border:"1.5px solid rgba(255,255,255,0.5)",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    fontSize:11,
+                  }}>✦</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
