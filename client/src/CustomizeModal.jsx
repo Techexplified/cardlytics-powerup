@@ -159,7 +159,7 @@ function SectionNumber({ n }) {
 
 function SectionHeader({ number, title, style }) {
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14, ...style }}>
+    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10, ...style }}>
       <SectionNumber n={number} />
       <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>
         {title}
@@ -424,7 +424,7 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
         fontSize:14, flexShrink:0,
       }}>{def.icon}</div>
 
-      <div style={{ flex:"0 0 130px", fontSize:13, color:T.textSub, fontWeight:500 }}>{def.label}</div>
+      <div style={{ flex:"0 0 100px", fontSize:12, color:T.textSub, fontWeight:500 }}>{def.label}</div>
 
       <div ref={triggerRef} onClick={() => setOpen(o=>!o)} style={{
         flex:1, display:"flex", alignItems:"center", justifyContent:"space-between",
@@ -474,8 +474,8 @@ function FilterGridItem({ item, active, onClick }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display:"flex", alignItems:"center", gap:10,
-        padding:"10px 12px", borderRadius:8, cursor:"pointer",
+        display:"flex", alignItems:"center", gap:8,
+        padding:"8px 10px", borderRadius:8, cursor:"pointer",
         background: active ? T.accentDim : hover ? T.bgItem : "transparent",
         border:`1px solid ${active ? T.accent : hover ? T.border : "transparent"}`,
         transition:"all 0.15s",
@@ -924,9 +924,10 @@ function CardConfigModal({
         background: T.bgSection,
         border: `1px solid ${T.border}`,
         borderRadius: 14,
-        width: "min(1050px, 90vw)",
-        maxWidth: "90vw",
-        maxHeight: "85vh",
+        width: "calc(100vw - 16px)",
+        maxWidth: "calc(100vw - 16px)",
+        height: "calc(100vh - 16px)",
+        maxHeight: "calc(100vh - 16px)",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -961,7 +962,7 @@ function CardConfigModal({
 
           {/* Left Panel */}
           <div style={{
-            width:230, flexShrink:0, padding:14, borderRight:`1px solid ${T.border}`,
+            width:200, flexShrink:0, padding:12, borderRight:`1px solid ${T.border}`,
             display:"flex", flexDirection:"column", gap:14, overflowY:"auto",
             background: T.bg,
           }}>
@@ -1029,7 +1030,7 @@ function CardConfigModal({
                   <div style={{ borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column" }}>
 
                     {/* Section 1: Card Details */}
-                    <div style={{ padding:"18px 20px 18px" }}>
+                    <div style={{ padding:"14px 16px" }}>
                       <SectionHeader number="1" title="Card Details" />
                       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                         <div>
@@ -1072,7 +1073,7 @@ function CardConfigModal({
                     <Divider />
 
                     {/* Section 3: Active Filters */}
-                    <div style={{ padding:"18px 20px", flex:1 }}>
+                    <div style={{ padding:"14px 16px", flex:1 }}>
                       <SectionHeader number="3" title="Active Filters" />
                       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                         {activeFilters.map(key => (
@@ -1100,7 +1101,7 @@ function CardConfigModal({
                   <div style={{ display:"flex", flexDirection:"column" }}>
 
                     {/* Section 2: Scope */}
-                    <div style={{ padding:"18px 20px 18px" }}>
+                    <div style={{ padding:"14px 16px" }}>
                       <SectionHeader number="2" title="Scope" />
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         <ScopeSelect
@@ -1121,7 +1122,7 @@ function CardConfigModal({
                     <Divider />
 
                     {/* Section 4: Add More Filters */}
-                    <div style={{ padding:"18px 20px", flex:1, overflowY:"auto" }}>
+                    <div style={{ padding:"14px 16px", flex:1, overflowY:"auto" }}>
                       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                           <SectionNumber n="4" />
@@ -1147,7 +1148,7 @@ function CardConfigModal({
                       <p style={{ fontSize:11, color:T.textMuted, margin:"0 0 12px", lineHeight:1.5 }}>
                         Choose from the available filters to refine your results.
                       </p>
-                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8 }}>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
                         {filteredGridItems.map(item => (
                           <FilterGridItem
                             key={item.key} item={item}
