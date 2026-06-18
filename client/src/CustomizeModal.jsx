@@ -747,17 +747,25 @@ function LimitedInput({ label, value, onChange, max, placeholder }) {
 }
 
 // ── Scope selectors ───────────────────────────────────────────────────────────
-function ScopeSelect({ label, value, onChange, options, loading }) {
+function ScopeSelect({ label, value, onChange, options, loading, icon, iconBg }) {
   return (
     <div style={{ flex:1 }}>
       <div style={{ fontSize:11, color:T.textMuted, marginBottom:6, fontWeight:500 }}>{label}</div>
       <div style={{ position:"relative" }}>
+        {icon && (
+          <span style={{
+            position:"absolute", left:8, top:"50%", transform:"translateY(-50%)",
+            width:18, height:18, borderRadius:4, background:(iconBg||T.accent)+"33",
+            display:"flex", alignItems:"center", justifyContent:"center",
+            fontSize:11, pointerEvents:"none",
+          }}>{icon}</span>
+        )}
         <select
           value={value} onChange={e => onChange(e.target.value)} disabled={loading}
           style={{
             width:"100%", background:T.bgDeep, border:`1px solid ${T.border}`,
             borderRadius:6, color: loading ? T.textMuted : T.text,
-            fontSize:13, padding:"8px 32px 8px 10px",
+            fontSize:13, padding: icon ? "8px 32px 8px 34px" : "8px 32px 8px 10px",
             fontFamily:"inherit", outline:"none", cursor:"pointer",
             appearance:"none", WebkitAppearance:"none", transition:"border-color 0.15s",
           }}
@@ -802,46 +810,42 @@ function StatPicker({ onSelect, onClose }) {
 
 // ── Live Results Section ──────────────────────────────────────────────────────
 function LiveResultsSection({ liveCount }) {
-  const [open, setOpen] = useState(false);
   return (
     <div style={{ borderTop:`1px solid ${T.border}`, background:T.bg, flexShrink:0 }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 20px", cursor:"pointer", userSelect:"none" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 20px 8px" }}>
         <SectionNumber n="5" />
-        <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase", flex:1 }}>Live Results</span>
-        <span style={{ color:T.textMuted, fontSize:13, display:"inline-block", transition:"transform 0.2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>▼</span>
+        <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>Live Results</span>
       </div>
-      {open && (
-        <div style={{ padding:"0 20px 14px" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:24 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-              <div style={{ width:28, height:28, borderRadius:"50%", background:T.successDim, border:`2px solid ${T.success}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                <span style={{ color:T.success, fontSize:12, fontWeight:700 }}>✓</span>
-              </div>
-              <div>
-                <span style={{ fontSize:22, fontWeight:800, color:T.text }}>{liveCount}</span>
-                <span style={{ fontSize:13, color:T.textSub, marginLeft:6 }}>cards found</span>
-                <div style={{ fontSize:11, color:T.textMuted }}>Across 3 boards in My Workspace</div>
+      <div style={{ padding:"0 20px 14px" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:24 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:28, height:28, borderRadius:"50%", background:T.successDim, border:`2px solid ${T.success}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <span style={{ color:T.success, fontSize:12, fontWeight:700 }}>✓</span>
+            </div>
+            <div>
+              <span style={{ fontSize:22, fontWeight:800, color:T.text }}>{liveCount}</span>
+              <span style={{ fontSize:13, color:T.textSub, marginLeft:6 }}>cards found</span>
+              <div style={{ fontSize:11, color:T.textMuted }}>Across 3 boards in My Workspace</div>
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:28, marginLeft:"auto" }}>
+            <div>
+              <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>Included in count</div>
+              <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:T.success }}>✓</span> Cards matching all active filters</div>
+                <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:T.success }}>✓</span> Based on selected scope</div>
               </div>
             </div>
-            <div style={{ display:"flex", gap:28, marginLeft:"auto" }}>
-              <div>
-                <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>Included in count</div>
-                <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:T.success }}>✓</span> Cards matching all active filters</div>
-                  <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:T.success }}>✓</span> Based on selected scope</div>
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>Excluded from count</div>
-                <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:"#e6a817" }}>–</span> Archived cards</div>
-                  <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:"#e6a817" }}>–</span> Deleted cards</div>
-                </div>
+            <div>
+              <div style={{ fontSize:10, fontWeight:700, color:T.textMuted, textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:4 }}>Excluded from count</div>
+              <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:"#e6a817" }}>–</span> Archived cards</div>
+                <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:T.textSub }}><span style={{ color:"#e6a817" }}>–</span> Deleted cards</div>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -949,7 +953,7 @@ function CardConfigModal({
         background: T.bgSection,
         border: `1px solid ${T.border}`,
         borderRadius: 14,
-        width: 980, maxWidth: "96vw", maxHeight: "92vh",
+        width: 1240, maxWidth: "97vw", maxHeight: "92vh",
         display: "flex", flexDirection: "column", overflow: "hidden",
         boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
       }}>
@@ -982,7 +986,7 @@ function CardConfigModal({
 
           {/* Left Panel */}
           <div style={{
-            width:200, flexShrink:0, padding:14, borderRight:`1px solid ${T.border}`,
+            width:230, flexShrink:0, padding:14, borderRight:`1px solid ${T.border}`,
             display:"flex", flexDirection:"column", gap:14, overflowY:"auto",
             background: T.bg,
           }}>
@@ -1124,13 +1128,14 @@ function CardConfigModal({
                     <div style={{ padding:"18px 20px 18px" }}>
                       <SectionHeader number="2" title="Scope" />
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                        <ScopeSelect
+                       <ScopeSelect
                           label="Workspace" value="my-workspace" onChange={() => {}}
-                          options={workspaceOptions}
+                          options={workspaceOptions} icon="👤" iconBg="#7e57c2"
                         />
                         <ScopeSelect
                           label="Board" value={boardScope} onChange={setBoardScope}
                           options={boardOptions} loading={boardsLoading}
+                          icon="🗂" iconBg="#1565c0"
                         />
                         <p style={{ fontSize:11, color:T.textMuted, margin:"2px 0 0", lineHeight:1.5 }}>
                           The card will track cards based on the selected workspace and boards.
@@ -1167,7 +1172,7 @@ function CardConfigModal({
                       <p style={{ fontSize:11, color:T.textMuted, margin:"0 0 12px", lineHeight:1.5 }}>
                         Choose from the available filters to refine your results.
                       </p>
-                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8 }}>
                         {filteredGridItems.map(item => (
                           <FilterGridItem
                             key={item.key} item={item}
