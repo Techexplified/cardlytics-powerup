@@ -953,7 +953,7 @@ function CardConfigModal({
         background: T.bgSection,
         border: `1px solid ${T.border}`,
         borderRadius: 14,
-        width: 1240, maxWidth: "97vw", maxHeight: "92vh",
+        width: 1240, maxWidth: "150vw", maxHeight: "150vh",
         display: "flex", flexDirection: "column", overflow: "hidden",
         boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
       }}>
