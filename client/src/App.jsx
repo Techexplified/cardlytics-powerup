@@ -1551,10 +1551,7 @@ export default function App() {
   const [boardLabels, setBoardLabels] = useState([]);
   const [currentBoardId, setCurrentBoardId] = useState(null);
   const [currentBoardName, setCurrentBoardName] = useState("");
-  const [trackingMode, setTrackingMode] = useState("general");
 
-  // FIX #9: track current scopeListId in a ref so the setInterval closure
-  // always reads the latest value instead of the stale initial one
   const scopeListIdRef = useRef(
     (() => {
       const p = new URLSearchParams(window.location.search);
@@ -1568,7 +1565,6 @@ export default function App() {
   }, [scopeListId]);
 
   // ── 1. refreshTrackerCards ────────────────────────────────────────────────
-  // FIX #1 + #2 + #3: delegates to shared runTrackerRefresh helper
   async function refreshTrackerCards() {
     const key = TRELLO_API_KEY;
     const tkn = getStoredToken();
@@ -2069,48 +2065,6 @@ export default function App() {
                 </option>
               ))}
           </select>
-        </div>
-
-        <div className="tracking-mode-section">
-          <div className="tracking-mode-header">
-            <span className="tracking-mode-title">Tracking Mode</span>
-          </div>
-          <p className="tracking-mode-sub">Choose what these stats reflect</p>
-          <div className="tracking-mode-options">
-            <div
-              className={`tracking-mode-option ${trackingMode === "general" ? "active" : ""}`}
-              onClick={() => setTrackingMode("general")}
-            >
-              <span className="tracking-mode-radio" />
-              <span className="tracking-mode-icon">🌐</span>
-              <div className="tracking-mode-info">
-                <span className="tracking-mode-name">General</span>
-                <span className="tracking-mode-desc">
-                  Board-wide stats, visible to everyone
-                </span>
-              </div>
-            </div>
-
-            <div
-              className="tracking-mode-option locked"
-              onClick={() =>
-                showToast(
-                  "Personalized tracking is a Premium feature — upgrade to unlock",
-                  "premium",
-                )
-              }
-            >
-              <span className="tracking-mode-radio" />
-              <span className="tracking-mode-icon">🔒</span>
-              <div className="tracking-mode-info">
-                <span className="tracking-mode-name">Personalized</span>
-                <span className="tracking-mode-desc">
-                  Just your own assigned cards
-                </span>
-                <span className="tracking-mode-premium">⭐ Premium</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

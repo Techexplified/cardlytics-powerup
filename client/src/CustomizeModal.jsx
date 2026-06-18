@@ -58,8 +58,8 @@ const TRELLO_LABEL_COLORS = {
   lime:"#51e898", black:"#374151", null:"#888888",
 };
 
-const STAT_EMOJIS   = { assigned:"📌", dueThisWeek:"📅", overdue:"⚠️", unassigned:"👤", withLabel:"🏷️", stale:"💤", createdToday:"✨", cardsInList:"📋" };
-const DEFAULT_COVER = { assigned:"blue", dueThisWeek:"yellow", overdue:"red", unassigned:"purple", withLabel:"orange", stale:"black", createdToday:"green", cardsInList:"sky" };
+const STAT_EMOJIS   = { assigned:"📌", dueThisWeek:"📅", overdue:"⚠️", unassigned:"👤", withLabel:"🏷️", stale:"💤", createdToday:"✨"};
+const DEFAULT_COVER = { assigned:"blue", dueThisWeek:"yellow", overdue:"red", unassigned:"purple", withLabel:"orange", stale:"black", createdToday:"green"};
 const DEFAULT_NAMES = {
   assigned:    "Assigned to me on all Workspace boards",
   dueThisWeek: "Due this week",
@@ -68,7 +68,6 @@ const DEFAULT_NAMES = {
   withLabel:   "Cards with a label",
   stale:       "Stale cards (14+ days)",
   createdToday:"Created today",
-  cardsInList: "Cards in list",
 };
 
 const STAT_LIST = [
@@ -79,7 +78,6 @@ const STAT_LIST = [
   { type:"withLabel",   label:"Cards With Label",  emoji:"🏷️" },
   { type:"stale",       label:"Stale Cards",       emoji:"💤" },
   { type:"createdToday",label:"Created Today",     emoji:"✨" },
-  { type:"cardsInList", label:"Cards in List",     emoji:"📋" },
 ];
 
 const DUE_OPTIONS = [
@@ -123,7 +121,6 @@ const DEFAULT_FILTERS = {
   withLabel:   ["due","member","label","list"],
   stale:       ["due","member","label","list"],
   createdToday:["due","member","label","list"],
-  cardsInList: ["due","member","label","list"],
 };
 
 // ── Tiny shared components ────────────────────────────────────────────────────
