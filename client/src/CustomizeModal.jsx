@@ -116,8 +116,6 @@ const DUE_OPTIONS = [
   { value:"nodate",  label:"No due date"    },
 ];
 
-const DUE_RANGE_ORDER = ["overdue","nodate","2days","1week","2weeks","1month"];
-
 // The filter grid items shown in section 4
 const FILTER_GRID_ITEMS = [
   { key:"assignedTo",    icon:"👤", label:"Assigned To",    sub:"Filter by card assignee",      color:"#7e57c2" },
@@ -175,7 +173,6 @@ function Divider() {
   return <div style={{ borderTop:`1px solid ${T.borderLight}`, margin:"0" }} />;
 }
 
-// ── Style-tab specific small helpers ──────────────────────────────────────────
 function SectionLabel({ n, title }) {
   return (
     <div style={{ marginBottom: 6 }}>
@@ -391,7 +388,6 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
 
   const val = pillValue();
 
-  // Icon backgrounds per filter type
   const iconBg = {
     assignedTo:   "#7e57c2",
     dueDate:      "#1565c0",
@@ -404,17 +400,14 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
 
   return (
     <div ref={wrapRef} style={{ display:"flex", alignItems:"center", gap:10 }}>
-      {/* Icon */}
       <div style={{
         width:30, height:30, borderRadius:6, background: iconBg + "33",
         display:"flex", alignItems:"center", justifyContent:"center",
         fontSize:14, flexShrink:0,
       }}>{def.icon}</div>
 
-      {/* Label */}
       <div style={{ flex:"0 0 130px", fontSize:13, color:T.textSub, fontWeight:500 }}>{def.label}</div>
 
-      {/* Value selector */}
       <div ref={triggerRef} onClick={() => setOpen(o=>!o)} style={{
         flex:1, display:"flex", alignItems:"center", justifyContent:"space-between",
         background:T.bgDeep, border:`1px solid ${open ? T.accent : T.border}`,
@@ -427,7 +420,6 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
         <span style={{ fontSize:9, color:T.textMuted, flexShrink:0, marginLeft:6 }}>{open?"▲":"▼"}</span>
       </div>
 
-      {/* Remove */}
       <button onClick={onRemove} style={{
         background:"none", border:"none", cursor:"pointer",
         color:T.textMuted, fontSize:16, padding:"0 4px", lineHeight:1,
@@ -486,9 +478,8 @@ function FilterGridItem({ item, active, onClick }) {
 }
 
 // ── Stat card preview (left panel, Filters tab) ──────────────────────────────
-function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage, customHex, members, selectedMemberIds }) {
+function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage, customHex }) {
   const emoji = STAT_EMOJIS[statType] || "📌";
-  const boardCount = 3; // demo
 
   return (
     <div style={{
@@ -499,20 +490,14 @@ function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage
     }}>
       {coverImage && <img src={coverImage} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />}
       <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.25)" }} />
-
-      {/* Emoji pin top-right */}
       <div style={{ position:"absolute", top:10, right:12, fontSize:22, zIndex:1 }}>{emoji}</div>
-
-      {/* Count */}
       <div style={{ position:"relative", zIndex:1, padding:"20px 16px 14px" }}>
-        <div style={{fontSize:26 }}>{liveCount}</div>
+        <div style={{ fontSize:26, fontWeight:800, color:"#fff", lineHeight:1 }}>{liveCount}</div>
       </div>
-
-      {/* Name bar */}
       <div style={{ position:"relative", zIndex:1, padding:"10px 16px 14px", background:"rgba(0,0,0,0.18)" }}>
         <div style={{ fontSize:13, fontWeight:700, color:"#fff", lineHeight:1.4 }}>{cardName}</div>
         <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)", marginTop:3 }}>
-          Across {boardCount} boards
+          Across 3 boards
         </div>
       </div>
     </div>
@@ -525,27 +510,27 @@ function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout })
     || TEXT_COLORS.find(t => t.id === textColor)?.hex
     || "#FFFFFF";
 
-  const numStyle = { fontSize: 26 };
+  const numStyle = { fontSize: 26, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
   const lblStyle = { fontSize: 13, fontWeight: 700, color: resolvedTextColor, lineHeight: 1.4 };
   const subStyle = { fontSize: 11, color: resolvedTextColor, opacity: 0.75, lineHeight: 1.3 };
 
   function LayoutContent() {
     if (layout === "center") return (
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, padding: 16 }}>
+      <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:6, padding:16 }}>
         <span style={numStyle}>{count}</span>
         <span style={lblStyle}>{title}</span>
         <span style={subStyle}>{subtitle}</span>
       </div>
     );
     if (layout === "bottomLeft") return (
-      <div style={{ position: "absolute", bottom: 16, left: 16, display: "flex", flexDirection: "column", gap: 3 }}>
+      <div style={{ position:"absolute", bottom:16, left:16, display:"flex", flexDirection:"column", gap:3 }}>
         <span style={numStyle}>{count}</span>
         <span style={lblStyle}>{title}</span>
         <span style={subStyle}>{subtitle}</span>
       </div>
     );
     if (layout === "bottomRight") return (
-      <div style={{ position: "absolute", bottom: 16, right: 16, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+      <div style={{ position:"absolute", bottom:16, right:16, display:"flex", flexDirection:"column", alignItems:"flex-end", gap:3 }}>
         <span style={numStyle}>{count}</span>
         <span style={lblStyle}>{title}</span>
         <span style={subStyle}>{subtitle}</span>
@@ -553,11 +538,11 @@ function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout })
     );
     if (layout === "topBottom") return (
       <>
-        <div style={{ position: "absolute", top: 16, right: 16, textAlign: "right" }}>
+        <div style={{ position:"absolute", top:16, right:16, textAlign:"right" }}>
           <span style={numStyle}>{count}</span>
-          <span style={{ ...lblStyle, display: "block" }}>{title}</span>
+          <span style={{ ...lblStyle, display:"block" }}>{title}</span>
         </div>
-        <div style={{ position: "absolute", bottom: 12, left: 16 }}>
+        <div style={{ position:"absolute", bottom:12, left:16 }}>
           <span style={subStyle}>{subtitle}</span>
         </div>
       </>
@@ -567,14 +552,14 @@ function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout })
 
   return (
     <div style={{
-      width: "100%", minHeight: 110, aspectRatio: "3/2",
+      width:"100%", minHeight:110, aspectRatio:"3/2",
       background: cardBg,
-      borderRadius: 12, overflow: "hidden",
-      position: "relative",
-      boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+      borderRadius:12, overflow:"hidden",
+      position:"relative",
+      boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
     }}>
-      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.08)" }} />
-      <div style={{ position: "absolute", top: 10, right: 12, fontSize: 20, zIndex: 1 }}>📌</div>
+      <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.08)" }} />
+      <div style={{ position:"absolute", top:10, right:12, fontSize:20, zIndex:1 }}>📌</div>
       <LayoutContent />
     </div>
   );
@@ -585,34 +570,34 @@ function LayoutMini({ layout, count, title, subtitle, textColor, cardBg, selecte
   const resolvedTextColor = TEXT_COLORS.find(t => t.id === textColor)?.hex || "#FFFFFF";
 
   const baseCard = {
-    width: "100%", aspectRatio: "4/3",
-    background: cardBg, borderRadius: 8,
-    position: "relative", overflow: "hidden",
-    display: "flex", flexDirection: "column",
-    justifyContent: "flex-end",
+    width:"100%", aspectRatio:"4/3",
+    background: cardBg, borderRadius:8,
+    position:"relative", overflow:"hidden",
+    display:"flex", flexDirection:"column",
+    justifyContent:"flex-end",
   };
 
-  const numStyle = { fontSize: 20, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
-  const lblStyle = { fontSize: 8, fontWeight: 600, color: resolvedTextColor, opacity: 0.9, lineHeight: 1.3 };
-  const subStyle = { fontSize: 7, color: resolvedTextColor, opacity: 0.7, lineHeight: 1.3 };
+  const numStyle = { fontSize:20, fontWeight:800, color:resolvedTextColor, lineHeight:1 };
+  const lblStyle = { fontSize:8, fontWeight:600, color:resolvedTextColor, opacity:0.9, lineHeight:1.3 };
+  const subStyle = { fontSize:7, color:resolvedTextColor, opacity:0.7, lineHeight:1.3 };
 
   function Content() {
     if (layout === "center") return (
-      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, padding: 10 }}>
+      <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:4, padding:10 }}>
         <span style={numStyle}>{count}</span>
         <span style={lblStyle}>{title}</span>
         <span style={subStyle}>{subtitle}</span>
       </div>
     );
     if (layout === "bottomLeft") return (
-      <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
+      <div style={{ padding:"0 10px 10px", display:"flex", flexDirection:"column", gap:2 }}>
         <span style={numStyle}>{count}</span>
         <span style={lblStyle}>{title}</span>
         <span style={subStyle}>{subtitle}</span>
       </div>
     );
     if (layout === "bottomRight") return (
-      <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+      <div style={{ padding:"0 10px 10px", display:"flex", flexDirection:"column", alignItems:"flex-end", gap:2 }}>
         <span style={numStyle}>{count}</span>
         <span style={lblStyle}>{title}</span>
         <span style={subStyle}>{subtitle}</span>
@@ -620,12 +605,12 @@ function LayoutMini({ layout, count, title, subtitle, textColor, cardBg, selecte
     );
     if (layout === "topBottom") return (
       <>
-        <div style={{ position: "absolute", top: 10, right: 10 }}>
+        <div style={{ position:"absolute", top:10, right:10 }}>
           <span style={numStyle}>{count}</span>
-          <span style={{ ...lblStyle, display: "block", textAlign: "right" }}>{title}</span>
+          <span style={{ ...lblStyle, display:"block", textAlign:"right" }}>{title}</span>
         </div>
-        <div style={{ padding: "0 10px 8px" }}>
-          <span style={{ ...subStyle, fontSize: 7, opacity: 0.6, textDecoration: "line-through" }}>{subtitle}</span>
+        <div style={{ padding:"0 10px 8px" }}>
+          <span style={{ ...subStyle, fontSize:7, opacity:0.6, textDecoration:"line-through" }}>{subtitle}</span>
         </div>
       </>
     );
@@ -633,32 +618,26 @@ function LayoutMini({ layout, count, title, subtitle, textColor, cardBg, selecte
   }
 
   return (
-    <div
-      onClick={onClick}
-      style={{
-        display: "flex", flexDirection: "column", gap: 8,
-        cursor: "pointer",
-      }}
-    >
+    <div onClick={onClick} style={{ display:"flex", flexDirection:"column", gap:8, cursor:"pointer" }}>
       <div style={{
         ...baseCard,
         border: selected ? `2px solid ${T.accent}` : `2px solid ${T.border}`,
-        transition: "border-color 0.15s",
+        transition:"border-color 0.15s",
       }}>
         {selected && (
           <div style={{
-            position: "absolute", top: 6, left: 6, zIndex: 2,
-            width: 16, height: 16, borderRadius: "50%",
-            background: T.accent,
-            display: "flex", alignItems: "center", justifyContent: "center",
+            position:"absolute", top:6, left:6, zIndex:2,
+            width:16, height:16, borderRadius:"50%",
+            background:T.accent,
+            display:"flex", alignItems:"center", justifyContent:"center",
           }}>
-            <span style={{ color: "#fff", fontSize: 9, fontWeight: 700 }}>✓</span>
+            <span style={{ color:"#fff", fontSize:9, fontWeight:700 }}>✓</span>
           </div>
         )}
         <Content />
       </div>
       <span style={{
-        fontSize: 11, textAlign: "center",
+        fontSize:11, textAlign:"center",
         color: selected ? T.accent : T.textMuted,
         fontWeight: selected ? 600 : 400,
       }}>
@@ -674,23 +653,22 @@ function Swatch({ bg, selected, onClick, size = 32 }) {
     <button
       onClick={onClick}
       style={{
-        width: size, height: size,
-        borderRadius: 8,
-        background: bg,
+        width:size, height:size, borderRadius:8,
+        background:bg,
         border: selected ? "2px solid #fff" : "2px solid transparent",
         outline: selected ? `2px solid ${T.accent}` : "2px solid transparent",
-        cursor: "pointer", padding: 0, flexShrink: 0,
+        cursor:"pointer", padding:0, flexShrink:0,
         transform: selected ? "scale(1.15)" : "scale(1)",
-        transition: "transform 0.12s, outline 0.12s",
-        position: "relative",
+        transition:"transform 0.12s, outline 0.12s",
+        position:"relative",
       }}
     >
       {selected && (
         <span style={{
-          position: "absolute", inset: 0,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: "#fff", fontSize: 13, fontWeight: 800,
-          textShadow: "0 1px 3px rgba(0,0,0,0.4)",
+          position:"absolute", inset:0,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          color:"#fff", fontSize:13, fontWeight:800,
+          textShadow:"0 1px 3px rgba(0,0,0,0.4)",
         }}>✓</span>
       )}
     </button>
@@ -700,35 +678,32 @@ function Swatch({ bg, selected, onClick, size = 32 }) {
 // ── Custom hex input (Style tab) ──────────────────────────────────────────────
 function CustomHexInput({ value, onChange }) {
   const [focused, setFocused] = useState(false);
-
   return (
     <div style={{
-      display: "flex", alignItems: "center", gap: 10,
-      background: T.bgDeep,
-      border: `1px solid ${focused ? T.accent : T.border}`,
-      borderRadius: 8, padding: "9px 14px",
-      transition: "border-color 0.15s", cursor: "text",
-      width: "100%", boxSizing: "border-box",
+      display:"flex", alignItems:"center", gap:10,
+      background:T.bgDeep,
+      border:`1px solid ${focused ? T.accent : T.border}`,
+      borderRadius:8, padding:"9px 14px",
+      transition:"border-color 0.15s", cursor:"text",
+      width:"100%", boxSizing:"border-box",
     }}>
-      {/* Color dot */}
       <div style={{
-        width: 22, height: 22, borderRadius: "50%",
-        background: value, flexShrink: 0,
-        border: `1px solid ${T.border}`,
+        width:22, height:22, borderRadius:"50%",
+        background:value, flexShrink:0,
+        border:`1px solid ${T.border}`,
       }} />
       <input
-        type="text"
-        value={value}
+        type="text" value={value}
         onChange={e => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         style={{
-          flex: 1, background: "none", border: "none", outline: "none",
-          color: T.text, fontSize: 13, fontFamily: "'DM Mono', monospace",
-          letterSpacing: "0.04em",
+          flex:1, background:"none", border:"none", outline:"none",
+          color:T.text, fontSize:13, fontFamily:"'DM Mono', monospace",
+          letterSpacing:"0.04em",
         }}
       />
-      <span style={{ color: T.textMuted, fontSize: 14, cursor: "pointer" }}>✏️</span>
+      <span style={{ color:T.textMuted, fontSize:14, cursor:"pointer" }}>✏️</span>
     </div>
   );
 }
@@ -737,36 +712,32 @@ function CustomHexInput({ value, onChange }) {
 function LimitedInput({ label, value, onChange, max, placeholder }) {
   const [focused, setFocused] = useState(false);
   return (
-    <div style={{ flex: 1 }}>
-      <label style={{ fontSize: 11, color: T.textMuted, fontWeight: 500, display: "block", marginBottom: 5 }}>
+    <div style={{ flex:1 }}>
+      <label style={{ fontSize:11, color:T.textMuted, fontWeight:500, display:"block", marginBottom:5 }}>
         {label}
       </label>
       <div style={{
-        position: "relative",
-        background: T.bgDeep,
-        border: `1px solid ${focused ? T.accent : T.border}`,
-        borderRadius: 8, transition: "border-color 0.15s",
+        position:"relative",
+        background:T.bgDeep,
+        border:`1px solid ${focused ? T.accent : T.border}`,
+        borderRadius:8, transition:"border-color 0.15s",
       }}>
         <input
-          type="text"
-          value={value}
-          maxLength={max}
+          type="text" value={value} maxLength={max}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           style={{
-            width: "100%", background: "none", border: "none", outline: "none",
-            color: T.text, fontSize: 13, fontFamily: "inherit",
-            padding: "9px 52px 9px 12px",
-            boxSizing: "border-box",
+            width:"100%", background:"none", border:"none", outline:"none",
+            color:T.text, fontSize:13, fontFamily:"inherit",
+            padding:"9px 52px 9px 12px", boxSizing:"border-box",
           }}
         />
         <span style={{
-          position: "absolute", right: 10, top: "50%",
-          transform: "translateY(-50%)",
-          fontSize: 11, color: T.textMuted,
-          pointerEvents: "none",
+          position:"absolute", right:10, top:"50%",
+          transform:"translateY(-50%)",
+          fontSize:11, color:T.textMuted, pointerEvents:"none",
         }}>
           {value.length}/{max}
         </span>
@@ -782,9 +753,7 @@ function ScopeSelect({ label, value, onChange, options, loading }) {
       <div style={{ fontSize:11, color:T.textMuted, marginBottom:6, fontWeight:500 }}>{label}</div>
       <div style={{ position:"relative" }}>
         <select
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          disabled={loading}
+          value={value} onChange={e => onChange(e.target.value)} disabled={loading}
           style={{
             width:"100%", background:T.bgDeep, border:`1px solid ${T.border}`,
             borderRadius:6, color: loading ? T.textMuted : T.text,
@@ -815,7 +784,8 @@ function StatPicker({ onSelect, onClose }) {
         </div>
         <div style={{ padding:"8px 0 12px" }}>
           {STAT_LIST.map(({ type, label, emoji }) => (
-            <div key={type} onClick={() => onSelect(type)} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 18px", cursor:"pointer", transition:"background 0.1s" }}
+            <div key={type} onClick={() => onSelect(type)}
+              style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 18px", cursor:"pointer", transition:"background 0.1s" }}
               onMouseEnter={e => e.currentTarget.style.background = T.bgItem}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
@@ -830,6 +800,7 @@ function StatPicker({ onSelect, onClose }) {
   );
 }
 
+// ── Live Results Section ──────────────────────────────────────────────────────
 function LiveResultsSection({ liveCount }) {
   const [open, setOpen] = useState(false);
   return (
@@ -886,33 +857,29 @@ function CardConfigModal({
   const [description,        setDescription]        = useState("");
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
   const [boardScope,         setBoardScope]         = useState("all");
-  const [memberScope,        setMemberScope]        = useState("me");
   const [filterSearch,       setFilterSearch]       = useState("");
 
-  // ── Style state (drives both the Style tab UI and the live preview) ────────
-  const [coverColor,   setCoverColor]   = useState(DEFAULT_COVER[statType] || "blue");
-  const [coverImage,   setCoverImage]   = useState(null);
-  const [styleSubtitle,setStyleSubtitle]= useState("Across 3 boards");
-  const [textColor,    setTextColor]    = useState("white");
-  const [layout,        setLayout]      = useState("center");
-  const [customHex,     setCustomHex]   = useState("#3B82F6");
+  const [coverColor,    setCoverColor]    = useState(DEFAULT_COVER[statType] || "blue");
+  const [coverImage,    setCoverImage]    = useState(null);
+  const [styleSubtitle, setStyleSubtitle] = useState("Across 3 boards");
+  const [textColor,     setTextColor]     = useState("white");
+  const [layout,        setLayout]        = useState("center");
+  const [customHex,     setCustomHex]     = useState("#3B82F6");
 
-  // Active filters (keys from FILTER_DEFS)
   const [activeFilters, setActiveFilters] = useState(["assignedTo"]);
   const [filterValues,  setFilterValues]  = useState({
     assignedTo: ["me"], dueDate: [], label: [], list: [], status: [], cardActivity: [], priority: [],
   });
 
   function setFilterValue(key, vals) { setFilterValues(p => ({ ...p, [key]: vals })); }
-  function addFilter(key)   { if (!activeFilters.includes(key)) setActiveFilters(p => [...p, key]); }
-  function removeFilter(key){ setActiveFilters(p => p.filter(k => k !== key)); setFilterValues(p => ({ ...p, [key]: [] })); }
+  function addFilter(key)    { if (!activeFilters.includes(key)) setActiveFilters(p => [...p, key]); }
+  function removeFilter(key) { setActiveFilters(p => p.filter(k => k !== key)); setFilterValues(p => ({ ...p, [key]: [] })); }
 
-  // Boards & scoped data
-  const [boards,       setBoards]       = useState(workspaceBoards);
-  const [boardsLoading,setBoardsLoading]= useState(false);
-  const [scopedLists,  setScopedLists]  = useState(lists || []);
-  const [scopedMembers,setScopedMembers]= useState(members || []);
-  const [scopedLabels, setScopedLabels] = useState(boardLabels || []);
+  const [boards,        setBoards]        = useState(workspaceBoards);
+  const [boardsLoading, setBoardsLoading] = useState(false);
+  const [scopedLists,   setScopedLists]   = useState(lists || []);
+  const [scopedMembers, setScopedMembers] = useState(members || []);
+  const [scopedLabels,  setScopedLabels]  = useState(boardLabels || []);
 
   useEffect(() => {
     if (workspaceBoards?.length) { setBoards(workspaceBoards); return; }
@@ -925,39 +892,45 @@ function CardConfigModal({
   }, [fetchWorkspaceBoards]);
 
   const liveCount = computeFilteredCount
-    ? computeFilteredCount(statType, { members: filterValues.assignedTo||[], due: filterValues.dueDate||[], labels: filterValues.label||[], lists: filterValues.list||[], status: filterValues.status||[], activity: filterValues.cardActivity||[] })
+    ? computeFilteredCount(statType, {
+        members:  filterValues.assignedTo  || [],
+        due:      filterValues.dueDate     || [],
+        labels:   filterValues.label       || [],
+        lists:    filterValues.list        || [],
+        status:   filterValues.status      || [],
+        activity: filterValues.cardActivity|| [],
+      })
     : statValue ?? 24;
 
   const previewName = nameManuallyEdited ? cardName : (DEFAULT_NAMES[statType] || "Assigned to Me");
 
-  // Workspace options
   const workspaceOptions = [{ value:"my-workspace", label:"My Workspace" }];
   const boardOptions = [
-    { value:"all", label:"All Boards" },
+    { value:"all",  label:"All Boards" },
     { value:"this", label: boardName || "This Board" },
     ...boards.filter(b => b.id !== boardId).map(b => ({ value:b.id, label:b.name })),
   ];
 
-  // Filtered grid items
   const filteredGridItems = FILTER_GRID_ITEMS.filter(item =>
-    !filterSearch || item.label.toLowerCase().includes(filterSearch.toLowerCase()) || item.sub.toLowerCase().includes(filterSearch.toLowerCase())
+    !filterSearch ||
+    item.label.toLowerCase().includes(filterSearch.toLowerCase()) ||
+    item.sub.toLowerCase().includes(filterSearch.toLowerCase())
   );
 
   const cardBg = resolveCoverBackground(coverColor, customHex);
 
   function handleSave() {
     onSave(statType, {
-      cardName: previewName,
-      description,
+      cardName: previewName, description,
       cover: coverColor, coverImage, customHex,
       subtitle: styleSubtitle, textColor, layout,
-      members: filterValues.assignedTo || [],
-      due: filterValues.dueDate || [],
-      labels: filterValues.label || [],
-      lists: filterValues.list || [],
-      status: filterValues.status || [],
-      activity: filterValues.cardActivity || [],
-      boardScope, memberScope, count: liveCount,
+      members:  filterValues.assignedTo  || [],
+      due:      filterValues.dueDate     || [],
+      labels:   filterValues.label       || [],
+      lists:    filterValues.list        || [],
+      status:   filterValues.status      || [],
+      activity: filterValues.cardActivity|| [],
+      boardScope, count: liveCount,
     });
   }
 
@@ -973,19 +946,19 @@ function CardConfigModal({
       zIndex:9999, fontFamily:"'DM Sans', -apple-system, sans-serif",
     }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{
-        background:T.bgSection,
-        border:`1px solid ${T.border}`,
-        borderRadius:14,
-        width:980, maxWidth:"96vw", maxHeight:"92vh",
-        display:"flex", flexDirection:"column", overflow:"hidden",
-        boxShadow:"0 24px 80px rgba(0,0,0,0.8)",
+        background: T.bgSection,
+        border: `1px solid ${T.border}`,
+        borderRadius: 14,
+        width: 980, maxWidth: "96vw", maxHeight: "92vh",
+        display: "flex", flexDirection: "column", overflow: "hidden",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
       }}>
 
         {/* ── Header ── */}
         <div style={{
           display:"flex", justifyContent:"space-between", alignItems:"center",
           padding:"14px 20px", borderBottom:`1px solid ${T.border}`, flexShrink:0,
-          background:T.bg,
+          background: T.bg,
         }}>
           <div style={{ display:"flex", alignItems:"center", gap:12 }}>
             <span style={{ fontSize:15, fontWeight:700, color:T.text }}>Create Stat Card</span>
@@ -997,8 +970,7 @@ function CardConfigModal({
           </div>
           <button onClick={onClose} style={{
             background:"none", border:"none", color:T.textMuted,
-            fontSize:20, cursor:"pointer", padding:"2px 6px", borderRadius:4,
-            lineHeight:1, display:"flex", alignItems:"center",
+            fontSize:20, cursor:"pointer", padding:"2px 6px", borderRadius:4, lineHeight:1,
           }}
             onMouseEnter={e => e.currentTarget.style.color = T.text}
             onMouseLeave={e => e.currentTarget.style.color = T.textMuted}
@@ -1008,43 +980,34 @@ function CardConfigModal({
         {/* ── Body ── */}
         <div style={{ display:"flex", flex:1, minHeight:0, overflow:"hidden" }}>
 
-          {/* ── LEFT PANEL: Preview ── */}
+          {/* Left Panel */}
           <div style={{
             width:200, flexShrink:0, padding:14, borderRight:`1px solid ${T.border}`,
             display:"flex", flexDirection:"column", gap:14, overflowY:"auto",
-            background:T.bg,
+            background: T.bg,
           }}>
             {activeTab === "filters" ? (
               <StatCardPreview
-                statType={statType}
-                liveCount={liveCount}
-                cardName={previewName}
-                coverColor={coverColor}
-                coverImage={coverImage}
-                customHex={customHex}
+                statType={statType} liveCount={liveCount} cardName={previewName}
+                coverColor={coverColor} coverImage={coverImage} customHex={customHex}
               />
             ) : (
               <LiveStylePreview
-                count={liveCount}
-                title={previewName}
-                subtitle={styleSubtitle}
-                textColor={textColor}
-                cardBg={cardBg}
-                layout={layout}
+                count={liveCount} title={previewName} subtitle={styleSubtitle}
+                textColor={textColor} cardBg={cardBg} layout={layout}
               />
             )}
             <div style={{ fontSize:10, color:T.textMuted, textAlign:"center" }}>
-              This is a live preview of your card based on the selected scope, filters, and style.
+              {activeTab === "filters"
+                ? "This is a live preview of your card based on the selected scope and filters."
+                : "This is a live preview. Changes you make in style will appear here."}
             </div>
-
-            {/* About this card */}
-            <div style={{
-              background:T.bgDeep, border:`1px solid ${T.border}`,
-              borderRadius:8, padding:"12px 14px",
-            }}>
+            <div style={{ background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:8, padding:"12px 14px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
                 <span style={{ fontSize:13, color:T.accent }}>ℹ</span>
-                <span style={{ fontSize:11, fontWeight:700, color:T.textSub }}>About this card</span>
+                <span style={{ fontSize:11, fontWeight:700, color:T.textSub }}>
+                  {activeTab === "filters" ? "About this card" : "About style"}
+                </span>
               </div>
               <p style={{ fontSize:11, color:T.textMuted, margin:0, lineHeight:1.6 }}>
                 {activeTab === "filters"
@@ -1054,7 +1017,7 @@ function CardConfigModal({
             </div>
           </div>
 
-          {/* ── RIGHT PANEL ── */}
+          {/* Right Panel */}
           <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, overflow:"hidden" }}>
 
             {/* Tabs */}
@@ -1074,8 +1037,10 @@ function CardConfigModal({
             </div>
 
             {/* Tab content */}
-            <div style={{ flex:1, overflowY:"auto", background:T.surface,
-              scrollbarWidth:"thin", scrollbarColor:`${T.border} transparent` }}>
+            <div style={{
+              flex:1, overflowY:"auto", background:T.surface,
+              scrollbarWidth:"thin", scrollbarColor:`${T.border} transparent`,
+            }}>
 
               {/* ── FILTERS TAB ── */}
               {activeTab === "filters" && (
@@ -1133,14 +1098,11 @@ function CardConfigModal({
                       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                         {activeFilters.map(key => (
                           <ActiveFilterRow
-                            key={key}
-                            filterKey={key}
+                            key={key} filterKey={key}
                             values={filterValues[key] || []}
                             onValuesChange={vals => setFilterValue(key, vals)}
                             onRemove={() => removeFilter(key)}
-                            lists={scopedLists}
-                            members={scopedMembers}
-                            boardLabels={scopedLabels}
+                            lists={scopedLists} members={scopedMembers} boardLabels={scopedLabels}
                           />
                         ))}
                         {activeFilters.length === 0 && (
@@ -1163,17 +1125,12 @@ function CardConfigModal({
                       <SectionHeader number="2" title="Scope" />
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         <ScopeSelect
-                          label="Workspace"
-                          value="my-workspace"
-                          onChange={() => {}}
+                          label="Workspace" value="my-workspace" onChange={() => {}}
                           options={workspaceOptions}
                         />
                         <ScopeSelect
-                          label="Board"
-                          value={boardScope}
-                          onChange={setBoardScope}
-                          options={boardOptions}
-                          loading={boardsLoading}
+                          label="Board" value={boardScope} onChange={setBoardScope}
+                          options={boardOptions} loading={boardsLoading}
                         />
                         <p style={{ fontSize:11, color:T.textMuted, margin:"2px 0 0", lineHeight:1.5 }}>
                           The card will track cards based on the selected workspace and boards.
@@ -1190,11 +1147,9 @@ function CardConfigModal({
                           <SectionNumber n="4" />
                           <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>Add More Filters</span>
                         </div>
-                        {/* Search */}
                         <div style={{ position:"relative" }}>
                           <input
-                            type="text"
-                            value={filterSearch}
+                            type="text" value={filterSearch}
                             onChange={e => setFilterSearch(e.target.value)}
                             placeholder="Search filters..."
                             style={{
@@ -1215,8 +1170,7 @@ function CardConfigModal({
                       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:4 }}>
                         {filteredGridItems.map(item => (
                           <FilterGridItem
-                            key={item.key}
-                            item={item}
+                            key={item.key} item={item}
                             active={activeFilters.includes(item.key)}
                             onClick={() => {
                               if (activeFilters.includes(item.key)) removeFilter(item.key);
@@ -1234,62 +1188,48 @@ function CardConfigModal({
               {activeTab === "style" && (
                 <div style={{ padding:"22px 28px" }}>
 
-                  {/* 1. Text Customization */}
                   <SectionLabel n="1" title="Text Customization" />
                   <SectionSub>Customize the text shown on your card.</SectionSub>
-                  <div style={{ display: "flex", gap: 14 }}>
+                  <div style={{ display:"flex", gap:14 }}>
                     <LimitedInput
-                      label="Title (Label)"
-                      value={previewName}
+                      label="Title (Label)" value={previewName} max={30}
                       onChange={v => { setCardName(v); setNameManuallyEdited(true); }}
-                      max={30}
                       placeholder="Card title"
                     />
                     <LimitedInput
-                      label="Subtitle (Optional)"
-                      value={styleSubtitle}
+                      label="Subtitle (Optional)" value={styleSubtitle} max={30}
                       onChange={setStyleSubtitle}
-                      max={30}
                       placeholder="e.g. Across 3 boards"
                     />
                   </div>
 
                   <StyleDivider />
 
-                  {/* 2. Text Color */}
                   <SectionLabel n="2" title="Text Color" />
                   <SectionSub>Choose text color for the title and subtitle.</SectionSub>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                     {TEXT_COLORS.map(({ id, hex, css }) => (
-                      <Swatch
-                        key={id}
-                        bg={css || hex}
-                        selected={textColor === id}
-                        onClick={() => setTextColor(id)}
-                      />
+                      <Swatch key={id} bg={css || hex} selected={textColor === id} onClick={() => setTextColor(id)} />
                     ))}
                   </div>
 
                   <StyleDivider />
 
-                  {/* 3. Card Color */}
                   <SectionLabel n="3" title="Card Color" />
                   <SectionSub>Choose a color for your card.</SectionSub>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-                    {/* Solid colors */}
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:14 }}>
                     {COVER_COLORS.map(({ id, hex }) => (
-                      <Swatch key={id} bg={hex} selected={coverColor === id} onClick={() => { setCoverColor(id); setCoverImage(null); }} />
+                      <Swatch key={id} bg={hex} selected={coverColor === id}
+                        onClick={() => { setCoverColor(id); setCoverImage(null); }} />
                     ))}
-                    {/* Gradient swatches */}
                     {COVER_GRADIENTS.map(({ id, css }) => (
-                      <Swatch key={id} bg={css} selected={coverColor === id} onClick={() => { setCoverColor(id); setCoverImage(null); }} />
+                      <Swatch key={id} bg={css} selected={coverColor === id}
+                        onClick={() => { setCoverColor(id); setCoverImage(null); }} />
                     ))}
                   </div>
-
-                  {/* Custom Color */}
-                  <div style={{ marginTop: 4 }}>
-                    <div style={{ fontSize: 12, color: T.textMuted, fontWeight: 500, marginBottom: 8 }}>Custom Color</div>
-                    <div style={{ maxWidth: 340 }}>
+                  <div style={{ marginTop:4 }}>
+                    <div style={{ fontSize:12, color:T.textMuted, fontWeight:500, marginBottom:8 }}>Custom Color</div>
+                    <div style={{ maxWidth:340 }}>
                       <CustomHexInput
                         value={customHex}
                         onChange={(v) => { setCustomHex(v); setCoverColor("custom"); setCoverImage(null); }}
@@ -1299,43 +1239,32 @@ function CardConfigModal({
 
                   <StyleDivider />
 
-                  {/* 4. Card Layout */}
                   <SectionLabel n="4" title="Card Layout" />
                   <SectionSub>Choose where the text appears on your card.</SectionSub>
-                  <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4, 1fr)",
-                    gap: 12,
-                  }}>
+                  <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12 }}>
                     {LAYOUTS.map(({ id }) => (
                       <LayoutMini
-                        key={id}
-                        layout={id}
-                        count={liveCount}
-                        title={previewName}
-                        subtitle={styleSubtitle}
-                        textColor={textColor}
-                        cardBg={cardBg}
-                        selected={layout === id}
-                        onClick={() => setLayout(id)}
+                        key={id} layout={id} count={liveCount}
+                        title={previewName} subtitle={styleSubtitle}
+                        textColor={textColor} cardBg={cardBg}
+                        selected={layout === id} onClick={() => setLayout(id)}
                       />
                     ))}
                   </div>
                 </div>
               )}
             </div>
-             </div>
-              </div>
+          </div>
+        </div>
 
-<LiveResultsSection liveCount={liveCount} />
+        <LiveResultsSection liveCount={liveCount} />
 
         {/* ── Footer ── */}
         <div style={{
           display:"flex", justifyContent:"space-between", alignItems:"center",
           padding:"13px 20px", borderTop:`1px solid ${T.border}`, flexShrink:0,
-          background:T.bg,
+          background: T.bg,
         }}>
-          {/* Save as Draft — only meaningful once styling is in play */}
           <button style={{
             background:"none", border:`1px solid ${T.border}`, borderRadius:7,
             padding:"8px 18px", color:T.textSub, fontSize:13, fontFamily:"inherit",
@@ -1422,14 +1351,13 @@ export function CustomizeFlow({
       boardName={boardName} boardId={boardId} workspaceBoards={workspaceBoards}
       fetchWorkspaceBoards={fetchWorkspaceBoards}
       fetchBoardScopedData={fetchBoardScopedData}
-   />
-);
+    />
+  );
 }
 
-// ── Standalone demo (for preview) ────────────────────────────────────────────
+// ── Standalone demo ───────────────────────────────────────────────────────────
 export default function App() {
   const [show, setShow] = useState(true);
-
   const [stat, setStat] = useState("assigned");
 
   return (
