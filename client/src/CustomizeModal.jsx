@@ -124,15 +124,6 @@ const FILTER_GRID_ITEMS = [
   { key:"priority",      icon:"🚩", label:"Priority",       sub:"Filter by priority",            color:"#e05555" },
   { key:"status",        icon:"✅", label:"Status",         sub:"Filter by card status",         color:"#3fb950" },
   { key:"cardActivity",  icon:"🕐", label:"Card Activity",  sub:"Filter by activity dates",      color:"#8b949e" },
-  { key:"createdDate",   icon:"➕", label:"Created Date",   sub:"Filter by card creation date",  color:"#4c8fff" },
-  { key:"updatedDate",   icon:"✏️", label:"Updated Date",   sub:"Filter by last updated date",   color:"#4c8fff" },
-  { key:"completedDate", icon:"✔️", label:"Completed Date", sub:"Filter by completion date",     color:"#3fb950" },
-  { key:"hasAttachments",icon:"📎", label:"Has Attachments",sub:"Filter by attachment",          color:"#8b949e" },
-  { key:"hasChecklist",  icon:"☑️", label:"Has Checklist",  sub:"Filter by checklist",           color:"#4c8fff" },
-  { key:"hasComments",   icon:"💬", label:"Has Comments",   sub:"Filter by comments",            color:"#8b949e" },
-  { key:"hasCover",      icon:"🖼", label:"Has Cover",      sub:"Filter by cover",               color:"#e91e8c" },
-  { key:"customFields",  icon:"⚙️", label:"Custom Fields",  sub:"Filter by custom fields",       color:"#4c8fff" },
-  { key:"advanced",      icon:"⚡", label:"Advanced",       sub:"Advanced conditions",           color:"#7e57c2" },
 ];
 
 const FILTER_DEFS = {
@@ -1077,14 +1068,11 @@ function CardConfigModal({
                           label="Workspace" value="my-workspace" onChange={() => {}}
                           options={workspaceOptions} icon="👤" iconBg="#7e57c2"
                         />
-                        <ScopeSelect
+                       <ScopeSelect
                           label="Board" value={boardScope} onChange={setBoardScope}
                           options={boardOptions} loading={boardsLoading}
                           icon="🗂" iconBg="#1565c0"
                         />
-                        <p style={{ fontSize:11, color:T.textMuted, margin:"2px 0 0", lineHeight:1.5 }}>
-                          The card will track cards based on the selected workspace and boards.
-                        </p>
                       </div>
                     </div>
                   </div>
