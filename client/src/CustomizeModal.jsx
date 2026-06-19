@@ -906,14 +906,26 @@ function CardConfigModal({
   ];
 
  return (
+  <div style={{
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.75)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999,
+    fontFamily: "'DM Sans', -apple-system, sans-serif",
+  }}>
     <div style={{
       background: T.bgSection,
       width: "100%",
-      height: "100%",
+      maxWidth: 1040,      // pick whatever fits your popup width
+      height: "85vh",      // or a fixed px height like 700
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      fontFamily: "'DM Sans', -apple-system, sans-serif",
+      borderRadius: 14,
+      boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
     }}>
 
         {/* ── Header (title + template badge — close button removed, Trello's popup chrome already has one) ── */}
