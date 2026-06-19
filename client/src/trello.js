@@ -14,7 +14,7 @@ export async function getBoard(key, token, boardId) {
 
 export async function getBoardCards(key, token, boardId) {
   const res = await fetch(
-    `${BASE}/boards/${boardId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList`,
+    `${BASE}/boards/${boardId}/cards?${buildAuth(key, token)}&fields=id,name,idMembers,labels,due,dueComplete,dateLastActivity,idList,desc`,
   );
   if (!res.ok) throw new Error(`Trello error ${res.status}`);
   return res.json();

@@ -93,19 +93,26 @@ function cardCreatedDate(cardId) {
 }
 
 // FIX #6: use prefix-based check everywhere instead of loose keyword match
-const isTrackerCard = (name) => {
-  const lower = name.toLowerCase();
-  const PREFIXES = [
-    "📌 assigned to me",
-    "📅 due this week",
-    "⚠️ overdue cards",
-    "👤 unassigned cards",
-    "🏷️ cards with label",
-    "💤 stale cards",
-    "✨ created today",
-    "📋 cards in list",
-  ];
-  return PREFIXES.some((p) => lower.startsWith(p.toLowerCase()));
+const TRACKER_PREFIXES = [
+  "📌 assigned to me",
+  "📅 due this week",
+  "⚠️ overdue cards",
+  "👤 unassigned cards",
+  "🏷️ cards with label",
+  "💤 stale cards",
+  "✨ created today",
+  "📋 cards in list",
+];
+
+// Detects tracker cards two ways: legacy full-text name prefix (old cards),
+// or the hidden meta tag in the description (new cards, which now have
+// minimal emoji-only names so Trello doesn't show duplicate title text).
+const isTrackerCard = (card) => {
+  if (!card) return false;
+  const name = (card.name || "").toLowerCase();
+  const matchesPrefix = TRACKER_PREFIXES.some((p) => name.startsWith(p.toLowerCase()));
+  if (matchesPrefix) return true;
+  return /\[_\]: cardlytics:mode:/.test(card.desc || "");
 };
 
 // isTrackerCardDisplay is now identical to isTrackerCard — kept as alias for clarity
@@ -124,14 +131,17 @@ const STAT_LABELS = {
 };
 
 const DEFAULT_STAT_CONFIG = {
-  assigned: { name: "📌 Assigned to Me", cover: "blue" },
-  dueThisWeek: { name: "📅 Due This Week", cover: "yellow" },
-  overdue: { name: "⚠️ Overdue Cards", cover: "red" },
-  unassigned: { name: "👤 Unassigned Cards", cover: "purple" },
-  withLabel: { name: "🏷️ Cards With Label", cover: "orange" },
-  stale: { name: "💤 Stale Cards", cover: "black" },
-  createdToday: { name: "✨ Created Today", cover: "green" },
-  cardsInList: { name: "📋 Cards in List", cover: "sky" },
+  // `name` = minimal Trello card name (emoji only) — keeps the board view
+  // from showing a duplicate text title under our custom cover image.
+  // `label` = the descriptive text baked into the cover image itself.
+  assigned: { name: "📌", label: "📌 Assigned to Me", cover: "blue" },
+  dueThisWeek: { name: "📅", label: "📅 Due This Week", cover: "yellow" },
+  overdue: { name: "⚠️", label: "⚠️ Overdue Cards", cover: "red" },
+  unassigned: { name: "👤", label: "👤 Unassigned Cards", cover: "purple" },
+  withLabel: { name: "🏷️", label: "🏷️ Cards With Label", cover: "orange" },
+  stale: { name: "💤", label: "💤 Stale Cards", cover: "black" },
+  createdToday: { name: "✨", label: "✨ Created Today", cover: "green" },
+  cardsInList: { name: "📋", label: "📋 Cards in List", cover: "sky" },
 };
 
 const STAT_EMOJIS = {
@@ -426,7 +436,7 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
   const memberId = await getMemberId(key, tkn);
 
   const filteredCards = allBoardCards.filter(
-    (c) => !isTrackerCard(c.name) && c.idList !== cardlyticsList.id,
+    (c) => !isTrackerCard(c) && c.idList !== cardlyticsList.id,
   );
 
   for (const card of trackerCards) {
@@ -551,11 +561,8 @@ function CardBackView() {
 
   useEffect(() => {
     if (!trelloT) return;
-    trelloT.card("name", "idList", "desc").then((card) => {
-      const matchesPrefix = isTrackerCard(card.name);
-      const hasMetaTag = /\[_\]: cardlytics:mode:/.test(card.desc || "");
-
-      if (matchesPrefix || hasMetaTag) {
+   trelloT.card("name", "idList", "desc").then((card) => {
+      if (isTrackerCard(card)) {
         setIsTracker(true);
         return;
       }
@@ -775,7 +782,7 @@ function CardDetailsView() {
 
         allCards = allCards.filter(
           (c) =>
-            !isTrackerCardDisplay(c.name) &&
+            !isTrackerCardDisplay(c) &&
             !cardlyticsListIds.includes(c.idList),
         );
 
@@ -811,7 +818,7 @@ function CardDetailsView() {
 
         const fn = filterMap[statType] || (() => true);
         const filteredCards = allCards
-          .filter((c) => !isTrackerCard(c.name))
+          .filter((c) => !isTrackerCard(c))
           .filter((c) => {
             // If user configured explicit filters, use ONLY those — skip the stat's own filter
             if (savedFilters) {
@@ -825,18 +832,18 @@ function CardDetailsView() {
         setDetailStats(computeDetailStats(filteredCards));
 
         const computed = computeStats(
-          allCards.filter((c) => !isTrackerCard(c.name)),
+          allCards.filter((c) => !isTrackerCard(c)),
           mid,
         );
         computed.cardsInList = isListScoped
-          ? allCards.filter((c) => !isTrackerCard(c.name)).length
+          ? allCards.filter((c) => !isTrackerCard(c)).length
           : 0;
 
         const boardWideCards = activeBoardCards.filter(
           (c) =>
-            !isTrackerCardDisplay(c.name) &&
+            !isTrackerCardDisplay(c) &&
             !cardlyticsListIds.includes(c.idList) &&
-            !isTrackerCard(c.name),
+            !isTrackerCard(c),
         );
         computed.allCards = boardWideCards.length;
 
@@ -1842,14 +1849,14 @@ export default function App() {
         .map((l) => l.id);
 
       const filteredForStats = cards.filter(
-        (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
+        (c) => !isTrackerCard(c) && !cardlyticsListIds.includes(c.idList),
       );
       const memberId = await getMemberId(key, tkn);
       setCurrentMemberId(memberId);
 
       // Full board cards for customize preview — already fetched above, no extra call
       const fullFiltered = fullBoardCards.filter(
-        (c) => !isTrackerCard(c.name) && !cardlyticsListIds.includes(c.idList),
+        (c) => !isTrackerCard(c) && !cardlyticsListIds.includes(c.idList),
       );
       setAllBoardCards(fullFiltered);
 
@@ -2067,7 +2074,8 @@ export default function App() {
               ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}${filterStr}`
               : `\n\n[_]: cardlytics:mode:board:statType:${stat}${filterStr}`;
 
-          const cardName = saved?.cardName || defaults.name;
+          const coverTitle = saved?.cardName || defaults.label;
+          const trelloCardName = defaults.name; // minimal — avoids duplicate text on card front
           const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
           const cover = saved?.cover || defaults.cover;
 
@@ -2077,7 +2085,7 @@ export default function App() {
             customHex: saved?.customHex || null,
             textColor: saved?.textColor || "white",
             layout: saved?.layout || "center",
-            title: saved?.cardName || defaults.name,
+            title: coverTitle,
             subtitle: saved?.subtitle || "",
             coverImage: saved?.coverImage || null,
           });
@@ -2085,7 +2093,7 @@ export default function App() {
             key,
             tkn,
             targetListId,
-            cardName,
+            trelloCardName,
             desc,
             cover,
             coverImageDataUrl,
@@ -2098,12 +2106,12 @@ export default function App() {
                 saved.coverImage,
               );
 
-              const stylePayload = {
+             const stylePayload = {
                 cover: saved.cover || defaults.cover,
                 customHex: saved.customHex || null,
                 textColor: saved.textColor || "white",
                 layout: saved.layout || "center",
-                title: saved.cardName || defaults.name,
+                title: saved.cardName || defaults.label,
                 subtitle: saved.subtitle || "",
               };
               localStorage.setItem(
@@ -2146,11 +2154,11 @@ export default function App() {
       const newViews = statsToTrack.map((stat) => {
         const saved = configToUse[stat];
         const defaults = DEFAULT_STAT_CONFIG[stat];
-        return {
+       return {
           id: `${stat}-${Date.now()}`,
           cardId: createdCards.find((c) => c.stat === stat)?.cardId || null,
           statType: stat,
-          cardName: saved?.cardName || defaults.name,
+          cardName: saved?.cardName || defaults.label,
           cover: saved?.cover || defaults.cover,
           filters: {
             due: saved?.due || [],
