@@ -1364,7 +1364,8 @@ export function CustomizeFlow({
   onSave, onClose, isPremium, onUpgradeClick, computeFilteredCount,
   boardName, boardId, workspaceBoards, fetchWorkspaceBoards, fetchBoardScopedData,
   workspaceId, workspaceName, fetchWorkspaces,
-  currentUserId,   // ← add
+  currentUserId, 
+  trelloT,  
 }) {
   if (!show) return null;
   if (!customizeStat) return <StatPicker onSelect={type => setCustomizeStat(type)} onClose={onClose} />;
@@ -1379,7 +1380,7 @@ export function CustomizeFlow({
       fetchBoardScopedData={fetchBoardScopedData}
       workspaceId={workspaceId} workspaceName={workspaceName} fetchWorkspaces={fetchWorkspaces}
       currentUserId={currentUserId}   
-      trelloT 
+      trelloT={trelloT} 
     />
   );
 }
