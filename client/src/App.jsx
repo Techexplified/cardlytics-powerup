@@ -2253,6 +2253,7 @@ export default function App() {
           const tkn = getStoredToken();
           return getBoardScopedData(key, tkn, targetBoardId, boards);
         }}
+        trelloT={trelloT}
       />
       <div
         className="header"

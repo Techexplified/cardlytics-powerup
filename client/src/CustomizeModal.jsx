@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { listDrafts, saveDraft, loadDraft, deleteDraft } from "./draftStorage";
 
 // ── Theme tokens ──────────────────────────────────────────────────────────────
 const T = {
@@ -811,111 +810,27 @@ function ScopeSelect({ label, value, onChange, options, loading, icon, iconBg })
   );
 }
 
-// ── Relative time formatter for draft list ────────────────────────────────────
-function timeAgo(isoString) {
-  if (!isoString) return "";
-  const diffMs = Date.now() - new Date(isoString).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
-
-// ── Stat picker (step 1) — now also offers drafts to resume ──────────────────
-function StatPicker({ onSelect, onClose, t, onResumeDraft }) {
-  const [drafts, setDrafts] = useState([]);
-  const [draftsLoading, setDraftsLoading] = useState(true);
-  const [pendingDeleteId, setPendingDeleteId] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!t) { setDraftsLoading(false); return; }
-    listDrafts(t)
-      .then(list => {
-        if (!cancelled) {
-          // newest first
-          setDrafts([...list].sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt)));
-        }
-      })
-      .finally(() => { if (!cancelled) setDraftsLoading(false); });
-    return () => { cancelled = true; };
-  }, [t]);
-
-  async function handleDeleteDraft(id, e) {
-    e.stopPropagation();
-    setPendingDeleteId(id);
-    try {
-      await deleteDraft(t, id);
-      setDrafts(prev => prev.filter(d => d.id !== id));
-    } finally {
-      setPendingDeleteId(null);
-    }
-  }
-
+// ── Stat picker (step 1) ──────────────────────────────────────────────────────
+function StatPicker({ onSelect, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:9999, fontFamily:"'DM Sans',sans-serif" }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:T.bgSection, border:`1px solid ${T.border}`, borderRadius:14, width:340, maxHeight:"80vh", display:"flex", flexDirection:"column", overflow:"hidden", boxShadow:"0 20px 60px rgba(0,0,0,0.7)" }}>
-        <div style={{ padding:"14px 18px", borderBottom:`1px solid ${T.border}`, display:"flex", justifyContent:"space-between", alignItems:"center", flexShrink:0 }}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:T.bgSection, border:`1px solid ${T.border}`, borderRadius:14, width:300, overflow:"hidden", boxShadow:"0 20px 60px rgba(0,0,0,0.7)" }}>
+        <div style={{ padding:"14px 18px", borderBottom:`1px solid ${T.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span style={{ fontSize:14, fontWeight:600, color:T.text }}>Create Stat Card</span>
           <button onClick={onClose} style={{ background:"none", border:"none", color:T.textMuted, fontSize:18, cursor:"pointer" }}>✕</button>
         </div>
-
-        <div style={{ overflowY:"auto" }}>
-          {!draftsLoading && drafts.length > 0 && (
-            <>
-              <div style={{ padding:"12px 18px 4px" }}>
-                <span style={{ fontSize:10, fontWeight:700, color:T.textMuted, letterSpacing:"0.08em", textTransform:"uppercase" }}>
-                  Resume a Draft
-                </span>
-              </div>
-              <div style={{ padding:"4px 0 8px" }}>
-                {drafts.map((d) => (
-                  <div key={d.id} onClick={() => onResumeDraft(d.id)}
-                    style={{ display:"flex", alignItems:"center", gap:12, padding:"9px 18px", cursor:"pointer", transition:"background 0.1s" }}
-                    onMouseEnter={e => e.currentTarget.style.background = T.bgItem}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                  >
-                    <span style={{ fontSize:16 }}>{STAT_EMOJIS[d.statType] || "📌"}</span>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, color:T.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{d.name}</div>
-                      <div style={{ fontSize:10, color:T.textMuted, marginTop:1 }}>Saved {timeAgo(d.savedAt)}</div>
-                    </div>
-                    <button
-                      onClick={(e) => handleDeleteDraft(d.id, e)}
-                      disabled={pendingDeleteId === d.id}
-                      title="Delete draft"
-                      style={{ background:"none", border:"none", color:T.textMuted, fontSize:13, cursor:"pointer", padding:4, flexShrink:0 }}
-                      onMouseEnter={e => e.currentTarget.style.color = T.danger}
-                      onMouseLeave={e => e.currentTarget.style.color = T.textMuted}
-                    >{pendingDeleteId === d.id ? "…" : "✕"}</button>
-                  </div>
-                ))}
-              </div>
-              <Divider />
-            </>
-          )}
-
-          <div style={{ padding:"12px 18px 4px" }}>
-            <span style={{ fontSize:10, fontWeight:700, color:T.textMuted, letterSpacing:"0.08em", textTransform:"uppercase" }}>
-              Start a New Card
-            </span>
-          </div>
-          <div style={{ padding:"8px 0 12px" }}>
-            {STAT_LIST.map(({ type, label, emoji }) => (
-              <div key={type} onClick={() => onSelect(type)}
-                style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 18px", cursor:"pointer", transition:"background 0.1s" }}
-                onMouseEnter={e => e.currentTarget.style.background = T.bgItem}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-              >
-                <span style={{ fontSize:18 }}>{emoji}</span>
-                <span style={{ fontSize:13, color:T.textSub }}>{label}</span>
-                <span style={{ marginLeft:"auto", color:T.textMuted, fontSize:14 }}>›</span>
-              </div>
-            ))}
-          </div>
+        <div style={{ padding:"8px 0 12px" }}>
+          {STAT_LIST.map(({ type, label, emoji }) => (
+            <div key={type} onClick={() => onSelect(type)}
+              style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 18px", cursor:"pointer", transition:"background 0.1s" }}
+              onMouseEnter={e => e.currentTarget.style.background = T.bgItem}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <span style={{ fontSize:18 }}>{emoji}</span>
+              <span style={{ fontSize:13, color:T.textSub }}>{label}</span>
+              <span style={{ marginLeft:"auto", color:T.textMuted, fontSize:14 }}>›</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -927,7 +842,8 @@ function CardConfigModal({
   statType, statValue, lists, memberName, members, boardLabels,
   isPremium, computeFilteredCount, onSave, onBack, onClose, onUpgradeClick,
   boardName, boardId, workspaceBoards = [], fetchWorkspaceBoards, fetchBoardScopedData,
-  currentUserId, t, draftId, initialDraftPayload, onShowToast,
+   currentUserId,
+   trelloT 
 }) {
   const [activeTab,          setActiveTab]          = useState("filters");
   const [cardName,           setCardName]           = useState(DEFAULT_NAMES[statType] || "");
@@ -950,9 +866,6 @@ function CardConfigModal({
   dueDate: [], label: [], list: [], status: [], cardActivity: [], priority: [],
 });
 
-  const [currentDraftId, setCurrentDraftId] = useState(draftId || null);
-  const [draftSaveState, setDraftSaveState] = useState("idle"); // idle | saving | saved | error
-
   function setFilterValue(key, vals) { setFilterValues(p => ({ ...p, [key]: vals })); }
   function addFilter(key)    { if (!activeFilters.includes(key)) setActiveFilters(p => [...p, key]); }
   function removeFilter(key) { setActiveFilters(p => p.filter(k => k !== key)); setFilterValues(p => ({ ...p, [key]: [] })); }
@@ -963,6 +876,31 @@ function CardConfigModal({
   const [scopedMembers, setScopedMembers] = useState(members || []);
   const [scopedLabels,  setScopedLabels]  = useState(boardLabels || []);
 
+  async function handleSaveDraft() {
+  if (!trelloT) {
+    console.error("❌ trelloT not available");
+    return;
+  }
+
+  const draftData = {
+    cardName,
+    description,
+    cover: coverColor,
+    subtitle: styleSubtitle,
+    textColor,
+    layout,
+    boardScope,
+    filters: filterValues
+  };
+
+  try {
+    await trelloT.set("board", "shared", "cardlytics_draft", draftData);
+    console.log("✅ Draft saved to Trello", draftData);
+  } catch (err) {
+    console.error("❌ Failed to save draft", err);
+  }
+}
+
   useEffect(() => {
     if (workspaceBoards?.length) { setBoards(workspaceBoards); return; }
     if (!fetchWorkspaceBoards) return;
@@ -972,24 +910,6 @@ function CardConfigModal({
       .catch(() => setBoards([]))
       .finally(() => setBoardsLoading(false));
   }, [fetchWorkspaceBoards]);
-
-  // ── Rehydrate form state from a resumed draft, once on mount ────────────────
-  useEffect(() => {
-    if (!initialDraftPayload) return;
-    const p = initialDraftPayload;
-    if (p.cardName !== undefined) { setCardName(p.cardName); setNameManuallyEdited(true); }
-    if (p.description !== undefined) setDescription(p.description);
-    if (p.boardScope !== undefined) setBoardScope(p.boardScope);
-    if (p.coverColor !== undefined) setCoverColor(p.coverColor);
-    if (p.coverImage !== undefined) setCoverImage(p.coverImage);
-    if (p.styleSubtitle !== undefined) setStyleSubtitle(p.styleSubtitle);
-    if (p.textColor !== undefined) setTextColor(p.textColor);
-    if (p.layout !== undefined) setLayout(p.layout);
-    if (p.customHex !== undefined) setCustomHex(p.customHex);
-    if (p.activeFilters !== undefined) setActiveFilters(p.activeFilters);
-    if (p.filterValues !== undefined) setFilterValues(p.filterValues);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const liveCount = computeFilteredCount
     ? computeFilteredCount(statType, {
@@ -1019,40 +939,6 @@ function CardConfigModal({
 
   const cardBg = resolveCoverBackground(coverColor, customHex);
 
-  // ── Build the full serializable form-state payload for drafts ───────────────
-  function buildDraftPayload() {
-    return {
-      cardName, description, nameManuallyEdited, boardScope,
-      coverColor, coverImage, styleSubtitle, textColor, layout, customHex,
-      activeFilters, filterValues,
-    };
-  }
-
-  async function handleSaveDraft() {
-    if (!t) {
-      onShowToast?.("Drafts aren't available outside Trello.", "error");
-      return;
-    }
-    setDraftSaveState("saving");
-    try {
-      const savedId = await saveDraft(t, {
-        id: currentDraftId,
-        statType,
-        name: previewName || DEFAULT_NAMES[statType] || "Untitled draft",
-        payload: buildDraftPayload(),
-      });
-      setCurrentDraftId(savedId);
-      setDraftSaveState("saved");
-      onShowToast?.("Draft saved", "success");
-      setTimeout(() => setDraftSaveState("idle"), 2000);
-    } catch (err) {
-      console.error("Failed to save draft:", err);
-      setDraftSaveState("error");
-      onShowToast?.(err.message || "Couldn't save draft", "error");
-      setTimeout(() => setDraftSaveState("idle"), 2500);
-    }
-  }
-
   function handleSave() {
     onSave(statType, {
       cardName: previewName, description,
@@ -1065,7 +951,6 @@ function CardConfigModal({
       status:   filterValues.status      || [],
       activity: filterValues.cardActivity|| [],
       boardScope, count: liveCount,
-      draftId: currentDraftId,
     });
   }
 
@@ -1073,12 +958,6 @@ function CardConfigModal({
     { key:"filters", label:"Filters" },
     { key:"style",   label:"Style"   },
   ];
-
-  const draftButtonLabel =
-    draftSaveState === "saving" ? "Saving…" :
-    draftSaveState === "saved"  ? "Saved ✓" :
-    draftSaveState === "error"  ? "Failed — retry" :
-    "Save as Draft";
 
  return (
   <div style={{
@@ -1124,13 +1003,6 @@ function CardConfigModal({
             border:`1px solid ${T.accent}44`, borderRadius:20,
             padding:"2px 10px", fontWeight:600,
           }}>Template: {previewName}</span>
-          {currentDraftId && (
-            <span style={{
-              fontSize:11, color:T.warning, background:"rgba(210,153,34,0.15)",
-              border:`1px solid ${T.warning}44`, borderRadius:20,
-              padding:"2px 10px", fontWeight:600,
-            }}>Draft</span>
-          )}
         </div>
 
         {/* ── Body ── */}
@@ -1417,24 +1289,15 @@ function CardConfigModal({
           padding:"13px 20px", borderTop:`1px solid ${T.border}`, flexShrink:0,
           background: T.bg,
         }}>
-          <button
-            onClick={handleSaveDraft}
-            disabled={draftSaveState === "saving"}
-            style={{
-              background: draftSaveState === "saved" ? T.successDim : "none",
-              border:`1px solid ${draftSaveState === "saved" ? T.success : draftSaveState === "error" ? T.danger : T.border}`,
-              borderRadius:7,
-              padding:"8px 18px",
-              color: draftSaveState === "saved" ? T.success : draftSaveState === "error" ? T.danger : T.textSub,
-              fontSize:13, fontFamily:"inherit",
-              cursor: draftSaveState === "saving" ? "default" : "pointer",
-              display:"flex", alignItems:"center", gap:6,
-              transition:"border-color 0.15s, color 0.15s, background 0.15s",
-              opacity: draftSaveState === "saving" ? 0.7 : 1,
-            }}
-            onMouseEnter={e => { if (draftSaveState === "idle") e.currentTarget.style.borderColor = T.textMuted; }}
-            onMouseLeave={e => { if (draftSaveState === "idle") e.currentTarget.style.borderColor = T.border; }}
-          >🔖 {draftButtonLabel}</button>
+          <button  onClick={handleSaveDraft} style={{
+            background:"none", border:`1px solid ${T.border}`, borderRadius:7,
+            padding:"8px 18px", color:T.textSub, fontSize:13, fontFamily:"inherit",
+            cursor:"pointer", display:"flex", alignItems:"center", gap:6,
+            transition:"border-color 0.15s",
+          }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = T.textMuted}
+            onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
+          >🔖 Save as Draft</button>
 
           <div style={{ display:"flex", gap:10 }}>
             <button onClick={onClose} style={{
@@ -1501,74 +1364,22 @@ export function CustomizeFlow({
   onSave, onClose, isPremium, onUpgradeClick, computeFilteredCount,
   boardName, boardId, workspaceBoards, fetchWorkspaceBoards, fetchBoardScopedData,
   workspaceId, workspaceName, fetchWorkspaces,
-  currentUserId, t, onShowToast,
+  currentUserId,   // ← add
 }) {
-  const [resumedDraftId, setResumedDraftId] = useState(null);
-  const [resumedPayload, setResumedPayload] = useState(null);
-  const [resumeLoading, setResumeLoading] = useState(false);
-
   if (!show) return null;
-
-  async function handleResumeDraft(id) {
-    setResumeLoading(true);
-    try {
-      const payload = await loadDraft(t, id);
-      if (!payload) {
-        onShowToast?.("That draft could not be found.", "error");
-        return;
-      }
-      // Need the draft's statType too — pull it from the index entry list
-      const index = await listDrafts(t);
-      const entry = index.find(d => d.id === id);
-      setResumedDraftId(id);
-      setResumedPayload(payload);
-      setCustomizeStat(entry?.statType || "assigned");
-    } catch (err) {
-      console.error("Failed to resume draft:", err);
-      onShowToast?.("Couldn't load that draft.", "error");
-    } finally {
-      setResumeLoading(false);
-    }
-  }
-
-  function handleBack() {
-    setCustomizeStat(null);
-    setResumedDraftId(null);
-    setResumedPayload(null);
-  }
-
-  function handleClose() {
-    setResumedDraftId(null);
-    setResumedPayload(null);
-    onClose();
-  }
-
-  if (!customizeStat) {
-    return (
-      <StatPicker
-        onSelect={type => setCustomizeStat(type)}
-        onClose={handleClose}
-        t={t}
-        onResumeDraft={handleResumeDraft}
-      />
-    );
-  }
-
+  if (!customizeStat) return <StatPicker onSelect={type => setCustomizeStat(type)} onClose={onClose} />;
   return (
     <CardConfigModal
       statType={customizeStat} statValue={stats?.[customizeStat] ?? 0}
       lists={lists} memberName={memberName} members={members} boardLabels={boardLabels}
       isPremium={isPremium} computeFilteredCount={computeFilteredCount}
-      onSave={onSave} onBack={handleBack} onClose={handleClose} onUpgradeClick={onUpgradeClick}
+      onSave={onSave} onBack={() => setCustomizeStat(null)} onClose={onClose} onUpgradeClick={onUpgradeClick}
       boardName={boardName} boardId={boardId} workspaceBoards={workspaceBoards}
       fetchWorkspaceBoards={fetchWorkspaceBoards}
       fetchBoardScopedData={fetchBoardScopedData}
       workspaceId={workspaceId} workspaceName={workspaceName} fetchWorkspaces={fetchWorkspaces}
-      currentUserId={currentUserId}
-      t={t}
-      draftId={resumedDraftId}
-      initialDraftPayload={resumedPayload}
-      onShowToast={onShowToast}
+      currentUserId={currentUserId}   
+      trelloT 
     />
   );
 }
@@ -1576,26 +1387,6 @@ export function CustomizeFlow({
 export default function App() {
   const [show, setShow] = useState(true);
   const [stat, setStat] = useState("assigned");
-
-  // ── Tiny in-memory mock of the Trello client for the demo, so Save as Draft
-  // and Resume a Draft work when this file is opened standalone (no real
-  // window.TrelloPowerUp present). The real app should pass its actual `t`.
-  const mockStoreRef = useRef({});
-  const mockT = {
-    get: async (scope, vis, key) => {
-      const v = mockStoreRef.current[`${scope}:${vis}:${key}`];
-      if (v === undefined) throw new Error("not set");
-      return v;
-    },
-    set: async (scope, vis, key, value) => {
-      mockStoreRef.current[`${scope}:${vis}:${key}`] = value;
-      return true;
-    },
-    remove: async (scope, vis, key) => {
-      delete mockStoreRef.current[`${scope}:${vis}:${key}`];
-      return true;
-    },
-  };
 
   return (
     <div style={{ background:"#0d1117", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -1635,8 +1426,6 @@ export default function App() {
         onSave={(type, data) => { console.log("Saved:", type, data); setShow(false); }}
         onClose={() => setShow(false)}
         isPremium={false}
-        t={mockT}
-        onShowToast={(msg, type) => console.log(`[toast:${type}]`, msg)}
       />
     </div>
   );
