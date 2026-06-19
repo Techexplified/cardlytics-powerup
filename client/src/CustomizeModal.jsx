@@ -1024,13 +1024,13 @@ function CardConfigModal({
 
               {/* ── FILTERS TAB ── */}
               {activeTab === "filters" && (
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:0, height:"100%" }}>
+                <div style={{ display:"flex", flexDirection:"column" }}>
 
-                  {/* Left column */}
-                  <div style={{ borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column" }}>
+                  {/* Row 1: Card Details + Scope side by side */}
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:0 }}>
 
                     {/* Section 1: Card Details */}
-                    <div style={{ padding:"14px 16px" }}>
+                    <div style={{ padding:"14px 16px", borderRight:`1px solid ${T.border}` }}>
                       <SectionHeader number="1" title="Card Details" />
                       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                         <div>
@@ -1070,36 +1070,6 @@ function CardConfigModal({
                       </div>
                     </div>
 
-                    <Divider />
-
-                    {/* Section 3: Active Filters */}
-                    <div style={{ padding:"14px 16px", flex:1 }}>
-                      <SectionHeader number="3" title="Active Filters" />
-                      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                        {activeFilters.map(key => (
-                          <ActiveFilterRow
-                            key={key} filterKey={key}
-                            values={filterValues[key] || []}
-                            onValuesChange={vals => setFilterValue(key, vals)}
-                            onRemove={() => removeFilter(key)}
-                            lists={scopedLists} members={scopedMembers} boardLabels={scopedLabels}
-                          />
-                        ))}
-                        {activeFilters.length === 0 && (
-                          <div style={{ fontSize:12, color:T.textMuted, padding:"8px 0", textAlign:"center" }}>
-                            No active filters. Add from the grid →
-                          </div>
-                        )}
-                        <div style={{ fontSize:11, color:T.textMuted, marginTop:4 }}>
-                          These filters are currently applied to your card.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right column */}
-                  <div style={{ display:"flex", flexDirection:"column" }}>
-
                     {/* Section 2: Scope */}
                     <div style={{ padding:"14px 16px" }}>
                       <SectionHeader number="2" title="Scope" />
@@ -1118,48 +1088,74 @@ function CardConfigModal({
                         </p>
                       </div>
                     </div>
+                  </div>
 
-                    <Divider />
+                  <Divider />
 
-                    {/* Section 4: Add More Filters */}
-                    <div style={{ padding:"14px 16px", flex:1, overflowY:"auto" }}>
-                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                          <SectionNumber n="4" />
-                          <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>Add More Filters</span>
+                  {/* Section 3: Active Filters (full width) */}
+                  <div style={{ padding:"14px 16px" }}>
+                    <SectionHeader number="3" title="Active Filters" />
+                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                      {activeFilters.map(key => (
+                        <ActiveFilterRow
+                          key={key} filterKey={key}
+                          values={filterValues[key] || []}
+                          onValuesChange={vals => setFilterValue(key, vals)}
+                          onRemove={() => removeFilter(key)}
+                          lists={scopedLists} members={scopedMembers} boardLabels={scopedLabels}
+                        />
+                      ))}
+                      {activeFilters.length === 0 && (
+                        <div style={{ fontSize:12, color:T.textMuted, padding:"8px 0", textAlign:"center" }}>
+                          No active filters. Add from the grid below →
                         </div>
-                        <div style={{ position:"relative" }}>
-                          <input
-                            type="text" value={filterSearch}
-                            onChange={e => setFilterSearch(e.target.value)}
-                            placeholder="Search filters..."
-                            style={{
-                              background:T.bgDeep, border:`1px solid ${T.border}`,
-                              borderRadius:6, padding:"5px 28px 5px 10px",
-                              color:T.text, fontSize:11, fontFamily:"inherit",
-                              outline:"none", width:140, transition:"border-color 0.15s",
-                            }}
-                            onFocus={e => e.target.style.borderColor = T.accent}
-                            onBlur={e  => e.target.style.borderColor = T.border}
-                          />
-                          <span style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", color:T.textMuted, fontSize:12 }}>🔍</span>
-                        </div>
+                      )}
+                      <div style={{ fontSize:11, color:T.textMuted, marginTop:4 }}>
+                        These filters are currently applied to your card.
                       </div>
-                      <p style={{ fontSize:11, color:T.textMuted, margin:"0 0 12px", lineHeight:1.5 }}>
-                        Choose from the available filters to refine your results.
-                      </p>
-                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
-                        {filteredGridItems.map(item => (
-                          <FilterGridItem
-                            key={item.key} item={item}
-                            active={activeFilters.includes(item.key)}
-                            onClick={() => {
-                              if (activeFilters.includes(item.key)) removeFilter(item.key);
-                              else addFilter(item.key);
-                            }}
-                          />
-                        ))}
+                    </div>
+                  </div>
+
+                  <Divider />
+
+                  {/* Section 4: Add More Filters (full width — fits in 4 columns, no inner scroll) */}
+                  <div style={{ padding:"14px 16px" }}>
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <SectionNumber n="4" />
+                        <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>Add More Filters</span>
                       </div>
+                      <div style={{ position:"relative" }}>
+                        <input
+                          type="text" value={filterSearch}
+                          onChange={e => setFilterSearch(e.target.value)}
+                          placeholder="Search filters..."
+                          style={{
+                            background:T.bgDeep, border:`1px solid ${T.border}`,
+                            borderRadius:6, padding:"5px 28px 5px 10px",
+                            color:T.text, fontSize:11, fontFamily:"inherit",
+                            outline:"none", width:180, transition:"border-color 0.15s",
+                          }}
+                          onFocus={e => e.target.style.borderColor = T.accent}
+                          onBlur={e  => e.target.style.borderColor = T.border}
+                        />
+                        <span style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", color:T.textMuted, fontSize:12 }}>🔍</span>
+                      </div>
+                    </div>
+                    <p style={{ fontSize:11, color:T.textMuted, margin:"0 0 12px", lineHeight:1.5 }}>
+                      Choose from the available filters to refine your results.
+                    </p>
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:8 }}>
+                      {filteredGridItems.map(item => (
+                        <FilterGridItem
+                          key={item.key} item={item}
+                          active={activeFilters.includes(item.key)}
+                          onClick={() => {
+                            if (activeFilters.includes(item.key)) removeFilter(item.key);
+                            else addFilter(item.key);
+                          }}
+                        />
+                      ))}
                     </div>
                   </div>
                 </div>
