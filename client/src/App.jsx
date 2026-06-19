@@ -500,8 +500,7 @@ function CardBackView() {
         title: "Cardlytics",
         url: `./index.html?boardId=${board.id}`,
         fullscreen: false,
-        width: 740,
-        height: 600,
+        height: 860,
       });
     });
   }
