@@ -12,7 +12,7 @@ import {
   createCard,
   createList,
   applyFilters,
-  getWeekBounds,
+  getWeekBounds, 
   getWorkspaceBoards, // ← new
   getBoardScopedData,
 } from "./trello";
@@ -983,36 +983,36 @@ function CardDetailsView() {
   }
 
   async function handleDeletePersonalizedView(view, e) {
-    e.stopPropagation(); // don't trigger the card's own onClick (opening it)
+  e.stopPropagation(); // don't trigger the card's own onClick (opening it)
 
-    const confirmMsg = view.cardId
-      ? `Remove "${view.cardName}"? This will also delete its tracker card from the board.`
-      : `Remove "${view.cardName}" from your personalized views?`;
-    if (!window.confirm(confirmMsg)) return;
+  const confirmMsg = view.cardId
+    ? `Remove "${view.cardName}"? This will also delete its tracker card from the board.`
+    : `Remove "${view.cardName}" from your personalized views?`;
+  if (!window.confirm(confirmMsg)) return;
 
-    if (view.cardId) {
-      try {
-        await fetch(
-          `${TRELLO_BASE}/cards/${view.cardId}?key=${key}&token=${token}`,
-          { method: "DELETE" },
-        );
-      } catch (err) {
-        console.error("Failed to delete tracker card:", err);
-      }
-    }
-
-    setPersonalizedViews((prev) => prev.filter((v) => v.id !== view.id));
-
-    if (boardId) {
-      const saved = JSON.parse(
-        localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
+  if (view.cardId) {
+    try {
+      await fetch(
+        `${TRELLO_BASE}/cards/${view.cardId}?key=${key}&token=${token}`,
+        { method: "DELETE" },
       );
-      localStorage.setItem(
-        `cardlytics:personalized:${boardId}`,
-        JSON.stringify(saved.filter((v) => v.id !== view.id)),
-      );
+    } catch (err) {
+      console.error("Failed to delete tracker card:", err);
     }
   }
+
+  setPersonalizedViews((prev) => prev.filter((v) => v.id !== view.id));
+
+  if (boardId) {
+    const saved = JSON.parse(
+      localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
+    );
+    localStorage.setItem(
+      `cardlytics:personalized:${boardId}`,
+      JSON.stringify(saved.filter((v) => v.id !== view.id)),
+    );
+  }
+}
 
   function SortArrow({ col }) {
     if (sortCol !== col)
@@ -1176,7 +1176,7 @@ function CardDetailsView() {
           </div>
         )}
 
-        {leftTab === "personalized" && (
+       {leftTab === "personalized" && (
           <>
             {personalizedViews.length === 0 ? (
               <div className="cd-personalized-empty">
@@ -1232,8 +1232,7 @@ function CardDetailsView() {
                       transition: "background 0.15s ease, color 0.15s ease",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        "rgba(255, 82, 82, 0.12)";
+                      e.currentTarget.style.background = "rgba(255, 82, 82, 0.12)";
                       e.currentTarget.style.color = "#ff5252";
                     }}
                     onMouseLeave={(e) => {
@@ -1589,7 +1588,6 @@ export default function App() {
   const mode = params.get("mode");
   const view = params.get("view");
   const listId = params.get("listId");
-  const presetStat = params.get("stat");
 
   const [token, setToken] = useState(() => getStoredToken());
   const [stats, setStats] = useState({
@@ -1611,6 +1609,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
   const [boardMembers, setBoardMembers] = useState([]);
+  const [showCustomize, setShowCustomize] = useState(false);
   const [scopeListId, setScopeListId] = useState(() => {
     const p = new URLSearchParams(window.location.search);
     const m = p.get("mode");
@@ -1757,13 +1756,13 @@ export default function App() {
     fetchData();
 
     const intervalId = setInterval(() => {
-      fetchData();
+      fetchData(); 
     }, 5000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [token]);
+  }, [token]); 
   if (!token)
     return (
       <LoginScreen
@@ -1776,7 +1775,6 @@ export default function App() {
     );
   if (view === "card") return <CardBackView />;
   if (view === "card-details") return <CardDetailsView />;
-  
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -1787,17 +1785,6 @@ export default function App() {
     setSelectedStats((prev) =>
       prev.includes(type) ? prev.filter((i) => i !== type) : [...prev, type],
     );
-
-    const openCustomizeFor = (type) => {
-  if (!trelloT) return;
-  trelloT.board("id").then((board) => {
-    trelloT.modal({
-      title: "Cardlytics — Customize",
-      url: `./index.html?view=customize&boardId=${board.id}&stat=${type}`,
-      fullscreen: true,
-    });
-  });
-};
 
   const handleTrack = async (statsOverride, configOverride) => {
     const statsToTrack = statsOverride ?? selectedStats;
@@ -2011,34 +1998,51 @@ export default function App() {
     }
   };
 
-  if (view === "customize") {
-    if (!currentBoardId) return <div style={{color:"#888",padding:40}}>Loading…</div>;
-    return (
+  return (
+    <div className="popup">
+      <Toast toast={toast} />
+
       <CustomizeFlow
-        show={true}
+        show={showCustomize}
         lists={lists}
         stats={stats}
         memberName={memberFullName}
         members={boardMembers}
         boardLabels={boardLabels}
-        customizeStat={presetStat || customizeStat}
+        customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
         onSave={async (type, cfg) => {
           const newConfig = { ...cardConfig, [type]: cfg };
           setCardConfig(newConfig);
+          setShowCustomize(false);
+          setCustomizeStat(null);
           await handleTrack([type], newConfig);
-          if (trelloT) trelloT.closeModal();
         }}
-        onClose={() => { if (trelloT) trelloT.closeModal(); }}
+        onClose={() => {
+          setShowCustomize(false);
+          setCustomizeStat(null);
+        }}
         computeFilteredCount={(statType, filters) => {
           const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
+
           const hasExplicitFilters =
-            filters.due?.length > 0 || filters.members?.length > 0 ||
-            filters.labels?.length > 0 || filters.lists?.length > 0 ||
-            filters.status?.length > 0 || filters.activity?.length > 0;
-          if (hasExplicitFilters) return applyFilters(cards, filters, currentMemberId).length;
+            filters.due?.length > 0 ||
+            filters.members?.length > 0 ||
+            filters.labels?.length > 0 ||
+            filters.lists?.length > 0 ||
+            filters.status?.length > 0 ||
+            filters.activity?.length > 0;
+
+          if (hasExplicitFilters) {
+            // User has configured filters — apply ONLY those, ignore stat's own filter
+            return applyFilters(cards, filters, currentMemberId).length;
+          }
+
+          // No filters set — apply the stat's own base filter (default behavior)
           const statFn = buildStatFilterMap(currentMemberId, null)[statType];
-          if (!statFn || statType === "cardsInList" || statType === "all") return cards.length;
+          if (!statFn || statType === "cardsInList" || statType === "all") {
+            return cards.length;
+          }
           return cards.filter(statFn).length;
         }}
         boardId={currentBoardId}
@@ -2057,14 +2061,6 @@ export default function App() {
           return getBoardScopedData(key, tkn, targetBoardId, boards);
         }}
       />
-    );
-  }
-
-
-  return (
-    <div className="popup">
-      <Toast toast={toast} />
-      
       <div
         className="header"
         style={{
@@ -2106,16 +2102,7 @@ export default function App() {
             </button>
             <button
               className="btn-customize"
-              onClick={() => {
-                if (!trelloT) return;
-                trelloT.board("id").then((board) => {
-                  trelloT.modal({
-                    title: "Cardlytics — Customize",
-                    url: `./index.html?view=customize&boardId=${board.id}`,
-                    fullscreen: true,
-                  });
-                });
-              }}
+              onClick={() => setShowCustomize(true)}
             >
               Customize
             </button>

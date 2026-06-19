@@ -159,7 +159,7 @@ function SectionNumber({ n }) {
 
 function SectionHeader({ number, title, style }) {
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14, ...style }}>
+    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10, ...style }}>
       <SectionNumber n={number} />
       <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>
         {title}
@@ -424,7 +424,7 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
         fontSize:14, flexShrink:0,
       }}>{def.icon}</div>
 
-      <div style={{ flex:"0 0 130px", fontSize:13, color:T.textSub, fontWeight:500 }}>{def.label}</div>
+      <div style={{ flex:"0 0 100px", fontSize:12, color:T.textSub, fontWeight:500 }}>{def.label}</div>
 
       <div ref={triggerRef} onClick={() => setOpen(o=>!o)} style={{
         flex:1, display:"flex", alignItems:"center", justifyContent:"space-between",
@@ -474,8 +474,8 @@ function FilterGridItem({ item, active, onClick }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display:"flex", alignItems:"center", gap:10,
-        padding:"10px 12px", borderRadius:8, cursor:"pointer",
+        display:"flex", alignItems:"center", gap:8,
+        padding:"8px 10px", borderRadius:8, cursor:"pointer",
         background: active ? T.accentDim : hover ? T.bgItem : "transparent",
         border:`1px solid ${active ? T.accent : hover ? T.border : "transparent"}`,
         transition:"all 0.15s",
@@ -796,90 +796,30 @@ function ScopeSelect({ label, value, onChange, options, loading, icon, iconBg })
 
 // ── Stat picker (step 1) ──────────────────────────────────────────────────────
 function StatPicker({ onSelect, onClose }) {
-  const [hoveredType, setHoveredType] = useState(null);
   return (
-    <div style={{
-      width:"100vw", height:"100vh", background:T.bgDeep,
-      display:"flex", alignItems:"center", justifyContent:"center",
-      fontFamily:"'DM Sans', -apple-system, sans-serif",
-    }}>
-      <div style={{
-        background: T.bgSection,
-        border: `1px solid ${T.border}`,
-        borderRadius: 14,
-        width: "min(1240px, 96vw)",
-        maxWidth: "96vw",
-        height: "min(820px, 96vh)",
-        maxHeight: "96vh",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        boxShadow: "0 24px 80px rgba(0,0,0,0.9)",
-      }}>
-        {/* ── Header (matches CardConfigModal header) ── */}
-        <div style={{
-          display:"flex", justifyContent:"space-between", alignItems:"center",
-          padding:"14px 20px", borderBottom:`1px solid ${T.border}`, flexShrink:0,
-          background: T.bg,
-        }}>
-          <span style={{ fontSize:15, fontWeight:700, color:T.text }}>Create Stat Card</span>
-          <button onClick={onClose} style={{
-            background:"none", border:"none", color:T.textMuted,
-            fontSize:20, cursor:"pointer", padding:"2px 6px", borderRadius:4, lineHeight:1,
-          }}
-            onMouseEnter={e => e.currentTarget.style.color = T.text}
-            onMouseLeave={e => e.currentTarget.style.color = T.textMuted}
-          >✕</button>
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:9999, fontFamily:"'DM Sans',sans-serif" }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:T.bgSection, border:`1px solid ${T.border}`, borderRadius:14, width:300, overflow:"hidden", boxShadow:"0 20px 60px rgba(0,0,0,0.7)" }}>
+        <div style={{ padding:"14px 18px", borderBottom:`1px solid ${T.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span style={{ fontSize:14, fontWeight:600, color:T.text }}>Create Stat Card</span>
+          <button onClick={onClose} style={{ background:"none", border:"none", color:T.textMuted, fontSize:18, cursor:"pointer" }}>✕</button>
         </div>
-
-        {/* ── Body: centered list of stat options ── */}
-        <div style={{
-          flex:1, display:"flex", alignItems:"center", justifyContent:"center",
-          background:T.surface, overflowY:"auto", padding:"40px 20px",
-        }}>
-          <div style={{ width:"min(520px, 90%)" }}>
-            <div style={{ marginBottom:18, textAlign:"center" }}>
-              <div style={{ fontSize:17, fontWeight:700, color:T.text, marginBottom:6 }}>
-                Choose a stat to track
-              </div>
-              <div style={{ fontSize:13, color:T.textMuted }}>
-                Pick a card type, then customize its filters and style.
-              </div>
+        <div style={{ padding:"8px 0 12px" }}>
+          {STAT_LIST.map(({ type, label, emoji }) => (
+            <div key={type} onClick={() => onSelect(type)}
+              style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 18px", cursor:"pointer", transition:"background 0.1s" }}
+              onMouseEnter={e => e.currentTarget.style.background = T.bgItem}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              <span style={{ fontSize:18 }}>{emoji}</span>
+              <span style={{ fontSize:13, color:T.textSub }}>{label}</span>
+              <span style={{ marginLeft:"auto", color:T.textMuted, fontSize:14 }}>›</span>
             </div>
-            <div style={{
-              background:T.bgDeep, border:`1px solid ${T.border}`,
-              borderRadius:12, overflow:"hidden",
-            }}>
-              {STAT_LIST.map(({ type, label, emoji }, i) => (
-                <div key={type} onClick={() => onSelect(type)}
-                  onMouseEnter={() => setHoveredType(type)}
-                  onMouseLeave={() => setHoveredType(null)}
-                  style={{
-                    display:"flex", alignItems:"center", gap:14,
-                    padding:"14px 20px", cursor:"pointer",
-                    background: hoveredType === type ? T.bgItem : "transparent",
-                    borderBottom: i < STAT_LIST.length - 1 ? `1px solid ${T.borderLight}` : "none",
-                    transition:"background 0.12s",
-                  }}
-                >
-                  <span style={{
-                    width:36, height:36, borderRadius:8, flexShrink:0,
-                    background:T.accentDim, display:"flex",
-                    alignItems:"center", justifyContent:"center", fontSize:17,
-                  }}>{emoji}</span>
-                  <span style={{ flex:1, fontSize:14, color:T.text, fontWeight:500 }}>{label}</span>
-                  <span style={{ color: hoveredType === type ? T.accent : T.textMuted, fontSize:16 }}>›</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
-
-
 
 // ── Main CardConfigModal ──────────────────────────────────────────────────────
 function CardConfigModal({
@@ -976,23 +916,22 @@ function CardConfigModal({
 
   return (
     <div style={{
-      width:"100vw", height:"100vh",
-      background: T.bgDeep,
+      position:"fixed", inset:0, background:"rgba(0,0,0,0.8)",
       display:"flex", alignItems:"center", justifyContent:"center",
-      fontFamily:"'DM Sans', -apple-system, sans-serif",
-    }}>
-      <div style={{
+      zIndex:9999, fontFamily:"'DM Sans', -apple-system, sans-serif",
+    }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{
         background: T.bgSection,
         border: `1px solid ${T.border}`,
         borderRadius: 14,
-        width: "min(1240px, 96vw)",
-        maxWidth: "96vw",
-        height: "min(820px, 96vh)",
-        maxHeight: "96vh",
+        width: "calc(100vw - 16px)",
+        maxWidth: "calc(100vw - 16px)",
+        height: "calc(100vh - 16px)",
+        maxHeight: "calc(100vh - 16px)",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        boxShadow: "0 24px 80px rgba(0,0,0,0.9)",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
       }}>
 
         {/* ── Header ── */}
@@ -1023,7 +962,7 @@ function CardConfigModal({
 
           {/* Left Panel */}
           <div style={{
-            width:230, flexShrink:0, padding:14, borderRight:`1px solid ${T.border}`,
+            width:200, flexShrink:0, padding:12, borderRight:`1px solid ${T.border}`,
             display:"flex", flexDirection:"column", gap:14, overflowY:"auto",
             background: T.bg,
           }}>
@@ -1091,7 +1030,7 @@ function CardConfigModal({
                   <div style={{ borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column" }}>
 
                     {/* Section 1: Card Details */}
-                    <div style={{ padding:"18px 20px" }}>
+                    <div style={{ padding:"14px 16px" }}>
                       <SectionHeader number="1" title="Card Details" />
                       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                         <div>
@@ -1134,7 +1073,7 @@ function CardConfigModal({
                     <Divider />
 
                     {/* Section 3: Active Filters */}
-                    <div style={{ padding:"18px 20px", flex:1 }}>
+                    <div style={{ padding:"14px 16px", flex:1 }}>
                       <SectionHeader number="3" title="Active Filters" />
                       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                         {activeFilters.map(key => (
@@ -1162,7 +1101,7 @@ function CardConfigModal({
                   <div style={{ display:"flex", flexDirection:"column" }}>
 
                     {/* Section 2: Scope */}
-                    <div style={{ padding:"18px 20px" }}>
+                    <div style={{ padding:"14px 16px" }}>
                       <SectionHeader number="2" title="Scope" />
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                         <ScopeSelect
@@ -1183,7 +1122,7 @@ function CardConfigModal({
                     <Divider />
 
                     {/* Section 4: Add More Filters */}
-                    <div style={{ padding:"18px 20px", flex:1, overflowY:"auto" }}>
+                    <div style={{ padding:"14px 16px", flex:1, overflowY:"auto" }}>
                       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
                         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
                           <SectionNumber n="4" />
@@ -1209,7 +1148,7 @@ function CardConfigModal({
                       <p style={{ fontSize:11, color:T.textMuted, margin:"0 0 12px", lineHeight:1.5 }}>
                         Choose from the available filters to refine your results.
                       </p>
-                      <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:8 }}>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
                         {filteredGridItems.map(item => (
                           <FilterGridItem
                             key={item.key} item={item}
