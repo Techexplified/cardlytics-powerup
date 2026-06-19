@@ -1589,6 +1589,7 @@ export default function App() {
   const mode = params.get("mode");
   const view = params.get("view");
   const listId = params.get("listId");
+  const presetStat = params.get("stat");
 
   const [token, setToken] = useState(() => getStoredToken());
   const [stats, setStats] = useState({
@@ -1610,7 +1611,6 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [memberFullName, setMemberFullName] = useState("");
   const [boardMembers, setBoardMembers] = useState([]);
-  const [showCustomize, setShowCustomize] = useState(false);
   const [scopeListId, setScopeListId] = useState(() => {
     const p = new URLSearchParams(window.location.search);
     const m = p.get("mode");
@@ -1776,59 +1776,7 @@ export default function App() {
     );
   if (view === "card") return <CardBackView />;
   if (view === "card-details") return <CardDetailsView />;
-  if (view === "customize")
-    return (
-      <CustomizeFlow
-        show={true}
-        lists={lists}
-        stats={stats}
-        memberName={memberFullName}
-        members={boardMembers}
-        boardLabels={boardLabels}
-        customizeStat={customizeStat}
-        setCustomizeStat={setCustomizeStat}
-        onSave={async (type, cfg) => {
-          const newConfig = { ...cardConfig, [type]: cfg };
-          setCardConfig(newConfig);
-          await handleTrack([type], newConfig);
-          if (trelloT) trelloT.closeModal();
-        }}
-        onClose={() => {
-          if (trelloT) trelloT.closeModal();
-        }}
-        computeFilteredCount={(statType, filters) => {
-          const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
-          const hasExplicitFilters =
-            filters.due?.length > 0 ||
-            filters.members?.length > 0 ||
-            filters.labels?.length > 0 ||
-            filters.lists?.length > 0 ||
-            filters.status?.length > 0 ||
-            filters.activity?.length > 0;
-          if (hasExplicitFilters)
-            return applyFilters(cards, filters, currentMemberId).length;
-          const statFn = buildStatFilterMap(currentMemberId, null)[statType];
-          if (!statFn || statType === "cardsInList" || statType === "all")
-            return cards.length;
-          return cards.filter(statFn).length;
-        }}
-        boardId={currentBoardId}
-        boardName={currentBoardName}
-        fetchWorkspaceBoards={async () => {
-          if (_workspaceBoardsCache) return _workspaceBoardsCache;
-          const key = TRELLO_API_KEY;
-          const tkn = getStoredToken();
-          const boards = await getWorkspaceBoards(key, tkn);
-          _workspaceBoardsCache = boards;
-          return boards;
-        }}
-        fetchBoardScopedData={async (targetBoardId, boards) => {
-          const key = TRELLO_API_KEY;
-          const tkn = getStoredToken();
-          return getBoardScopedData(key, tkn, targetBoardId, boards);
-        }}
-      />
-    );
+  
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -1839,6 +1787,17 @@ export default function App() {
     setSelectedStats((prev) =>
       prev.includes(type) ? prev.filter((i) => i !== type) : [...prev, type],
     );
+
+    const openCustomizeFor = (type) => {
+  if (!trelloT) return;
+  trelloT.board("id").then((board) => {
+    trelloT.modal({
+      title: "Cardlytics — Customize",
+      url: `./index.html?view=customize&boardId=${board.id}&stat=${type}`,
+      fullscreen: true,
+    });
+  });
+};
 
   const handleTrack = async (statsOverride, configOverride) => {
     const statsToTrack = statsOverride ?? selectedStats;
@@ -2052,51 +2011,34 @@ export default function App() {
     }
   };
 
-  return (
-    <div className="popup">
-      <Toast toast={toast} />
-
+  if (view === "customize") {
+    if (!currentBoardId) return <div style={{color:"#888",padding:40}}>Loading…</div>;
+    return (
       <CustomizeFlow
-        show={showCustomize}
+        show={true}
         lists={lists}
         stats={stats}
         memberName={memberFullName}
         members={boardMembers}
         boardLabels={boardLabels}
-        customizeStat={customizeStat}
+        customizeStat={presetStat || customizeStat}
         setCustomizeStat={setCustomizeStat}
         onSave={async (type, cfg) => {
           const newConfig = { ...cardConfig, [type]: cfg };
           setCardConfig(newConfig);
-          setShowCustomize(false);
-          setCustomizeStat(null);
           await handleTrack([type], newConfig);
+          if (trelloT) trelloT.closeModal();
         }}
-        onClose={() => {
-          setShowCustomize(false);
-          setCustomizeStat(null);
-        }}
+        onClose={() => { if (trelloT) trelloT.closeModal(); }}
         computeFilteredCount={(statType, filters) => {
           const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
-
           const hasExplicitFilters =
-            filters.due?.length > 0 ||
-            filters.members?.length > 0 ||
-            filters.labels?.length > 0 ||
-            filters.lists?.length > 0 ||
-            filters.status?.length > 0 ||
-            filters.activity?.length > 0;
-
-          if (hasExplicitFilters) {
-            // User has configured filters — apply ONLY those, ignore stat's own filter
-            return applyFilters(cards, filters, currentMemberId).length;
-          }
-
-          // No filters set — apply the stat's own base filter (default behavior)
+            filters.due?.length > 0 || filters.members?.length > 0 ||
+            filters.labels?.length > 0 || filters.lists?.length > 0 ||
+            filters.status?.length > 0 || filters.activity?.length > 0;
+          if (hasExplicitFilters) return applyFilters(cards, filters, currentMemberId).length;
           const statFn = buildStatFilterMap(currentMemberId, null)[statType];
-          if (!statFn || statType === "cardsInList" || statType === "all") {
-            return cards.length;
-          }
+          if (!statFn || statType === "cardsInList" || statType === "all") return cards.length;
           return cards.filter(statFn).length;
         }}
         boardId={currentBoardId}
@@ -2115,6 +2057,14 @@ export default function App() {
           return getBoardScopedData(key, tkn, targetBoardId, boards);
         }}
       />
+    );
+  }
+
+
+  return (
+    <div className="popup">
+      <Toast toast={toast} />
+      
       <div
         className="header"
         style={{

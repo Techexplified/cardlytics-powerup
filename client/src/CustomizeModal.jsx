@@ -797,8 +797,8 @@ function ScopeSelect({ label, value, onChange, options, loading, icon, iconBg })
 // ── Stat picker (step 1) ──────────────────────────────────────────────────────
 function StatPicker({ onSelect, onClose }) {
   return (
-    <div style={{ width:"100vw", height:"100vh", background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Sans',sans-serif" }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{ background:T.bgSection, border:`1px solid ${T.border}`, borderRadius:14, width:300, overflow:"hidden", boxShadow:"0 20px 60px rgba(0,0,0,0.7)" }}>
+    <div style={{ width:"100vw", height:"100vh", background:T.bgDeep, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Sans',sans-serif" }}>
+      <div style={{ background:T.bgSection, border:`1px solid ${T.border}`, borderRadius:14, width:300, overflow:"hidden", boxShadow:"0 20px 60px rgba(0,0,0,0.7)" }}>
         <div style={{ padding:"14px 18px", borderBottom:`1px solid ${T.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span style={{ fontSize:14, fontWeight:600, color:T.text }}>Create Stat Card</span>
           <button onClick={onClose} style={{ background:"none", border:"none", color:T.textMuted, fontSize:18, cursor:"pointer" }}>✕</button>
