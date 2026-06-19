@@ -876,6 +876,10 @@ function CardConfigModal({
   const [scopedMembers, setScopedMembers] = useState(members || []);
   const [scopedLabels,  setScopedLabels]  = useState(boardLabels || []);
 
+  useEffect(() => { setScopedLists(lists || []); }, [lists]);
+useEffect(() => { setScopedMembers(members || []); }, [members]);
+useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
+
   async function handleSaveDraft() {
   if (!trelloT) {
     console.error("❌ trelloT not available");
