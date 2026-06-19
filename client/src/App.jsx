@@ -2036,6 +2036,7 @@ if (orgId) {
         boardLabels={boardLabels}
         customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
+         currentUserId={currentMemberId}
         onSave={async (type, cfg) => {
           const newConfig = { ...cardConfig, [type]: cfg };
           setCardConfig(newConfig);

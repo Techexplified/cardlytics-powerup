@@ -186,20 +186,40 @@ function StyleDivider() {
 }
 
 // ── Live results banner (between tab content and footer) ──────────────────────
-function LiveResultsSection({ liveCount }) {
+function LiveResultsSection({ liveCount, collapsed, onToggle }) {
   return (
     <div style={{
       display:"flex", alignItems:"center", gap:10,
-      padding:"9px 20px", borderTop:`1px solid ${T.border}`,
-      background: T.bg, flexShrink:0,
+      padding: collapsed ? "6px 20px" : "9px 20px", borderTop:`1px solid ${T.border}`,
+      background: T.bg, flexShrink:0, transition:"padding 0.15s",
     }}>
-      <span style={{ fontSize:12, color:T.textMuted }}>Live results:</span>
-      <span style={{
-        fontSize:13, fontWeight:700, color:T.success,
-        background:T.successDim, borderRadius:6,
-        padding:"2px 10px",
-      }}>{liveCount} cards match</span>
-      <span style={{ fontSize:11, color:T.textMuted }}>based on current filters and scope</span>
+      <button
+        onClick={onToggle}
+        title={collapsed ? "Show live results" : "Hide live results"}
+        style={{
+          background:"none", border:"none", cursor:"pointer",
+          color:T.textMuted, fontSize:11, padding:2, display:"flex", alignItems:"center",
+          transition:"color 0.15s, transform 0.15s",
+          transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)",
+        }}
+        onMouseEnter={e => e.currentTarget.style.color = T.accent}
+        onMouseLeave={e => e.currentTarget.style.color = T.textMuted}
+      >▾</button>
+      {collapsed ? (
+        <span style={{ fontSize:11, color:T.textMuted }}>
+          Live results: <strong style={{ color:T.success }}>{liveCount} match</strong>
+        </span>
+      ) : (
+        <>
+          <span style={{ fontSize:12, color:T.textMuted }}>Live results:</span>
+          <span style={{
+            fontSize:13, fontWeight:700, color:T.success,
+            background:T.successDim, borderRadius:6,
+            padding:"2px 10px",
+          }}>{liveCount} cards match</span>
+          <span style={{ fontSize:11, color:T.textMuted }}>based on current filters and scope</span>
+        </>
+      )}
     </div>
   );
 }
@@ -817,12 +837,13 @@ function CardConfigModal({
   statType, statValue, lists, memberName, members, boardLabels,
   isPremium, computeFilteredCount, onSave, onBack, onClose, onUpgradeClick,
   boardName, boardId, workspaceBoards = [], fetchWorkspaceBoards, fetchBoardScopedData,
+   currentUserId,
 }) {
   const [activeTab,          setActiveTab]          = useState("filters");
   const [cardName,           setCardName]           = useState(DEFAULT_NAMES[statType] || "");
   const [description,        setDescription]        = useState("");
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
-  const [boardScope,         setBoardScope]         = useState("all");
+  const [boardScope, setBoardScope] = useState("this");
   const [filterSearch,       setFilterSearch]       = useState("");
 
   const [coverColor,    setCoverColor]    = useState(DEFAULT_COVER[statType] || "blue");
@@ -831,11 +852,13 @@ function CardConfigModal({
   const [textColor,     setTextColor]     = useState("white");
   const [layout,        setLayout]        = useState("center");
   const [customHex,     setCustomHex]     = useState("#3B82F6");
+  const [liveResultsOpen, setLiveResultsOpen] = useState(true); 
 
   const [activeFilters, setActiveFilters] = useState(["assignedTo"]);
   const [filterValues,  setFilterValues]  = useState({
-    assignedTo: ["me"], dueDate: [], label: [], list: [], status: [], cardActivity: [], priority: [],
-  });
+  assignedTo: currentUserId ? [currentUserId] : [],
+  dueDate: [], label: [], list: [], status: [], cardActivity: [], priority: [],
+});
 
   function setFilterValue(key, vals) { setFilterValues(p => ({ ...p, [key]: vals })); }
   function addFilter(key)    { if (!activeFilters.includes(key)) setActiveFilters(p => [...p, key]); }
@@ -927,11 +950,23 @@ function CardConfigModal({
 
         {/* ── Header (title + template badge — close button removed, Trello's popup chrome already has one) ── */}
         <div style={{
-          display:"flex", alignItems:"center", gap:12,
-          padding:"14px 20px", borderBottom:`1px solid ${T.border}`, flexShrink:0,
-          background: T.bg,
-        }}>
-          <span style={{ fontSize:15, fontWeight:700, color:T.text }}>Create Stat Card</span>
+  display:"flex", alignItems:"center", gap:12,
+  padding:"14px 20px", borderBottom:`1px solid ${T.border}`, flexShrink:0,
+  background: T.bg,
+}}>
+  <button
+    onClick={onBack}
+    title="Back"
+    style={{
+      background:"none", border:`1px solid ${T.border}`, borderRadius:7,
+      width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center",
+      color:T.textSub, cursor:"pointer", flexShrink:0, fontSize:15,
+      transition:"border-color 0.15s, color 0.15s",
+    }}
+    onMouseEnter={e => { e.currentTarget.style.borderColor = T.accent; e.currentTarget.style.color = T.accent; }}
+    onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.textSub; }}
+  >←</button>
+  <span style={{ fontSize:15, fontWeight:700, color:T.text }}>Create Stat Card</span>
           <span style={{
             fontSize:11, color:T.accent, background:T.accentDim,
             border:`1px solid ${T.accent}44`, borderRadius:20,
@@ -1213,8 +1248,8 @@ function CardConfigModal({
           </div>
         </div>
 
-        {/* ── Live Results Banner ── */}
-        <LiveResultsSection liveCount={liveCount} />
+       {/* ── Live Results Banner ── */}
+<LiveResultsSection liveCount={liveCount} collapsed={!liveResultsOpen} onToggle={() => setLiveResultsOpen(o => !o)} />
 
         {/* ── Footer ── */}
         <div style={{
@@ -1296,6 +1331,8 @@ export function CustomizeFlow({
   show, lists, stats, memberName, members, boardLabels, customizeStat, setCustomizeStat,
   onSave, onClose, isPremium, onUpgradeClick, computeFilteredCount,
   boardName, boardId, workspaceBoards, fetchWorkspaceBoards, fetchBoardScopedData,
+  workspaceId, workspaceName, fetchWorkspaces,
+  currentUserId,   // ← add
 }) {
   if (!show) return null;
   if (!customizeStat) return <StatPicker onSelect={type => setCustomizeStat(type)} onClose={onClose} />;
@@ -1308,10 +1345,11 @@ export function CustomizeFlow({
       boardName={boardName} boardId={boardId} workspaceBoards={workspaceBoards}
       fetchWorkspaceBoards={fetchWorkspaceBoards}
       fetchBoardScopedData={fetchBoardScopedData}
+      workspaceId={workspaceId} workspaceName={workspaceName} fetchWorkspaces={fetchWorkspaces}
+      currentUserId={currentUserId}   
     />
   );
 }
-
 // ── Standalone demo ───────────────────────────────────────────────────────────
 export default function App() {
   const [show, setShow] = useState(true);
