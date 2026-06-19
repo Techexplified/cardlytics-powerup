@@ -860,6 +860,13 @@ function CardConfigModal({
   const [customHex,     setCustomHex]     = useState("#3B82F6");
   const [liveResultsOpen, setLiveResultsOpen] = useState(true); 
 
+  const [draftToast, setDraftToast] = useState(null); // { message, type } | null
+
+function showDraftToast(message, type = "success") {
+  setDraftToast({ message, type });
+  setTimeout(() => setDraftToast(null), 2500);
+}
+
   const [activeFilters, setActiveFilters] = useState(["assignedTo"]);
   const [filterValues,  setFilterValues]  = useState({
   assignedTo: currentUserId ? [currentUserId] : [],
@@ -901,8 +908,10 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
   try {
     await trelloT.set("board", "shared", "cardlytics_draft", draftData);
     console.log("✅ Draft saved to Trello", draftData);
+    showDraftToast("🔖 Draft saved");
   } catch (err) {
     console.error("❌ Failed to save draft", err);
+    showDraftToast("Failed to save draft", "error");
   }
 }
 
@@ -946,6 +955,7 @@ useEffect(() => {
       }
 
       console.log("📂 Draft loaded from Trello", draft);
+      showDraftToast("📂 Loaded your saved draft");
     })
     .catch((err) => {
       // t.get throws if the key doesn't exist yet — that's expected on first use
@@ -1013,6 +1023,20 @@ useEffect(() => {
     zIndex: 9999,
     fontFamily: "'DM Sans', -apple-system, sans-serif",
   }}>
+    {draftToast && (
+      <div style={{
+        position: "absolute", top: 18, right: 24, zIndex: 10000,
+        display: "flex", alignItems: "center", gap: 8,
+        background: T.bgDeep,
+        border: `1px solid ${draftToast.type === "error" ? T.danger : T.success}`,
+        borderRadius: 8, padding: "9px 16px",
+        color: "#fff", fontSize: 12.5, fontWeight: 600,
+        boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+      }}>
+        <span>{draftToast.type === "error" ? "⚠️" : "✅"}</span>
+        <span>{draftToast.message}</span>
+      </div>
+    )}
    <div style={{
   background: T.bgSection,
   width: "100%",
