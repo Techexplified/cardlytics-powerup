@@ -26,6 +26,7 @@ import jsPDF from "jspdf";
 const TRELLO_BASE = "https://api.trello.com/1";
 
 let _workspaceBoardsCache = null;
+let _workspacesCache = null;  
 
 // ── Initialize Trello iframe context ONCE at module level ─────────────────────
 const trelloT = (() => {
@@ -1624,6 +1625,8 @@ export default function App() {
   const [boardLabels, setBoardLabels] = useState([]);
   const [currentBoardId, setCurrentBoardId] = useState(null);
   const [currentBoardName, setCurrentBoardName] = useState("");
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState(null);   
+const [currentWorkspaceName, setCurrentWorkspaceName] = useState("");  
 
   const scopeListIdRef = useRef(
     (() => {
@@ -1648,6 +1651,18 @@ export default function App() {
       console.error("refreshTrackerCards error:", err);
     }
   }
+
+  async function fetchAllWorkspaces() {
+  if (_workspacesCache) return _workspacesCache;
+  const key = TRELLO_API_KEY;
+  const tkn = getStoredToken();
+  const res = await fetch(
+    `${TRELLO_BASE}/members/me/organizations?key=${key}&token=${tkn}&fields=id,displayName`,
+  );
+  const data = res.ok ? await res.json() : [];
+  _workspacesCache = data;
+  return data;
+}
 
   // ── 2. fetchData ──────────────────────────────────────────────────────────
   async function fetchData(overrideScope) {
@@ -1712,6 +1727,17 @@ export default function App() {
       }
       const boardInfo = await getBoard(key, tkn, boardId);
       setCurrentBoardName(boardInfo?.name || "");
+
+      const orgId = boardInfo?.idOrganization || null;
+setCurrentWorkspaceId(orgId);
+if (orgId) {
+  const orgRes = await fetch(
+    `${TRELLO_BASE}/organizations/${orgId}?key=${key}&token=${tkn}&fields=displayName`,
+  );
+  if (orgRes.ok) setCurrentWorkspaceName((await orgRes.json()).displayName);
+} else {
+  setCurrentWorkspaceName("My Workspace");
+}
 
       const labels = await getBoardLabels(key, tkn, boardId);
       setBoardLabels(labels);
@@ -2046,6 +2072,9 @@ export default function App() {
         }}
         boardId={currentBoardId}
         boardName={currentBoardName}
+        workspaceId={currentWorkspaceId}        
+workspaceName={currentWorkspaceName}  
+fetchWorkspaces={fetchAllWorkspaces} 
         fetchWorkspaceBoards={async () => {
           if (_workspaceBoardsCache) return _workspaceBoardsCache;
           const key = TRELLO_API_KEY;

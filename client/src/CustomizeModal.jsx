@@ -916,17 +916,14 @@ function CardConfigModal({
     zIndex: 9999,
     fontFamily: "'DM Sans', -apple-system, sans-serif",
   }}>
-    <div style={{
-      background: T.bgSection,
-      width: "100%",
-      maxWidth: 1040,
-      height: "90%",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-      borderRadius: 14,
-      boxShadow: "0 20px 60px rgba(0,0,0,0.7)",
-    }}>
+   <div style={{
+  background: T.bgSection,
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+}}>
 
         {/* ── Header (title + template badge — close button removed, Trello's popup chrome already has one) ── */}
         <div style={{
