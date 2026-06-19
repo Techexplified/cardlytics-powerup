@@ -887,6 +887,7 @@ function CardConfigModal({
     description,
     cover: coverColor,
     subtitle: styleSubtitle,
+    customHex,    
     textColor,
     layout,
     boardScope,
@@ -910,6 +911,44 @@ function CardConfigModal({
       .catch(() => setBoards([]))
       .finally(() => setBoardsLoading(false));
   }, [fetchWorkspaceBoards]);
+
+  // ── Load saved draft on open ──────────────────────────────────────────────
+useEffect(() => {
+  if (!trelloT) return;
+
+  trelloT.get("board", "shared", "cardlytics_draft")
+    .then((draft) => {
+      if (!draft) return;
+
+      if (draft.cardName) {
+        setCardName(draft.cardName);
+        setNameManuallyEdited(true);
+      }
+      if (draft.description !== undefined) setDescription(draft.description);
+      if (draft.cover) setCoverColor(draft.cover);
+      if (draft.customHex) setCustomHex(draft.customHex); 
+      if (draft.subtitle !== undefined) setStyleSubtitle(draft.subtitle);
+      if (draft.textColor) setTextColor(draft.textColor);
+      if (draft.layout) setLayout(draft.layout);
+      if (draft.boardScope) setBoardScope(draft.boardScope);
+
+      if (draft.filters) {
+        setFilterValues(draft.filters);
+        // Re-derive which filter rows should show as "active"
+        const activeKeys = Object.keys(draft.filters).filter(
+          (k) => Array.isArray(draft.filters[k]) && draft.filters[k].length > 0
+        );
+        setActiveFilters(activeKeys.length > 0 ? activeKeys : ["assignedTo"]);
+      }
+
+      console.log("📂 Draft loaded from Trello", draft);
+    })
+    .catch((err) => {
+      // t.get throws if the key doesn't exist yet — that's expected on first use
+      console.log("No existing draft found (or failed to load):", err);
+    });
+}, [trelloT]);
+
 
   const liveCount = computeFilteredCount
     ? computeFilteredCount(statType, {
