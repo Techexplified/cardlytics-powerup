@@ -907,7 +907,7 @@ function CardConfigModal({
 
  return (
   <div style={{
-    position: "fixed",
+    position: "absolute",
     inset: 0,
     background: "rgba(0,0,0,0.75)",
     display: "flex",
@@ -919,8 +919,8 @@ function CardConfigModal({
     <div style={{
       background: T.bgSection,
       width: "100%",
-      maxWidth: 1040,      // pick whatever fits your popup width
-      height: "85vh",      // or a fixed px height like 700
+      maxWidth: 1040,
+      height: "90%",
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
