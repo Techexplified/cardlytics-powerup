@@ -905,46 +905,29 @@ function CardConfigModal({
     { key:"style",   label:"Style"   },
   ];
 
-  return (
+ return (
     <div style={{
-      position:"fixed", inset:0, background:"rgba(0,0,0,0.8)",
-      display:"flex", alignItems:"center", justifyContent:"center",
-      zIndex:9999, fontFamily:"'DM Sans', -apple-system, sans-serif",
-    }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{
-        background: T.bgSection,
-        border: `1px solid ${T.border}`,
-        borderRadius: 14,
-        width: "calc(100vw - 16px)",
-        maxWidth: "calc(100vw - 16px)",
-        maxHeight: "calc(100vh - 16px)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
-      }}>
+      background: T.bgSection,
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+      fontFamily: "'DM Sans', -apple-system, sans-serif",
+    }}>
 
-        {/* ── Header ── */}
+        {/* ── Header (title + template badge — close button removed, Trello's popup chrome already has one) ── */}
         <div style={{
-          display:"flex", justifyContent:"space-between", alignItems:"center",
+          display:"flex", alignItems:"center", gap:12,
           padding:"14px 20px", borderBottom:`1px solid ${T.border}`, flexShrink:0,
           background: T.bg,
         }}>
-          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <span style={{ fontSize:15, fontWeight:700, color:T.text }}>Create Stat Card</span>
-            <span style={{
-              fontSize:11, color:T.accent, background:T.accentDim,
-              border:`1px solid ${T.accent}44`, borderRadius:20,
-              padding:"2px 10px", fontWeight:600,
-            }}>Template: {previewName}</span>
-          </div>
-          <button onClick={onClose} style={{
-            background:"none", border:"none", color:T.textMuted,
-            fontSize:20, cursor:"pointer", padding:"2px 6px", borderRadius:4, lineHeight:1,
-          }}
-            onMouseEnter={e => e.currentTarget.style.color = T.text}
-            onMouseLeave={e => e.currentTarget.style.color = T.textMuted}
-          >✕</button>
+          <span style={{ fontSize:15, fontWeight:700, color:T.text }}>Create Stat Card</span>
+          <span style={{
+            fontSize:11, color:T.accent, background:T.accentDim,
+            border:`1px solid ${T.accent}44`, borderRadius:20,
+            padding:"2px 10px", fontWeight:600,
+          }}>Template: {previewName}</span>
         </div>
 
         {/* ── Body ── */}
@@ -1292,10 +1275,9 @@ function CardConfigModal({
                 </button>
               </>
             )}
-          </div>
+        </div>
         </div>
       </div>
-    </div>
   );
 }
 
