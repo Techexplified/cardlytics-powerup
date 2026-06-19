@@ -12,7 +12,7 @@ import {
   createCard,
   createList,
   applyFilters,
-  getWeekBounds, 
+  getWeekBounds,
   getWorkspaceBoards, // ← new
   getBoardScopedData,
 } from "./trello";
@@ -983,36 +983,36 @@ function CardDetailsView() {
   }
 
   async function handleDeletePersonalizedView(view, e) {
-  e.stopPropagation(); // don't trigger the card's own onClick (opening it)
+    e.stopPropagation(); // don't trigger the card's own onClick (opening it)
 
-  const confirmMsg = view.cardId
-    ? `Remove "${view.cardName}"? This will also delete its tracker card from the board.`
-    : `Remove "${view.cardName}" from your personalized views?`;
-  if (!window.confirm(confirmMsg)) return;
+    const confirmMsg = view.cardId
+      ? `Remove "${view.cardName}"? This will also delete its tracker card from the board.`
+      : `Remove "${view.cardName}" from your personalized views?`;
+    if (!window.confirm(confirmMsg)) return;
 
-  if (view.cardId) {
-    try {
-      await fetch(
-        `${TRELLO_BASE}/cards/${view.cardId}?key=${key}&token=${token}`,
-        { method: "DELETE" },
+    if (view.cardId) {
+      try {
+        await fetch(
+          `${TRELLO_BASE}/cards/${view.cardId}?key=${key}&token=${token}`,
+          { method: "DELETE" },
+        );
+      } catch (err) {
+        console.error("Failed to delete tracker card:", err);
+      }
+    }
+
+    setPersonalizedViews((prev) => prev.filter((v) => v.id !== view.id));
+
+    if (boardId) {
+      const saved = JSON.parse(
+        localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
       );
-    } catch (err) {
-      console.error("Failed to delete tracker card:", err);
+      localStorage.setItem(
+        `cardlytics:personalized:${boardId}`,
+        JSON.stringify(saved.filter((v) => v.id !== view.id)),
+      );
     }
   }
-
-  setPersonalizedViews((prev) => prev.filter((v) => v.id !== view.id));
-
-  if (boardId) {
-    const saved = JSON.parse(
-      localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
-    );
-    localStorage.setItem(
-      `cardlytics:personalized:${boardId}`,
-      JSON.stringify(saved.filter((v) => v.id !== view.id)),
-    );
-  }
-}
 
   function SortArrow({ col }) {
     if (sortCol !== col)
@@ -1176,7 +1176,7 @@ function CardDetailsView() {
           </div>
         )}
 
-       {leftTab === "personalized" && (
+        {leftTab === "personalized" && (
           <>
             {personalizedViews.length === 0 ? (
               <div className="cd-personalized-empty">
@@ -1232,7 +1232,8 @@ function CardDetailsView() {
                       transition: "background 0.15s ease, color 0.15s ease",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(255, 82, 82, 0.12)";
+                      e.currentTarget.style.background =
+                        "rgba(255, 82, 82, 0.12)";
                       e.currentTarget.style.color = "#ff5252";
                     }}
                     onMouseLeave={(e) => {
@@ -1756,13 +1757,13 @@ export default function App() {
     fetchData();
 
     const intervalId = setInterval(() => {
-      fetchData(); 
+      fetchData();
     }, 5000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [token]); 
+  }, [token]);
   if (!token)
     return (
       <LoginScreen
@@ -1775,6 +1776,59 @@ export default function App() {
     );
   if (view === "card") return <CardBackView />;
   if (view === "card-details") return <CardDetailsView />;
+  if (view === "customize")
+    return (
+      <CustomizeFlow
+        show={true}
+        lists={lists}
+        stats={stats}
+        memberName={memberFullName}
+        members={boardMembers}
+        boardLabels={boardLabels}
+        customizeStat={customizeStat}
+        setCustomizeStat={setCustomizeStat}
+        onSave={async (type, cfg) => {
+          const newConfig = { ...cardConfig, [type]: cfg };
+          setCardConfig(newConfig);
+          await handleTrack([type], newConfig);
+          if (trelloT) trelloT.closeModal();
+        }}
+        onClose={() => {
+          if (trelloT) trelloT.closeModal();
+        }}
+        computeFilteredCount={(statType, filters) => {
+          const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
+          const hasExplicitFilters =
+            filters.due?.length > 0 ||
+            filters.members?.length > 0 ||
+            filters.labels?.length > 0 ||
+            filters.lists?.length > 0 ||
+            filters.status?.length > 0 ||
+            filters.activity?.length > 0;
+          if (hasExplicitFilters)
+            return applyFilters(cards, filters, currentMemberId).length;
+          const statFn = buildStatFilterMap(currentMemberId, null)[statType];
+          if (!statFn || statType === "cardsInList" || statType === "all")
+            return cards.length;
+          return cards.filter(statFn).length;
+        }}
+        boardId={currentBoardId}
+        boardName={currentBoardName}
+        fetchWorkspaceBoards={async () => {
+          if (_workspaceBoardsCache) return _workspaceBoardsCache;
+          const key = TRELLO_API_KEY;
+          const tkn = getStoredToken();
+          const boards = await getWorkspaceBoards(key, tkn);
+          _workspaceBoardsCache = boards;
+          return boards;
+        }}
+        fetchBoardScopedData={async (targetBoardId, boards) => {
+          const key = TRELLO_API_KEY;
+          const tkn = getStoredToken();
+          return getBoardScopedData(key, tkn, targetBoardId, boards);
+        }}
+      />
+    );
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -2102,7 +2156,16 @@ export default function App() {
             </button>
             <button
               className="btn-customize"
-              onClick={() => setShowCustomize(true)}
+              onClick={() => {
+                if (!trelloT) return;
+                trelloT.board("id").then((board) => {
+                  trelloT.modal({
+                    title: "Cardlytics — Customize",
+                    url: `./index.html?view=customize&boardId=${board.id}`,
+                    fullscreen: true,
+                  });
+                });
+              }}
             >
               Customize
             </button>

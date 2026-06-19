@@ -796,9 +796,8 @@ function ScopeSelect({ label, value, onChange, options, loading, icon, iconBg })
 
 // ── Stat picker (step 1) ──────────────────────────────────────────────────────
 function StatPicker({ onSelect, onClose }) {
-  const portalRoot = (() => { try { return window.top.document.body; } catch { return document.body; } })();
-  return createPortal(
-    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:2147483647, fontFamily:"'DM Sans',sans-serif" }} onClick={onClose}>
+  return (
+    <div style={{ width:"100vw", height:"100vh", background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Sans',sans-serif" }} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{ background:T.bgSection, border:`1px solid ${T.border}`, borderRadius:14, width:300, overflow:"hidden", boxShadow:"0 20px 60px rgba(0,0,0,0.7)" }}>
         <div style={{ padding:"14px 18px", borderBottom:`1px solid ${T.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span style={{ fontSize:14, fontWeight:600, color:T.text }}>Create Stat Card</span>
@@ -819,8 +818,9 @@ function StatPicker({ onSelect, onClose }) {
         </div>
       </div>
     </div>
-  , portalRoot);
+  );
 }
+
 
 // ── Main CardConfigModal ──────────────────────────────────────────────────────
 function CardConfigModal({
@@ -915,26 +915,21 @@ function CardConfigModal({
     { key:"style",   label:"Style"   },
   ];
 
-  // Escape the Trello Power-Up iframe: portal into window.top so the modal
-  // covers the real browser window instead of the tiny iframe.
-  const portalRoot = (() => {
-    try { return window.top.document.body; } catch { return document.body; }
-  })();
-
-  const modalContent = (
+  return (
     <div style={{
-      position:"fixed", inset:0, background:"rgba(0,0,0,0.78)",
+      width:"100vw", height:"100vh",
+      background: T.bgDeep,
       display:"flex", alignItems:"center", justifyContent:"center",
-      zIndex:2147483647, fontFamily:"'DM Sans', -apple-system, sans-serif",
-    }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{
+      fontFamily:"'DM Sans', -apple-system, sans-serif",
+    }}>
+      <div style={{
         background: T.bgSection,
         border: `1px solid ${T.border}`,
         borderRadius: 14,
-        width: "min(1240px, 92vw)",
-        maxWidth: "92vw",
-        height: "min(800px, 88vh)",
-        maxHeight: "88vh",
+        width: "min(1240px, 96vw)",
+        maxWidth: "96vw",
+        height: "min(820px, 96vh)",
+        maxHeight: "96vh",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -1321,8 +1316,6 @@ function CardConfigModal({
       </div>
     </div>
   );
-
-  return createPortal(modalContent, portalRoot);
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
