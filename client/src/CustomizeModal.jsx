@@ -916,7 +916,7 @@ function CardConfigModal({
         border: `1px solid ${T.border}`,
         borderRadius: 14,
         width: "calc(100vw - 16px)",
-        maxWidth: 1120,
+        maxWidth: "calc(100vw - 16px)",
         maxHeight: "calc(100vh - 16px)",
         display: "flex",
         flexDirection: "column",
