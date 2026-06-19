@@ -1285,11 +1285,12 @@ function CardConfigModal({
                     fontSize:11,
                   }}>✦</span>
                 </button>
-              </>
+             </>
             )}
         </div>
         </div>
       </div>
+    </div>
   );
 }
 
