@@ -108,7 +108,7 @@ const STAT_LIST = [
 ];
 
 const DUE_OPTIONS = [
-  { value:"2days",   label:"Due in 2 days"  },
+  { value:"thisWeek", label:"Due this week" },
   { value:"1week",   label:"Due in 1 week"  },
   { value:"2weeks",  label:"Due in 2 weeks" },
   { value:"1month",  label:"Due in 1 month" },
@@ -372,7 +372,7 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
 }
 
 // ── Active filter row ─────────────────────────────────────────────────────────
-function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, members, boardLabels }) {
+function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, members, boardLabels, currentUserId }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef();
   const portalRef  = useRef();
@@ -392,28 +392,33 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
   if (!def) return null;
 
   function pillValue() {
-    if (!values || !values.length) return "Me (Current User)";
-    if (filterKey === "dueDate") {
-      if (values.length === 1) return DUE_OPTIONS.find(o=>o.value===values[0])?.label || values[0];
-      return `${values.length} dates`;
+  if (filterKey === "assignedTo") {
+    if (!values || !values.length) return null; // shows "Any"
+    if (values.length === 1) {
+      const m = (members || []).find(x => x.id === values[0]);
+      if (!m) return "Selected";
+      return values[0] === currentUserId ? `Me (${m.fullName})` : m.fullName;
     }
-    if (filterKey === "assignedTo") {
-      if (values.length === 1) { const m=(members||[]).find(x=>x.id===values[0]); return m?m.fullName:"Selected"; }
-      return `${values.length} members`;
-    }
-    if (filterKey === "label") {
-      if (values.length === 1) { const l=(boardLabels||[]).find(x=>x.id===values[0]); return l?.name?.trim()||l?.color||values[0]; }
-      return `${values.length} labels`;
-    }
-    if (filterKey === "list") {
-      if (values.length === 1) return (lists||[]).find(l=>l.id===values[0])?.name||values[0];
-      return `${values.length} lists`;
-    }
-    if (filterKey === "status") {
-      if (values.length === 1) return { complete:"Complete", incomplete:"Incomplete", overdue:"Overdue" }[values[0]] || values[0];
-    }
-    return null;
+    return `${values.length} members`;
   }
+  if (!values || !values.length) return null;
+  if (filterKey === "dueDate") {
+    if (values.length === 1) return DUE_OPTIONS.find(o => o.value === values[0])?.label || values[0];
+    return `${values.length} dates`;
+  }
+  if (filterKey === "label") {
+    if (values.length === 1) { const l = (boardLabels || []).find(x => x.id === values[0]); return l?.name?.trim() || l?.color || values[0]; }
+    return `${values.length} labels`;
+  }
+  if (filterKey === "list") {
+    if (values.length === 1) return (lists || []).find(l => l.id === values[0])?.name || values[0];
+    return `${values.length} lists`;
+  }
+  if (filterKey === "status") {
+    if (values.length === 1) return { complete: "Complete", incomplete: "Incomplete", overdue: "Overdue" }[values[0]] || values[0];
+  }
+  return null;
+}
 
   const val = pillValue();
 
@@ -1117,6 +1122,7 @@ function CardConfigModal({
                           onValuesChange={vals => setFilterValue(key, vals)}
                           onRemove={() => removeFilter(key)}
                           lists={scopedLists} members={scopedMembers} boardLabels={scopedLabels}
+                          currentUserId={currentUserId} 
                         />
                       ))}
                       {activeFilters.length === 0 && (
