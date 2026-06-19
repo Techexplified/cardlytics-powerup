@@ -12,7 +12,7 @@ import {
   createCard,
   createList,
   applyFilters,
-  getWeekBounds, 
+  getWeekBounds,
   getWorkspaceBoards, // ← new
   getBoardScopedData,
 } from "./trello";
@@ -26,7 +26,7 @@ import jsPDF from "jspdf";
 const TRELLO_BASE = "https://api.trello.com/1";
 
 let _workspaceBoardsCache = null;
-let _workspacesCache = null;  
+let _workspacesCache = null;
 
 // ── Initialize Trello iframe context ONCE at module level ─────────────────────
 const trelloT = (() => {
@@ -221,6 +221,136 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
   });
 }
 
+// ── Generate cover image from a styled DOM node (matches LiveStylePreview) ───
+async function generateStyledCoverImage({
+  count,
+  cover,
+  customHex,
+  textColor,
+  layout,
+  title,
+  subtitle,
+  coverImage,
+}) {
+  const COVER_COLORS_MAP = {
+    blue: "#0052cc",
+    sky: "#29b6f6",
+    green: "#1a7a4a",
+    yellow: "#e6a817",
+    orange: "#e67e22",
+    red: "#c0392b",
+    purple: "#7e57c2",
+    pink: "#e91e8c",
+    black: "#374151",
+  };
+  const COVER_GRADIENTS_MAP = {
+    "grad-blue-sky": "linear-gradient(135deg,#0052cc,#29b6f6)",
+    "grad-green-sky": "linear-gradient(135deg,#1a7a4a,#29b6f6)",
+    "grad-orange-pink": "linear-gradient(135deg,#e67e22,#e91e8c)",
+    "grad-purple-pink": "linear-gradient(135deg,#7e57c2,#e91e8c)",
+    "grad-yellow-orange": "linear-gradient(135deg,#e6a817,#e67e22)",
+    "grad-red-purple": "linear-gradient(135deg,#c0392b,#7e57c2)",
+    "grad-slate-blue": "linear-gradient(135deg,#374151,#0052cc)",
+    "grad-multi": "linear-gradient(135deg,#0052cc,#7e57c2,#e91e8c)",
+  };
+  const TEXT_COLORS_MAP = {
+    white: "#FFFFFF",
+    light: "#E5E7EB",
+    muted: "#9CA3AF",
+    dark: "#374151",
+    blue: "#3B82F6",
+    green: "#10B981",
+    yellow: "#FBBF24",
+    gradient: "#FFFFFF", // html2canvas can't render CSS gradients on text; fall back to white
+  };
+
+  const cardBg =
+    cover === "custom" && customHex
+      ? customHex
+      : COVER_GRADIENTS_MAP[cover] || COVER_COLORS_MAP[cover] || "#0052cc";
+  const resolvedTextColor = TEXT_COLORS_MAP[textColor] || "#FFFFFF";
+
+  // Build a hidden node that mirrors LiveStylePreview exactly
+  const wrapper = document.createElement("div");
+  Object.assign(wrapper.style, {
+    position: "fixed",
+    top: "-9999px",
+    left: "-9999px",
+    width: "800px",
+    height: "320px",
+    borderRadius: "0",
+    overflow: "hidden",
+    background: cardBg,
+    zIndex: -1,
+  });
+
+  // Overlay (same as LiveStylePreview)
+  const overlay = document.createElement("div");
+  Object.assign(overlay.style, {
+    position: "absolute",
+    inset: "0",
+    background: "rgba(0,0,0,0.08)",
+  });
+  wrapper.appendChild(overlay);
+
+  const numStyle = `font-size:52px;font-weight:800;color:${resolvedTextColor};line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
+  const lblStyle = `font-size:26px;font-weight:700;color:${resolvedTextColor};line-height:1.4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
+  const subStyle = `font-size:20px;color:${resolvedTextColor};opacity:0.75;line-height:1.3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
+
+  let innerHtml = "";
+  if (layout === "center") {
+    innerHtml = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px;">
+      <span style="${numStyle}">${count}</span>
+      <span style="${lblStyle}">${title}</span>
+      <span style="${subStyle}">${subtitle}</span>
+    </div>`;
+  } else if (layout === "bottomLeft") {
+    innerHtml = `<div style="position:absolute;bottom:32px;left:32px;display:flex;flex-direction:column;gap:6px;">
+      <span style="${numStyle}">${count}</span>
+      <span style="${lblStyle}">${title}</span>
+      <span style="${subStyle}">${subtitle}</span>
+    </div>`;
+  } else if (layout === "bottomRight") {
+    innerHtml = `<div style="position:absolute;bottom:32px;right:32px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+      <span style="${numStyle}">${count}</span>
+      <span style="${lblStyle}">${title}</span>
+      <span style="${subStyle}">${subtitle}</span>
+    </div>`;
+  } else if (layout === "topBottom") {
+    innerHtml = `
+      <div style="position:absolute;top:32px;right:32px;text-align:right;">
+        <span style="${numStyle}">${count}</span>
+        <span style="${lblStyle};display:block;">${title}</span>
+      </div>
+      <div style="position:absolute;bottom:24px;left:32px;">
+        <span style="${subStyle}">${subtitle}</span>
+      </div>`;
+  }
+
+  const content = document.createElement("div");
+  content.style.position = "relative";
+  content.style.zIndex = "1";
+  content.style.width = "100%";
+  content.style.height = "100%";
+  content.innerHTML = innerHtml;
+  wrapper.appendChild(content);
+
+  document.body.appendChild(wrapper);
+  try {
+    const canvas = await html2canvas(wrapper, {
+      backgroundColor: null,
+      scale: 1,
+      useCORS: true,
+      width: 800,
+      height: 320,
+      logging: false,
+    });
+    return canvas.toDataURL("image/jpeg", 0.92);
+  } finally {
+    document.body.removeChild(wrapper);
+  }
+}
+
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function Toast({ toast }) {
   if (!toast) return null;
@@ -334,6 +464,13 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
 
     const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
 
+    // Load saved style (written at card-creation time)
+    let savedStyle = null;
+    try {
+      const raw = localStorage.getItem(`cardlytics:style:${card.id}`);
+      if (raw) savedStyle = JSON.parse(raw);
+    } catch (_) {}
+
     let existingBgDataUrl = null;
     try {
       const local = localStorage.getItem(`cardlytics:customBg:${card.id}`);
@@ -362,11 +499,18 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
       }
     }
 
-    const newCoverDataUrl = await generateStatCoverImage(
-      newCount,
-      coverColor,
-      existingBgDataUrl,
-    );
+    const newCoverDataUrl = savedStyle
+      ? await generateStyledCoverImage({
+          count: newCount,
+          cover: savedStyle.cover || coverColor,
+          customHex: savedStyle.customHex || null,
+          textColor: savedStyle.textColor || "white",
+          layout: savedStyle.layout || "center",
+          title: savedStyle.title || card.name,
+          subtitle: savedStyle.subtitle || "",
+          coverImage: existingBgDataUrl,
+        })
+      : await generateStatCoverImage(newCount, coverColor, existingBgDataUrl);
 
     const blob = dataUrlToBlob(newCoverDataUrl);
     const formData = new FormData();
@@ -983,36 +1127,36 @@ function CardDetailsView() {
   }
 
   async function handleDeletePersonalizedView(view, e) {
-  e.stopPropagation(); // don't trigger the card's own onClick (opening it)
+    e.stopPropagation(); // don't trigger the card's own onClick (opening it)
 
-  const confirmMsg = view.cardId
-    ? `Remove "${view.cardName}"? This will also delete its tracker card from the board.`
-    : `Remove "${view.cardName}" from your personalized views?`;
-  if (!window.confirm(confirmMsg)) return;
+    const confirmMsg = view.cardId
+      ? `Remove "${view.cardName}"? This will also delete its tracker card from the board.`
+      : `Remove "${view.cardName}" from your personalized views?`;
+    if (!window.confirm(confirmMsg)) return;
 
-  if (view.cardId) {
-    try {
-      await fetch(
-        `${TRELLO_BASE}/cards/${view.cardId}?key=${key}&token=${token}`,
-        { method: "DELETE" },
+    if (view.cardId) {
+      try {
+        await fetch(
+          `${TRELLO_BASE}/cards/${view.cardId}?key=${key}&token=${token}`,
+          { method: "DELETE" },
+        );
+      } catch (err) {
+        console.error("Failed to delete tracker card:", err);
+      }
+    }
+
+    setPersonalizedViews((prev) => prev.filter((v) => v.id !== view.id));
+
+    if (boardId) {
+      const saved = JSON.parse(
+        localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
       );
-    } catch (err) {
-      console.error("Failed to delete tracker card:", err);
+      localStorage.setItem(
+        `cardlytics:personalized:${boardId}`,
+        JSON.stringify(saved.filter((v) => v.id !== view.id)),
+      );
     }
   }
-
-  setPersonalizedViews((prev) => prev.filter((v) => v.id !== view.id));
-
-  if (boardId) {
-    const saved = JSON.parse(
-      localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
-    );
-    localStorage.setItem(
-      `cardlytics:personalized:${boardId}`,
-      JSON.stringify(saved.filter((v) => v.id !== view.id)),
-    );
-  }
-}
 
   function SortArrow({ col }) {
     if (sortCol !== col)
@@ -1176,7 +1320,7 @@ function CardDetailsView() {
           </div>
         )}
 
-       {leftTab === "personalized" && (
+        {leftTab === "personalized" && (
           <>
             {personalizedViews.length === 0 ? (
               <div className="cd-personalized-empty">
@@ -1232,7 +1376,8 @@ function CardDetailsView() {
                       transition: "background 0.15s ease, color 0.15s ease",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(255, 82, 82, 0.12)";
+                      e.currentTarget.style.background =
+                        "rgba(255, 82, 82, 0.12)";
                       e.currentTarget.style.color = "#ff5252";
                     }}
                     onMouseLeave={(e) => {
@@ -1625,8 +1770,8 @@ export default function App() {
   const [boardLabels, setBoardLabels] = useState([]);
   const [currentBoardId, setCurrentBoardId] = useState(null);
   const [currentBoardName, setCurrentBoardName] = useState("");
-  const [currentWorkspaceId, setCurrentWorkspaceId] = useState(null);   
-const [currentWorkspaceName, setCurrentWorkspaceName] = useState("");  
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState(null);
+  const [currentWorkspaceName, setCurrentWorkspaceName] = useState("");
 
   const scopeListIdRef = useRef(
     (() => {
@@ -1653,16 +1798,16 @@ const [currentWorkspaceName, setCurrentWorkspaceName] = useState("");
   }
 
   async function fetchAllWorkspaces() {
-  if (_workspacesCache) return _workspacesCache;
-  const key = TRELLO_API_KEY;
-  const tkn = getStoredToken();
-  const res = await fetch(
-    `${TRELLO_BASE}/members/me/organizations?key=${key}&token=${tkn}&fields=id,displayName`,
-  );
-  const data = res.ok ? await res.json() : [];
-  _workspacesCache = data;
-  return data;
-}
+    if (_workspacesCache) return _workspacesCache;
+    const key = TRELLO_API_KEY;
+    const tkn = getStoredToken();
+    const res = await fetch(
+      `${TRELLO_BASE}/members/me/organizations?key=${key}&token=${tkn}&fields=id,displayName`,
+    );
+    const data = res.ok ? await res.json() : [];
+    _workspacesCache = data;
+    return data;
+  }
 
   // ── 2. fetchData ──────────────────────────────────────────────────────────
   async function fetchData(overrideScope) {
@@ -1729,15 +1874,16 @@ const [currentWorkspaceName, setCurrentWorkspaceName] = useState("");
       setCurrentBoardName(boardInfo?.name || "");
 
       const orgId = boardInfo?.idOrganization || null;
-setCurrentWorkspaceId(orgId);
-if (orgId) {
-  const orgRes = await fetch(
-    `${TRELLO_BASE}/organizations/${orgId}?key=${key}&token=${tkn}&fields=displayName`,
-  );
-  if (orgRes.ok) setCurrentWorkspaceName((await orgRes.json()).displayName);
-} else {
-  setCurrentWorkspaceName("My Workspace");
-}
+      setCurrentWorkspaceId(orgId);
+      if (orgId) {
+        const orgRes = await fetch(
+          `${TRELLO_BASE}/organizations/${orgId}?key=${key}&token=${tkn}&fields=displayName`,
+        );
+        if (orgRes.ok)
+          setCurrentWorkspaceName((await orgRes.json()).displayName);
+      } else {
+        setCurrentWorkspaceName("My Workspace");
+      }
 
       const labels = await getBoardLabels(key, tkn, boardId);
       setBoardLabels(labels);
@@ -1781,13 +1927,13 @@ if (orgId) {
     fetchData();
 
     const intervalId = setInterval(() => {
-      fetchData(); 
+      fetchData();
     }, 5000);
 
     return () => {
       clearInterval(intervalId);
     };
-  }, [token]); 
+  }, [token]);
   if (!token)
     return (
       <LoginScreen
@@ -1925,11 +2071,16 @@ if (orgId) {
           const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
           const cover = saved?.cover || defaults.cover;
 
-          const coverImageDataUrl = await generateStatCoverImage(
+          const coverImageDataUrl = await generateStyledCoverImage({
             count,
-            cover,
-            saved?.coverImage || null,
-          );
+            cover: saved?.cover || defaults.cover,
+            customHex: saved?.customHex || null,
+            textColor: saved?.textColor || "white",
+            layout: saved?.layout || "center",
+            title: saved?.cardName || defaults.name,
+            subtitle: saved?.subtitle || "",
+            coverImage: saved?.coverImage || null,
+          });
           const newCard = await createCard(
             key,
             tkn,
@@ -1945,6 +2096,19 @@ if (orgId) {
               localStorage.setItem(
                 `cardlytics:customBg:${newCard.id}`,
                 saved.coverImage,
+              );
+
+              const stylePayload = {
+                cover: saved.cover || defaults.cover,
+                customHex: saved.customHex || null,
+                textColor: saved.textColor || "white",
+                layout: saved.layout || "center",
+                title: saved.cardName || defaults.name,
+                subtitle: saved.subtitle || "",
+              };
+              localStorage.setItem(
+                `cardlytics:style:${newCard.id}`,
+                JSON.stringify(stylePayload),
               );
 
               const tiny = await new Promise((resolve) => {
@@ -2036,7 +2200,7 @@ if (orgId) {
         boardLabels={boardLabels}
         customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
-         currentUserId={currentMemberId}
+        currentUserId={currentMemberId}
         onSave={async (type, cfg) => {
           const newConfig = { ...cardConfig, [type]: cfg };
           setCardConfig(newConfig);
@@ -2073,9 +2237,9 @@ if (orgId) {
         }}
         boardId={currentBoardId}
         boardName={currentBoardName}
-        workspaceId={currentWorkspaceId}        
-workspaceName={currentWorkspaceName}  
-fetchWorkspaces={fetchAllWorkspaces} 
+        workspaceId={currentWorkspaceId}
+        workspaceName={currentWorkspaceName}
+        fetchWorkspaces={fetchAllWorkspaces}
         fetchWorkspaceBoards={async () => {
           if (_workspaceBoardsCache) return _workspaceBoardsCache;
           const key = TRELLO_API_KEY;
