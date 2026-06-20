@@ -2073,21 +2073,30 @@ export default function App() {
               ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}${filterStr}`
               : `\n\n[_]: cardlytics:mode:board:statType:${stat}${filterStr}`;
 
-          const coverTitle = saved?.cardName || defaults.label;
-          const trelloCardName = defaults.name; // minimal — avoids duplicate text on card front
+         const coverTitle = saved?.cardName || defaults.label;
+
+          // Customized cards (styled image) → use a minimal emoji-only Trello
+          // name, since the descriptive text is already baked into the cover
+          // image. Plain "Track" cards have no image overlay, so they keep
+          // the full native name (e.g. "📌 Assigned to Me") as before.
+          const trelloCardName = saved ? defaults.name : defaults.label;
+
           const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
           const cover = saved?.cover || defaults.cover;
 
-          const coverImageDataUrl = await generateStyledCoverImage({
-            count,
-            cover: saved?.cover || defaults.cover,
-            customHex: saved?.customHex || null,
-            textColor: saved?.textColor || "white",
-            layout: saved?.layout || "center",
-            title: coverTitle,
-            subtitle: saved?.subtitle || "",
-            coverImage: saved?.coverImage || null,
-          });
+          const coverImageDataUrl = saved
+            ? await generateStyledCoverImage({
+                count,
+                cover: saved?.cover || defaults.cover,
+                customHex: saved?.customHex || null,
+                textColor: saved?.textColor || "white",
+                layout: saved?.layout || "center",
+                title: coverTitle,
+                subtitle: saved?.subtitle || "",
+                coverImage: saved?.coverImage || null,
+              })
+            : null;
+
           const newCard = await createCard(
             key,
             tkn,
