@@ -398,6 +398,76 @@ function TrashIcon({ size = 14 }) {
   );
 }
 
+function ConfirmDialog({ title, message, onConfirm, onCancel }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.6)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 99999,
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+      onClick={onCancel}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#1c2128",
+          border: "1px solid #30363d",
+          borderRadius: 12,
+          width: 360,
+          padding: "20px 22px",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+        }}
+      >
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#e6edf3", marginBottom: 8 }}>
+          {title}
+        </div>
+        <div style={{ fontSize: 13, color: "#8b949e", lineHeight: 1.5, marginBottom: 20 }}>
+          {message}
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+          <button
+            onClick={onCancel}
+            style={{
+              background: "none",
+              border: "1px solid #30363d",
+              borderRadius: 7,
+              padding: "7px 16px",
+              color: "#c9d1d9",
+              fontSize: 13,
+              fontFamily: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            style={{
+              background: "#f85149",
+              border: "none",
+              borderRadius: 7,
+              padding: "7px 16px",
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 600,
+              fontFamily: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Shared helper: build the statFilterMap used in refresh loops ──────────────
 function buildStatFilterMap(memberId, resolvedListId) {
   const now = new Date();
@@ -732,6 +802,7 @@ function CardDetailsView() {
   const [leftTab, setLeftTab] = useState(() =>
     params.current.get("cardName") ? "personalized" : "general",
   );
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [personalizedViews, setPersonalizedViews] = useState(() => {
     // Pre-populate from localStorage so sidebar isn't blank on first render,
     // but these will be pruned/validated inside load()
@@ -1140,13 +1211,15 @@ function CardDetailsView() {
     }
   }
 
-  async function handleDeletePersonalizedView(view, e) {
+  function handleDeletePersonalizedView(view, e) {
     e.stopPropagation(); // don't trigger the card's own onClick (opening it)
+    setDeleteTarget(view);
+  }
 
-    const confirmMsg = view.cardId
-      ? `Remove "${view.cardName}"? This will also delete its tracker card from the board.`
-      : `Remove "${view.cardName}" from your personalized views?`;
-    if (!window.confirm(confirmMsg)) return;
+  async function confirmDeletePersonalizedView() {
+    const view = deleteTarget;
+    if (!view) return;
+    setDeleteTarget(null);
 
     if (view.cardId) {
       try {
@@ -1721,7 +1794,7 @@ function CardDetailsView() {
           </div>
         )}
 
-        <div className="cd-bottom-nav">
+       <div className="cd-bottom-nav">
           <button className="cd-nav-btn" onClick={() => comingSoon("Inbox")}>
             📥 Inbox
           </button>
@@ -1737,6 +1810,19 @@ function CardDetailsView() {
           </button>
         </div>
       </div>
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Remove this view?"
+          message={
+            deleteTarget.cardId
+              ? `Remove "${deleteTarget.cardName}"? This will also delete its tracker card from the board.`
+              : `Remove "${deleteTarget.cardName}" from your personalized views?`
+          }
+          onConfirm={confirmDeletePersonalizedView}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }
