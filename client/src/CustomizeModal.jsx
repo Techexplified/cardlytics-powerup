@@ -313,12 +313,18 @@ function DropdownItem({ children, checked, onClick }) {
 function FilterValuePicker({ filterKey, selected, onChange, lists, members, boardLabels, customDateFrom, customDateTo, onCustomDateChange }) {
   if (filterKey === "dueDate") return (
     <>
-      {DUE_OPTIONS.map((opt) => (
-        <DropdownItem key={opt.value} checked={selected.includes(opt.value)}
-          onClick={() => onChange(selected.includes(opt.value) ? selected.filter(v=>v!==opt.value) : [...selected,opt.value])}>
-          {opt.label}
-        </DropdownItem>
-      ))}
+      {DUE_OPTIONS.map((opt) => {
+        const isSelected = selected.includes(opt.value);
+        return (
+          <DropdownItem key={opt.value} checked={isSelected}
+            // Due Date is single-choice: picking a new option replaces the
+            // previous one, rather than combining ("this week" OR "custom"),
+            // which would silently widen the match set and inflate counts.
+            onClick={() => onChange(isSelected ? [] : [opt.value])}>
+            {opt.label}
+          </DropdownItem>
+        );
+      })}
       {selected.includes("custom") && (
         <div style={{ padding:"10px 14px 12px", borderTop:`1px solid ${T.border}`, display:"flex", flexDirection:"column", gap:8 }}>
           <div>
