@@ -2084,7 +2084,7 @@ export default function App() {
           const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
           const cover = saved?.cover || defaults.cover;
 
-          const coverImageDataUrl = saved
+         const coverImageDataUrl = saved
             ? await generateStyledCoverImage({
                 count,
                 cover: saved?.cover || defaults.cover,
@@ -2095,7 +2095,10 @@ export default function App() {
                 subtitle: saved?.subtitle || "",
                 coverImage: saved?.coverImage || null,
               })
-            : null;
+            // Plain (non-customized) cards: just the number on a plain color
+            // background — no title/subtitle baked in, since the card keeps
+            // its native Trello name for that.
+            : await generateStatCoverImage(count, cover);
 
           const newCard = await createCard(
             key,
