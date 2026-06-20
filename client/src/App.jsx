@@ -2225,16 +2225,19 @@ export default function App() {
         customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
         currentUserId={currentMemberId}
-        onSave={async (type, cfg) => {
+       onSave={async (type, cfg) => {
           const newConfig = { ...cardConfig, [type]: cfg };
           setCardConfig(newConfig);
           setShowCustomize(false);
           setCustomizeStat(null);
-          await handleTrack([type], newConfig);
-          // Clear the draft for this stat now that the card has actually been created
+          // Clear the draft BEFORE handleTrack runs, since handleTrack calls
+          // trelloT.closeModal() on success — once that fires the iframe starts
+          // tearing down and a remove() call queued after it can lose the race
+          // and never actually delete the draft from Trello's storage.
           if (trelloT) {
-            trelloT.remove("board", "shared", `cardlytics_draft:${type}`).catch(() => {});
+            await trelloT.remove("board", "shared", `cardlytics_draft:${type}`).catch(() => {});
           }
+          await handleTrack([type], newConfig);
         }}
         onClose={() => {
           setShowCustomize(false);
