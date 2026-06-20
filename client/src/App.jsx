@@ -629,13 +629,80 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
   }
 }
 
+// ── Build a short, human-readable summary of a tracker card's active filters ─
+// Mirrors the same meta-tag regex used elsewhere (runTrackerRefresh, handleOpenDetails),
+// so the card-back view stays in sync with however the card was actually created.
+function parseCardFilterSummary(desc) {
+  if (!desc) return [];
+  const statMatch = desc.match(
+    /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
+  );
+  const filtersRaw = statMatch?.[4];
+  if (!filtersRaw) return [];
+
+  let filters;
+  try {
+    filters = JSON.parse(decodeURIComponent(filtersRaw));
+  } catch {
+    return [];
+  }
+
+  const chips = [];
+
+  if (filters.members?.length) {
+    chips.push({
+      label: "Assigned To",
+      value:
+        filters.members.includes("unassigned")
+          ? "Unassigned"
+          : `${filters.members.length} member(s)`,
+    });
+  }
+  if (filters.due?.length) {
+    const DUE_LABELS = {
+      thisWeek: "Due this week",
+      "1week": "Due in 1 week",
+      "2weeks": "Due in 2 weeks",
+      "1month": "Due in 1 month",
+      overdue: "Overdue",
+      nodate: "No due date",
+      custom:
+        filters.customDateFrom && filters.customDateTo
+          ? `${filters.customDateFrom} → ${filters.customDateTo}`
+          : "Custom range",
+    };
+    chips.push({ label: "Due Date", value: DUE_LABELS[filters.due[0]] || filters.due[0] });
+  }
+  if (filters.labels?.length) {
+    chips.push({ label: "Label", value: `${filters.labels.length} label(s)` });
+  }
+  if (filters.lists?.length) {
+    chips.push({ label: "List", value: `${filters.lists.length} list(s)` });
+  }
+  if (filters.status?.length) {
+    const STATUS_LABELS = { complete: "Complete", incomplete: "Incomplete", overdue: "Overdue" };
+    chips.push({ label: "Status", value: STATUS_LABELS[filters.status[0]] || filters.status[0] });
+  }
+  if (filters.activity?.length) {
+    chips.push({ label: "Activity", value: filters.activity[0] });
+  }
+  if (filters.createdDate?.length) {
+    const CREATED_LABELS = { today: "Today", yesterday: "Yesterday", "7days": "Last 7 days", "30days": "Last 30 days" };
+    chips.push({ label: "Created", value: CREATED_LABELS[filters.createdDate[0]] || filters.createdDate[0] });
+  }
+
+  return chips;
+}
+
 // ─── CARD BACK VIEW ──────────────────────────────────────────────────────────
 function CardBackView() {
   const [isTracker, setIsTracker] = useState(false);
+  const [cardDesc, setCardDesc] = useState("");
 
   useEffect(() => {
     if (!trelloT) return;
    trelloT.card("name", "idList", "desc").then((card) => {
+      setCardDesc(card.desc || "");
       if (isTrackerCard(card)) {
         setIsTracker(true);
         return;
@@ -731,35 +798,63 @@ function CardBackView() {
     });
   }
 
+  const filterChips = isTracker ? parseCardFilterSummary(cardDesc) : [];
+
   return (
     <div
       className="cb-root"
-      style={{ justifyContent: "space-between", alignItems: "center", gap: 10 }}
+      style={{ flexDirection: "column", gap: 8, alignItems: "stretch" }}
     >
-      <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>
-        Cardlytics
-      </span>
-      {isTracker ? (
-        <button
-          className="cb-btn-primary"
-          style={{ width: "auto", padding: "7px 16px", flexShrink: 0 }}
-          onClick={handleOpenDetails}
-        >
-          View Details
-        </button>
-      ) : (
-        <button
-          className="cb-btn-primary"
-          style={{
-            width: "auto",
-            padding: "7px 16px",
-            flexShrink: 0,
-            background: "#0052cc",
-          }}
-          onClick={handleStartTracking}
-        >
-          Start Tracking
-        </button>
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}
+      >
+        <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>
+          Cardlytics
+        </span>
+        {isTracker ? (
+          <button
+            className="cb-btn-primary"
+            style={{ width: "auto", padding: "7px 16px", flexShrink: 0 }}
+            onClick={handleOpenDetails}
+          >
+            View Details
+          </button>
+        ) : (
+          <button
+            className="cb-btn-primary"
+            style={{
+              width: "auto",
+              padding: "7px 16px",
+              flexShrink: 0,
+              background: "#0052cc",
+            }}
+            onClick={handleStartTracking}
+          >
+            Start Tracking
+          </button>
+        )}
+      </div>
+
+      {filterChips.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {filterChips.map((chip, i) => (
+            <span
+              key={i}
+              style={{
+                fontSize: 11,
+                color: "#9CA3AF",
+                background: "#21262d",
+                border: "1px solid #30363d",
+                borderRadius: 6,
+                padding: "3px 8px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span style={{ color: "#79c0ff", fontWeight: 600 }}>{chip.label}:</span>{" "}
+              {chip.value}
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );

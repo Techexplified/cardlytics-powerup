@@ -78,7 +78,7 @@
             return [];
           },
 
-          // ── Card back section ─────────────────────────────────────────────
+// ── Card back section ─────────────────────────────────────────────
           // t.signUrl() signs the iframe URL so the child page's
           // TrelloPowerUp.iframe() call can complete the handshake.
           // Without signing, iframe() throws "Client must be initialized".
@@ -89,7 +89,7 @@
               content: {
                 type: "iframe",
                 url: t.signUrl(BASE_URL + "/index.html?view=card"),
-                height: 44,
+                height: 70,
               },
             };
           },
