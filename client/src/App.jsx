@@ -303,9 +303,9 @@ async function generateStyledCoverImage({
   });
   wrapper.appendChild(overlay);
 
-const numStyle = `font-size:84px;font-weight:800;color:${resolvedTextColor};line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
-  const lblStyle = `font-size:38px;font-weight:700;color:${resolvedTextColor};line-height:1.3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
-  const subStyle = `font-size:28px;color:${resolvedTextColor};opacity:0.75;line-height:1.3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
+const numStyle = `font-size:96px;font-weight:800;color:${resolvedTextColor};line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
+  const lblStyle = `font-size:46px;font-weight:700;color:${resolvedTextColor};line-height:1.25;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
+  const subStyle = `font-size:32px;color:${resolvedTextColor};opacity:0.8;line-height:1.3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
   let innerHtml = "";
   if (layout === "center") {
     innerHtml = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:32px;">

@@ -529,7 +529,6 @@ function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage
       </div>
       <div style={{ position:"relative", zIndex:1, padding:"10px 16px 14px", background:"rgba(0,0,0,0.18)" }}>
         <div style={{ fontSize:13, fontWeight:700, color:"#fff", lineHeight:1.4 }}>{cardName}</div>
-        <div style={{ fontSize:11, color:"rgba(255,255,255,0.75)", marginTop:3 }}>Across 3 boards</div>
       </div>
     </div>
   );
@@ -541,9 +540,9 @@ function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout })
     || TEXT_COLORS.find(t => t.id === textColor)?.hex
     || "#FFFFFF";
 
-  const numStyle = { fontSize: 26, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
-  const lblStyle = { fontSize: 13, fontWeight: 700, color: resolvedTextColor, lineHeight: 1.4 };
-  const subStyle = { fontSize: 11, color: resolvedTextColor, opacity: 0.75, lineHeight: 1.3 };
+ const numStyle = { fontSize: 30, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
+  const lblStyle = { fontSize: 16, fontWeight: 700, color: resolvedTextColor, lineHeight: 1.3 };
+  const subStyle = { fontSize: 12.5, color: resolvedTextColor, opacity: 0.8, lineHeight: 1.3 };
 
   function LayoutContent() {
     if (layout === "center") return (
@@ -854,7 +853,7 @@ function CardConfigModal({
 
   const [coverColor,    setCoverColor]    = useState(DEFAULT_COVER[statType] || "blue");
   const [coverImage,    setCoverImage]    = useState(null);
-  const [styleSubtitle, setStyleSubtitle] = useState("Across 3 boards");
+  const [styleSubtitle, setStyleSubtitle] = useState("");
   const [textColor,     setTextColor]     = useState("white");
   const [layout,        setLayout]        = useState("center");
   const [customHex,     setCustomHex]     = useState("#3B82F6");
