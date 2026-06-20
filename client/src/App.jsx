@@ -237,6 +237,7 @@ async function generateStyledCoverImage({
   cover,
   customHex,
   textColor,
+  customTextHex,
   layout,
   title,
   subtitle,
@@ -278,7 +279,10 @@ async function generateStyledCoverImage({
     cover === "custom" && customHex
       ? customHex
       : COVER_GRADIENTS_MAP[cover] || COVER_COLORS_MAP[cover] || "#0052cc";
-  const resolvedTextColor = TEXT_COLORS_MAP[textColor] || "#FFFFFF";
+  const resolvedTextColor =
+    textColor === "custom" && customTextHex
+      ? customTextHex
+      : TEXT_COLORS_MAP[textColor] || "#FFFFFF";
 
   // Build a hidden node that mirrors LiveStylePreview exactly
   const wrapper = document.createElement("div");
@@ -514,6 +518,7 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
           cover: savedStyle.cover || coverColor,
           customHex: savedStyle.customHex || null,
           textColor: savedStyle.textColor || "white",
+          customTextHex: savedStyle.customTextHex || null,
           layout: savedStyle.layout || "center",
           title: savedStyle.title || card.name,
           subtitle: savedStyle.subtitle || "",
@@ -2090,12 +2095,13 @@ export default function App() {
           const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
           const cover = saved?.cover || defaults.cover;
 
-         const coverImageDataUrl = saved
+        const coverImageDataUrl = saved
             ? await generateStyledCoverImage({
                 count,
                 cover: saved?.cover || defaults.cover,
                 customHex: saved?.customHex || null,
                 textColor: saved?.textColor || "white",
+                customTextHex: saved?.customTextHex || null,
                 layout: saved?.layout || "center",
                 title: coverTitle,
                 subtitle: saved?.subtitle || "",
@@ -2127,6 +2133,7 @@ export default function App() {
                 cover: saved.cover || defaults.cover,
                 customHex: saved.customHex || null,
                 textColor: saved.textColor || "white",
+                customTextHex: saved.customTextHex || null,
                 layout: saved.layout || "center",
                 title: saved.cardName || defaults.label,
                 subtitle: saved.subtitle || "",

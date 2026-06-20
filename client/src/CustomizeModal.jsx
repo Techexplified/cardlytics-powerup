@@ -635,10 +635,12 @@ function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage
 }
 
 // ── Live styled preview (left panel, Style tab) ──────────────────────────────
-function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout }) {
-  const resolvedTextColor = TEXT_COLORS.find(t => t.id === textColor)?.css
-    || TEXT_COLORS.find(t => t.id === textColor)?.hex
-    || "#FFFFFF";
+function LiveStylePreview({ count, title, subtitle, textColor, customTextHex, cardBg, layout }) {
+  const resolvedTextColor = textColor === "custom" && customTextHex
+    ? customTextHex
+    : TEXT_COLORS.find(t => t.id === textColor)?.css
+      || TEXT_COLORS.find(t => t.id === textColor)?.hex
+      || "#FFFFFF";
 
  const numStyle = { fontSize: 26, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
   const lblStyle = { fontSize: 13, fontWeight: 700, color: resolvedTextColor, lineHeight: 1.4 };
@@ -694,8 +696,10 @@ function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout })
 }
 
 // ── Mini card layout preview (Style tab, layout picker) ──────────────────────
-function LayoutMini({ layout, count, title, subtitle, textColor, cardBg, selected, onClick }) {
-  const resolvedTextColor = TEXT_COLORS.find(t => t.id === textColor)?.hex || "#FFFFFF";
+function LayoutMini({ layout, count, title, subtitle, textColor, customTextHex, cardBg, selected, onClick }) {
+  const resolvedTextColor = textColor === "custom" && customTextHex
+    ? customTextHex
+    : TEXT_COLORS.find(t => t.id === textColor)?.hex || "#FFFFFF";
 
   const baseCard = {
     width:"100%", aspectRatio:"4/3",
@@ -973,6 +977,7 @@ function CardConfigModal({
   const [textColor,     setTextColor]     = useState("white");
   const [layout,        setLayout]        = useState("center");
   const [customHex,     setCustomHex]     = useState("#3B82F6");
+  const [customTextHex, setCustomTextHex] = useState("#FFFFFF");
   const [liveResultsOpen, setLiveResultsOpen] = useState(true); 
 
   const [draftToast, setDraftToast] = useState(null); // { message, type } | null
@@ -1028,6 +1033,7 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
     subtitle: styleSubtitle,
     customHex,    
     textColor,
+    customTextHex,
     layout,
     boardScope,
     filters: filterValues
@@ -1070,6 +1076,7 @@ useEffect(() => {
       if (draft.customHex) setCustomHex(draft.customHex); 
       if (draft.subtitle !== undefined) setStyleSubtitle(draft.subtitle);
       if (draft.textColor) setTextColor(draft.textColor);
+      if (draft.customTextHex) setCustomTextHex(draft.customTextHex);
       if (draft.layout) setLayout(draft.layout);
       if (draft.boardScope) setBoardScope(draft.boardScope);
 
@@ -1127,7 +1134,7 @@ useEffect(() => {
     onSave(statType, {
       cardName: previewName, description,
       cover: coverColor, coverImage, customHex,
-      subtitle: styleSubtitle, textColor, layout,
+      subtitle: styleSubtitle, textColor, customTextHex, layout,
       members:        filterValues.assignedTo  || [],
       due:            filterValues.dueDate     || [],
       labels:         filterValues.label       || [],
@@ -1220,9 +1227,9 @@ useEffect(() => {
                 coverColor={coverColor} coverImage={coverImage} customHex={customHex}
               />
             ) : (
-              <LiveStylePreview
+             <LiveStylePreview
                 count={liveCount} title={previewName} subtitle={styleSubtitle}
-                textColor={textColor} cardBg={cardBg} layout={layout}
+                textColor={textColor} customTextHex={customTextHex} cardBg={cardBg} layout={layout}
               />
             )}
             <div style={{ fontSize:10, color:T.textMuted, textAlign:"center" }}>
@@ -1433,10 +1440,19 @@ useEffect(() => {
 
                   <SectionLabel n="2" title="Text Color" />
                   <SectionSub>Choose text color for the title and subtitle.</SectionSub>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:14 }}>
                     {TEXT_COLORS.map(({ id, hex, css }) => (
                       <Swatch key={id} bg={css || hex} selected={textColor === id} onClick={() => setTextColor(id)} />
                     ))}
+                  </div>
+                  <div style={{ marginTop:4 }}>
+                    <div style={{ fontSize:12, color:T.textMuted, fontWeight:500, marginBottom:8 }}>Custom Color</div>
+                    <div style={{ maxWidth:340 }}>
+                      <CustomHexInput
+                        value={customTextHex}
+                        onChange={(v) => { setCustomTextHex(v); setTextColor("custom"); }}
+                      />
+                    </div>
                   </div>
 
                   <StyleDivider />
@@ -1468,11 +1484,11 @@ useEffect(() => {
                   <SectionLabel n="4" title="Card Layout" />
                   <SectionSub>Choose where the text appears on your card.</SectionSub>
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12 }}>
-                    {LAYOUTS.map(({ id }) => (
+                   {LAYOUTS.map(({ id }) => (
                       <LayoutMini
                         key={id} layout={id} count={liveCount}
                         title={previewName} subtitle={styleSubtitle}
-                        textColor={textColor} cardBg={cardBg}
+                        textColor={textColor} customTextHex={customTextHex} cardBg={cardBg}
                         selected={layout === id} onClick={() => setLayout(id)}
                       />
                     ))}
