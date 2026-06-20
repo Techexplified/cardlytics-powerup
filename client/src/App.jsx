@@ -892,7 +892,8 @@ function CardDetailsView() {
             f.labels?.length > 0 ||
             f.lists?.length > 0 ||
             f.status?.length > 0 ||
-            f.activity?.length > 0;
+            f.activity?.length > 0 ||
+            f.createdDate?.length > 0;
 
           let count;
           if (hasFilters) {
@@ -2021,6 +2022,7 @@ export default function App() {
                 lists: saved.lists || [],
                 status: saved.status || [],
                 activity: saved.activity || [],
+                createdDate: saved.createdDate || [],
                 customDateFrom: saved.customDateFrom || "",
                 customDateTo: saved.customDateTo || "",
               }
@@ -2035,6 +2037,7 @@ export default function App() {
                 filterConfig.lists.length > 0 ||
                 filterConfig.status?.length > 0 ||
                 filterConfig.activity?.length > 0 ||
+                filterConfig.createdDate?.length > 0 ||
                 filterConfig.customDateFrom !== "" ||
                 filterConfig.customDateTo !== "");
 
@@ -2061,6 +2064,7 @@ export default function App() {
               filterConfig.lists.length > 0 ||
               filterConfig.status?.length > 0 ||
               filterConfig.activity?.length > 0 ||
+              filterConfig.createdDate?.length > 0 ||
               filterConfig.customDateFrom !== "" ||
               filterConfig.customDateTo !== "");
 
@@ -2178,6 +2182,7 @@ export default function App() {
             lists: saved?.lists || [],
             status: saved?.status || [],
             activity: saved?.activity || [],
+            createdDate: saved?.createdDate || [],
           },
           createdAt: new Date().toISOString(),
           boardId,
@@ -2235,7 +2240,7 @@ export default function App() {
           setShowCustomize(false);
           setCustomizeStat(null);
         }}
-        computeFilteredCount={(statType, filters) => {
+       computeFilteredCount={(statType, filters) => {
           const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
 
           const hasExplicitFilters =
@@ -2244,7 +2249,8 @@ export default function App() {
             filters.labels?.length > 0 ||
             filters.lists?.length > 0 ||
             filters.status?.length > 0 ||
-            filters.activity?.length > 0;
+            filters.activity?.length > 0 ||
+            filters.createdDate?.length > 0;
 
           if (hasExplicitFilters) {
             // User has configured filters — apply ONLY those, ignore stat's own filter

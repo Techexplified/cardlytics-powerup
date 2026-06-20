@@ -116,24 +116,41 @@ const DUE_OPTIONS = [
   { value:"nodate",  label:"No due date"    },
 ];
 
+const CREATED_DATE_OPTIONS = [
+  { value:"today",     label:"Today"        },
+  { value:"yesterday", label:"Yesterday"    },
+  { value:"7days",     label:"Last 7 days"  },
+  { value:"30days",    label:"Last 30 days" },
+];
+
+const CARD_ACTIVITY_OPTIONS = [
+  { value:"1day",    label:"Active within 1 day"  },
+  { value:"3days",   label:"Active within 3 days" },
+  { value:"7days",   label:"Active within 7 days" },
+  { value:"14days",  label:"Active within 14 days"},
+  { value:"30days",  label:"Active within 30 days"},
+  { value:"stale14", label:"Stale — 14+ days"     },
+  { value:"stale30", label:"Stale — 30+ days"     },
+];
+
 const FILTER_GRID_ITEMS = [
   { key:"assignedTo",    icon:"👤", label:"Assigned To",    sub:"Filter by card assignee",      color:"#7e57c2" },
   { key:"dueDate",       icon:"📅", label:"Due Date",       sub:"Filter by due dates",           color:"#1565c0" },
   { key:"label",         icon:"🏷", label:"Label",          sub:"Filter by labels",              color:"#e6a817" },
   { key:"list",          icon:"☰",  label:"List",           sub:"Filter by lists",               color:"#4c8fff" },
-  { key:"priority",      icon:"🚩", label:"Priority",       sub:"Filter by priority",            color:"#e05555" },
   { key:"status",        icon:"✅", label:"Status",         sub:"Filter by card status",         color:"#3fb950" },
   { key:"cardActivity",  icon:"🕐", label:"Card Activity",  sub:"Filter by activity dates",      color:"#8b949e" },
+  { key:"createdDate",   icon:"✨", label:"Created Date",   sub:"Filter by card creation date",  color:"#2ec4b6" },
 ];
 
 const FILTER_DEFS = {
-  assignedTo:    { icon:"👤", label:"Assigned To",    valueKey:"members"  },
-  dueDate:       { icon:"📅", label:"Due Date",       valueKey:"due"      },
-  label:         { icon:"🏷", label:"Label",          valueKey:"labels"   },
-  list:          { icon:"☰",  label:"List",           valueKey:"lists"    },
-  status:        { icon:"✅", label:"Status",         valueKey:"status"   },
-  cardActivity:  { icon:"🕐", label:"Card Activity",  valueKey:"activity" },
-  priority:      { icon:"🚩", label:"Priority",       valueKey:"priority" },
+  assignedTo:    { icon:"👤", label:"Assigned To",    valueKey:"members"     },
+  dueDate:       { icon:"📅", label:"Due Date",       valueKey:"due"         },
+  label:         { icon:"🏷", label:"Label",          valueKey:"labels"      },
+  list:          { icon:"☰",  label:"List",           valueKey:"lists"       },
+  status:        { icon:"✅", label:"Status",         valueKey:"status"      },
+  cardActivity:  { icon:"🕐", label:"Card Activity",  valueKey:"activity"    },
+  createdDate:   { icon:"✨", label:"Created Date",   valueKey:"createdDate" },
 };
 
 // ── Tiny helpers ──────────────────────────────────────────────────────────────
@@ -303,21 +320,49 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
   );
   if (filterKey === "assignedTo") {
     const opts = members || [];
-    if (!opts.length) return <div style={{ padding:"12px 14px", fontSize:12, color:T.textMuted }}>No members found</div>;
-    return <>{opts.map((m) => {
-      const initials = m.fullName.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
-      const checked = selected.includes(m.id);
-      return (
-        <DropdownItem key={m.id} checked={checked}
-          onClick={() => onChange(checked ? selected.filter(v=>v!==m.id) : [...selected,m.id])}>
+    const unassignedChecked = selected.includes("unassigned");
+    return (
+      <>
+        <DropdownItem checked={unassignedChecked}
+          onClick={() => onChange(unassignedChecked ? selected.filter(v=>v!=="unassigned") : [...selected,"unassigned"])}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ width:24, height:24, borderRadius:"50%", background: m.avatarColor||"#0052cc", display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700, color:"#fff", flexShrink:0 }}>{initials}</div>
-            <span>{m.fullName}</span>
+            <div style={{ width:24, height:24, borderRadius:"50%", background:T.bgItem, border:`1px solid ${T.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, flexShrink:0 }}>👤</div>
+            <span>Unassigned</span>
           </div>
         </DropdownItem>
-      );
-    })}</>;
+        {opts.length > 0 && <div style={{ borderTop:`1px solid ${T.border}`, margin:"4px 0" }} />}
+        {opts.map((m) => {
+          const initials = m.fullName.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+          const checked = selected.includes(m.id);
+          return (
+            <DropdownItem key={m.id} checked={checked}
+              onClick={() => onChange(checked ? selected.filter(v=>v!==m.id) : [...selected,m.id])}>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ width:24, height:24, borderRadius:"50%", background: m.avatarColor||"#0052cc", display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:700, color:"#fff", flexShrink:0 }}>{initials}</div>
+                <span>{m.fullName}</span>
+              </div>
+            </DropdownItem>
+          );
+        })}
+      </>
+    );
   }
+  if (filterKey === "cardActivity") return (
+    <>{CARD_ACTIVITY_OPTIONS.map((opt) => (
+      <DropdownItem key={opt.value} checked={selected.includes(opt.value)}
+        onClick={() => onChange(selected.includes(opt.value) ? selected.filter(v=>v!==opt.value) : [...selected,opt.value])}>
+        {opt.label}
+      </DropdownItem>
+    ))}</>
+  );
+  if (filterKey === "createdDate") return (
+    <>{CREATED_DATE_OPTIONS.map((opt) => (
+      <DropdownItem key={opt.value} checked={selected.includes(opt.value)}
+        onClick={() => onChange(selected.includes(opt.value) ? selected.filter(v=>v!==opt.value) : [...selected,opt.value])}>
+        {opt.label}
+      </DropdownItem>
+    ))}</>
+  );
   if (filterKey === "label") {
     const opts = boardLabels || [];
     if (!opts.length) return <div style={{ padding:"12px 14px", fontSize:12, color:T.textMuted }}>No labels found</div>;
@@ -391,15 +436,16 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
   const def = FILTER_DEFS[filterKey];
   if (!def) return null;
 
-  function pillValue() {
+function pillValue() {
   if (filterKey === "assignedTo") {
     if (!values || !values.length) return null; // shows "Any"
     if (values.length === 1) {
+      if (values[0] === "unassigned") return "Unassigned";
       const m = (members || []).find(x => x.id === values[0]);
       if (!m) return "Selected";
       return values[0] === currentUserId ? `Me (${m.fullName})` : m.fullName;
     }
-    return `${values.length} members`;
+    return `${values.length} selected`;
   }
   if (!values || !values.length) return null;
   if (filterKey === "dueDate") {
@@ -417,9 +463,16 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
   if (filterKey === "status") {
     if (values.length === 1) return { complete: "Complete", incomplete: "Incomplete", overdue: "Overdue" }[values[0]] || values[0];
   }
+  if (filterKey === "cardActivity") {
+    if (values.length === 1) return CARD_ACTIVITY_OPTIONS.find(o => o.value === values[0])?.label || values[0];
+    return `${values.length} selected`;
+  }
+  if (filterKey === "createdDate") {
+    if (values.length === 1) return CREATED_DATE_OPTIONS.find(o => o.value === values[0])?.label || values[0];
+    return `${values.length} selected`;
+  }
   return null;
 }
-
   const val = pillValue();
 
   const iconBg = {
@@ -429,7 +482,7 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
     list:         "#1565c0",
     status:       "#3fb950",
     cardActivity: "#4c8fff",
-    priority:     "#e05555",
+    createdDate:  "#2ec4b6",
   }[filterKey] || T.accent;
 
   return (
@@ -836,6 +889,22 @@ function StatPicker({ onSelect, onClose }) {
   );
 }
 
+// ── Default active filters per stat type — applied when Customize opens ──────
+// Each entry defines which filter row(s) are active by default and what
+// value(s) they're pre-set to, so the modal opens already reflecting the
+// stat's natural meaning (e.g. "Unassigned Cards" opens with Assigned To →
+// Unassigned, not the current user).
+const DEFAULT_FILTERS_BY_STAT = {
+  assigned:     { active: ["assignedTo"],   values: (uid) => ({ assignedTo: uid ? [uid] : [] }) },
+  unassigned:   { active: ["assignedTo"],   values: () => ({ assignedTo: ["unassigned"] }) },
+  dueThisWeek:  { active: ["dueDate"],      values: () => ({ dueDate: ["thisWeek"] }) },
+  overdue:      { active: ["dueDate"],      values: () => ({ dueDate: ["overdue"] }) },
+  stale:        { active: ["cardActivity"], values: () => ({ cardActivity: ["stale30"] }) },
+  createdToday: { active: ["createdDate"],  values: () => ({ createdDate: ["today"] }) },
+  withLabel:    { active: ["label"],        values: () => ({ label: [] }) }, // left open — user picks the label
+  cardsInList:  { active: [],               values: () => ({}) },
+};
+
 // ── Main CardConfigModal ──────────────────────────────────────────────────────
 function CardConfigModal({
   statType, statValue, lists, memberName, members, boardLabels,
@@ -866,11 +935,17 @@ function showDraftToast(message, type = "success") {
   setTimeout(() => setDraftToast(null), 2500);
 }
 
-  const [activeFilters, setActiveFilters] = useState(["assignedTo"]);
-  const [filterValues,  setFilterValues]  = useState({
-  assignedTo: currentUserId ? [currentUserId] : [],
-  dueDate: [], label: [], list: [], status: [], cardActivity: [], priority: [],
-});
+  const [activeFilters, setActiveFilters] = useState(() => {
+    const preset = DEFAULT_FILTERS_BY_STAT[statType];
+    return preset && preset.active.length ? preset.active : ["assignedTo"];
+  });
+  const [filterValues, setFilterValues] = useState(() => {
+    const base = {
+      assignedTo: [], dueDate: [], label: [], list: [], status: [], cardActivity: [], createdDate: [],
+    };
+    const preset = DEFAULT_FILTERS_BY_STAT[statType];
+    return { ...base, ...(preset ? preset.values(currentUserId) : {}) };
+  });
 
   function setFilterValue(key, vals) { setFilterValues(p => ({ ...p, [key]: vals })); }
   function addFilter(key)    { if (!activeFilters.includes(key)) setActiveFilters(p => [...p, key]); }
@@ -965,12 +1040,13 @@ useEffect(() => {
 
   const liveCount = computeFilteredCount
     ? computeFilteredCount(statType, {
-        members:  filterValues.assignedTo  || [],
-        due:      filterValues.dueDate     || [],
-        labels:   filterValues.label       || [],
-        lists:    filterValues.list        || [],
-        status:   filterValues.status      || [],
-        activity: filterValues.cardActivity|| [],
+        members:     filterValues.assignedTo  || [],
+        due:         filterValues.dueDate     || [],
+        labels:      filterValues.label       || [],
+        lists:       filterValues.list        || [],
+        status:      filterValues.status      || [],
+        activity:    filterValues.cardActivity|| [],
+        createdDate: filterValues.createdDate || [],
       })
     : statValue ?? 24;
 
@@ -996,12 +1072,13 @@ useEffect(() => {
       cardName: previewName, description,
       cover: coverColor, coverImage, customHex,
       subtitle: styleSubtitle, textColor, layout,
-      members:  filterValues.assignedTo  || [],
-      due:      filterValues.dueDate     || [],
-      labels:   filterValues.label       || [],
-      lists:    filterValues.list        || [],
-      status:   filterValues.status      || [],
-      activity: filterValues.cardActivity|| [],
+      members:     filterValues.assignedTo  || [],
+      due:         filterValues.dueDate     || [],
+      labels:      filterValues.label       || [],
+      lists:       filterValues.list        || [],
+      status:      filterValues.status      || [],
+      activity:    filterValues.cardActivity|| [],
+      createdDate: filterValues.createdDate || [],
       boardScope, count: liveCount,
     });
   }

@@ -288,16 +288,25 @@ export function applyFilters(cards, filters, memberId) {
       if (!matches) return false;
     }
 
-    // ── Member / assigned filter ──────────────────────────────────────────────
+// ── Member / assigned filter ──────────────────────────────────────────────
+    // "unassigned" is a sentinel value (not a real Trello member id), meaning
+    // "this card has no members assigned." It can be combined with real
+    // member ids — a card matches if it's unassigned OR assigned to any of
+    // the selected members.
     if (filters.members && filters.members.length > 0) {
+      const wantsUnassigned = filters.members.includes("unassigned");
+
       // FIX #5: guard against null memberId before resolving "me"
       const resolvedIds = filters.members
+        .filter((id) => id !== "unassigned")
         .map((id) => (id === "me" && memberId ? memberId : id))
         .filter(Boolean); // remove any remaining null/undefined
 
       const cardMembers = card.idMembers || [];
-      const hasMatch = resolvedIds.some((id) => cardMembers.includes(id));
-      if (!hasMatch) return false;
+      const matchesUnassigned = wantsUnassigned && cardMembers.length === 0;
+      const matchesMember = resolvedIds.length > 0 && resolvedIds.some((id) => cardMembers.includes(id));
+
+      if (!matchesUnassigned && !matchesMember) return false;
     }
 
     // ── Label filter (by label id) ────────────────────────────────────────────
@@ -339,6 +348,28 @@ export function applyFilters(cards, filters, memberId) {
         if (a === "30days")  return diffDays <= 30;
         if (a === "stale14") return diffDays > 14;
         if (a === "stale30") return diffDays > 30;
+        return false;
+      });
+      if (!matches) return false;
+    }
+
+    // ── Created Date filter ───────────────────────────────────────────────────
+    // Trello card IDs embed their creation timestamp in the first 8 hex
+    // characters — same technique used elsewhere in the app (cardCreatedDate).
+    if (filters.createdDate && filters.createdDate.length > 0) {
+      const createdMs = parseInt(card.id.substring(0, 8), 16) * 1000;
+      const created = new Date(createdMs);
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      const matches = filters.createdDate.some((d) => {
+        if (d === "today") return created >= todayStart;
+        if (d === "yesterday") {
+          const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+          return created >= yesterdayStart && created < todayStart;
+        }
+        if (d === "7days")  return created >= new Date(now.getTime() - 7 * 86400000);
+        if (d === "30days") return created >= new Date(now.getTime() - 30 * 86400000);
         return false;
       });
       if (!matches) return false;
