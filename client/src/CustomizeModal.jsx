@@ -540,9 +540,9 @@ function LiveStylePreview({ count, title, subtitle, textColor, cardBg, layout })
     || TEXT_COLORS.find(t => t.id === textColor)?.hex
     || "#FFFFFF";
 
- const numStyle = { fontSize: 30, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
-  const lblStyle = { fontSize: 16, fontWeight: 700, color: resolvedTextColor, lineHeight: 1.3 };
-  const subStyle = { fontSize: 12.5, color: resolvedTextColor, opacity: 0.8, lineHeight: 1.3 };
+ const numStyle = { fontSize: 26, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
+  const lblStyle = { fontSize: 13, fontWeight: 700, color: resolvedTextColor, lineHeight: 1.4 };
+  const subStyle = { fontSize: 11, color: resolvedTextColor, opacity: 0.75, lineHeight: 1.3 };
 
   function LayoutContent() {
     if (layout === "center") return (
@@ -905,7 +905,7 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
   };
 
   try {
-    await trelloT.set("board", "shared", "cardlytics_draft", draftData);
+    await trelloT.set("board", "shared", `cardlytics_draft:${statType}`, draftData);
     console.log("✅ Draft saved to Trello", draftData);
     showDraftToast("🔖 Draft saved");
   } catch (err) {
@@ -928,7 +928,7 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
 useEffect(() => {
   if (!trelloT) return;
 
-  trelloT.get("board", "shared", "cardlytics_draft")
+  trelloT.get("board", "shared", `cardlytics_draft:${statType}`)
     .then((draft) => {
       if (!draft) return;
 

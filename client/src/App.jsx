@@ -2226,6 +2226,10 @@ export default function App() {
           setShowCustomize(false);
           setCustomizeStat(null);
           await handleTrack([type], newConfig);
+          // Clear the draft for this stat now that the card has actually been created
+          if (trelloT) {
+            trelloT.remove("board", "shared", `cardlytics_draft:${type}`).catch(() => {});
+          }
         }}
         onClose={() => {
           setShowCustomize(false);
