@@ -114,6 +114,7 @@ const DUE_OPTIONS = [
   { value:"1month",  label:"Due in 1 month" },
   { value:"overdue", label:"Overdue"        },
   { value:"nodate",  label:"No due date"    },
+  { value:"custom",  label:"Custom range…"  },
 ];
 
 const CREATED_DATE_OPTIONS = [
@@ -309,14 +310,46 @@ function DropdownItem({ children, checked, onClick }) {
 }
 
 // ── Value picker content for each filter type ─────────────────────────────────
-function FilterValuePicker({ filterKey, selected, onChange, lists, members, boardLabels }) {
+function FilterValuePicker({ filterKey, selected, onChange, lists, members, boardLabels, customDateFrom, customDateTo, onCustomDateChange }) {
   if (filterKey === "dueDate") return (
-    <>{DUE_OPTIONS.map((opt) => (
-      <DropdownItem key={opt.value} checked={selected.includes(opt.value)}
-        onClick={() => onChange(selected.includes(opt.value) ? selected.filter(v=>v!==opt.value) : [...selected,opt.value])}>
-        {opt.label}
-      </DropdownItem>
-    ))}</>
+    <>
+      {DUE_OPTIONS.map((opt) => (
+        <DropdownItem key={opt.value} checked={selected.includes(opt.value)}
+          onClick={() => onChange(selected.includes(opt.value) ? selected.filter(v=>v!==opt.value) : [...selected,opt.value])}>
+          {opt.label}
+        </DropdownItem>
+      ))}
+      {selected.includes("custom") && (
+        <div style={{ padding:"10px 14px 12px", borderTop:`1px solid ${T.border}`, display:"flex", flexDirection:"column", gap:8 }}>
+          <div>
+            <label style={{ fontSize:10.5, color:T.textMuted, fontWeight:600, display:"block", marginBottom:4 }}>From</label>
+            <input
+              type="date" value={customDateFrom || ""}
+              onChange={(e) => onCustomDateChange?.("from", e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:6,
+                padding:"6px 8px", color:T.text, fontSize:12, fontFamily:"inherit", outline:"none",
+                boxSizing:"border-box", colorScheme:"dark",
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize:10.5, color:T.textMuted, fontWeight:600, display:"block", marginBottom:4 }}>To</label>
+            <input
+              type="date" value={customDateTo || ""}
+              onChange={(e) => onCustomDateChange?.("to", e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:6,
+                padding:"6px 8px", color:T.text, fontSize:12, fontFamily:"inherit", outline:"none",
+                boxSizing:"border-box", colorScheme:"dark",
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
   if (filterKey === "assignedTo") {
     const opts = members || [];
@@ -417,7 +450,7 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
 }
 
 // ── Active filter row ─────────────────────────────────────────────────────────
-function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, members, boardLabels, currentUserId }) {
+function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, members, boardLabels, currentUserId, customDateFrom, customDateTo, onCustomDateChange }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef();
   const portalRef  = useRef();
@@ -449,7 +482,13 @@ function pillValue() {
   }
   if (!values || !values.length) return null;
   if (filterKey === "dueDate") {
-    if (values.length === 1) return DUE_OPTIONS.find(o => o.value === values[0])?.label || values[0];
+    if (values.length === 1) {
+      if (values[0] === "custom") {
+        if (customDateFrom && customDateTo) return `${customDateFrom} → ${customDateTo}`;
+        return "Custom range…";
+      }
+      return DUE_OPTIONS.find(o => o.value === values[0])?.label || values[0];
+    }
     return `${values.length} dates`;
   }
   if (filterKey === "label") {
@@ -527,6 +566,8 @@ function pillValue() {
             filterKey={filterKey} selected={values||[]}
             onChange={onValuesChange}
             lists={lists} members={members} boardLabels={boardLabels}
+            customDateFrom={customDateFrom} customDateTo={customDateTo}
+            onCustomDateChange={onCustomDateChange}
           />
         </div>
       </PortalDropdown>
@@ -946,6 +987,13 @@ function showDraftToast(message, type = "success") {
     const preset = DEFAULT_FILTERS_BY_STAT[statType];
     return { ...base, ...(preset ? preset.values(currentUserId) : {}) };
   });
+  const [customDateFrom, setCustomDateFrom] = useState("");
+  const [customDateTo, setCustomDateTo] = useState("");
+
+  function handleCustomDateChange(which, value) {
+    if (which === "from") setCustomDateFrom(value);
+    else setCustomDateTo(value);
+  }
 
   function setFilterValue(key, vals) { setFilterValues(p => ({ ...p, [key]: vals })); }
   function addFilter(key)    { if (!activeFilters.includes(key)) setActiveFilters(p => [...p, key]); }
@@ -1040,13 +1088,15 @@ useEffect(() => {
 
   const liveCount = computeFilteredCount
     ? computeFilteredCount(statType, {
-        members:     filterValues.assignedTo  || [],
-        due:         filterValues.dueDate     || [],
-        labels:      filterValues.label       || [],
-        lists:       filterValues.list        || [],
-        status:      filterValues.status      || [],
-        activity:    filterValues.cardActivity|| [],
-        createdDate: filterValues.createdDate || [],
+        members:        filterValues.assignedTo  || [],
+        due:            filterValues.dueDate     || [],
+        labels:         filterValues.label       || [],
+        lists:          filterValues.list        || [],
+        status:         filterValues.status      || [],
+        activity:       filterValues.cardActivity|| [],
+        createdDate:    filterValues.createdDate || [],
+        customDateFrom: customDateFrom,
+        customDateTo:   customDateTo,
       })
     : statValue ?? 24;
 
@@ -1072,13 +1122,14 @@ useEffect(() => {
       cardName: previewName, description,
       cover: coverColor, coverImage, customHex,
       subtitle: styleSubtitle, textColor, layout,
-      members:     filterValues.assignedTo  || [],
-      due:         filterValues.dueDate     || [],
-      labels:      filterValues.label       || [],
-      lists:       filterValues.list        || [],
-      status:      filterValues.status      || [],
-      activity:    filterValues.cardActivity|| [],
-      createdDate: filterValues.createdDate || [],
+      members:        filterValues.assignedTo  || [],
+      due:            filterValues.dueDate     || [],
+      labels:         filterValues.label       || [],
+      lists:          filterValues.list        || [],
+      status:         filterValues.status      || [],
+      activity:       filterValues.cardActivity|| [],
+      createdDate:    filterValues.createdDate || [],
+      customDateFrom, customDateTo,
       boardScope, count: liveCount,
     });
   }
@@ -1291,7 +1342,10 @@ useEffect(() => {
                           onValuesChange={vals => setFilterValue(key, vals)}
                           onRemove={() => removeFilter(key)}
                           lists={scopedLists} members={scopedMembers} boardLabels={scopedLabels}
-                          currentUserId={currentUserId} 
+                          currentUserId={currentUserId}
+                          customDateFrom={customDateFrom}
+                          customDateTo={customDateTo}
+                          onCustomDateChange={handleCustomDateChange}
                         />
                       ))}
                       {activeFilters.length === 0 && (

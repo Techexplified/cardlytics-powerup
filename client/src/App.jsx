@@ -2243,14 +2243,16 @@ export default function App() {
        computeFilteredCount={(statType, filters) => {
           const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
 
-          const hasExplicitFilters =
+         const hasExplicitFilters =
             filters.due?.length > 0 ||
             filters.members?.length > 0 ||
             filters.labels?.length > 0 ||
             filters.lists?.length > 0 ||
             filters.status?.length > 0 ||
             filters.activity?.length > 0 ||
-            filters.createdDate?.length > 0;
+            filters.createdDate?.length > 0 ||
+            !!filters.customDateFrom ||
+            !!filters.customDateTo;
 
           if (hasExplicitFilters) {
             // User has configured filters — apply ONLY those, ignore stat's own filter
