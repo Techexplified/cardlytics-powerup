@@ -893,7 +893,9 @@ function CardDetailsView() {
             f.lists?.length > 0 ||
             f.status?.length > 0 ||
             f.activity?.length > 0 ||
-            f.createdDate?.length > 0;
+            f.createdDate?.length > 0 ||
+            !!f.customDateFrom ||
+            !!f.customDateTo;
 
           let count;
           if (hasFilters) {
@@ -2183,6 +2185,8 @@ export default function App() {
             status: saved?.status || [],
             activity: saved?.activity || [],
             createdDate: saved?.createdDate || [],
+            customDateFrom: saved?.customDateFrom || "",
+            customDateTo: saved?.customDateTo || "",
           },
           createdAt: new Date().toISOString(),
           boardId,
