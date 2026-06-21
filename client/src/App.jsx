@@ -1950,6 +1950,7 @@ export default function App() {
   const [memberFullName, setMemberFullName] = useState("");
   const [boardMembers, setBoardMembers] = useState([]);
   const [showCustomize, setShowCustomize] = useState(false);
+  const [customizeBlankStart, setCustomizeBlankStart] = useState(false);
   const [scopeListId, setScopeListId] = useState(() => {
     const p = new URLSearchParams(window.location.search);
     const m = p.get("mode");
@@ -2420,11 +2421,13 @@ export default function App() {
         customizeStat={customizeStat}
         setCustomizeStat={setCustomizeStat}
         currentUserId={currentMemberId}
+        blankStart={customizeBlankStart}
        onSave={async (type, cfg) => {
           const newConfig = { ...cardConfig, [type]: cfg };
           setCardConfig(newConfig);
           setShowCustomize(false);
           setCustomizeStat(null);
+          setCustomizeBlankStart(false);
           // Clear the draft BEFORE handleTrack runs, since handleTrack calls
           // trelloT.closeModal() on success — once that fires the iframe starts
           // tearing down and a remove() call queued after it can lose the race
@@ -2437,6 +2440,7 @@ export default function App() {
         onClose={() => {
           setShowCustomize(false);
           setCustomizeStat(null);
+          setCustomizeBlankStart(false);
         }}
        computeFilteredCount={(statType, filters) => {
           const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
@@ -2525,7 +2529,10 @@ export default function App() {
             </button>
             <button
               className="btn-customize"
-              onClick={() => setShowCustomize(true)}
+              onClick={() => {
+                setCustomizeBlankStart(false);
+                setShowCustomize(true);
+              }}
             >
               Customize
             </button>
@@ -2641,7 +2648,15 @@ export default function App() {
             />
           )}
 
-          <div className="add-filter-card">+ Add filter</div>
+          <div
+            className="add-filter-card"
+            onClick={() => {
+              setCustomizeBlankStart(true);
+              setShowCustomize(true);
+            }}
+          >
+            + Add filter
+          </div>
         </Section>
       </div>
 

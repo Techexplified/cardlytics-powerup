@@ -961,7 +961,8 @@ function CardConfigModal({
   isPremium, computeFilteredCount, onSave, onBack, onClose, onUpgradeClick,
   boardName, boardId, workspaceBoards = [], fetchWorkspaceBoards, fetchBoardScopedData,
    currentUserId,
-   trelloT 
+   trelloT,
+   blankStart,
 }) {
   const [activeTab,          setActiveTab]          = useState("filters");
   const [cardName,           setCardName]           = useState(DEFAULT_NAMES[statType] || "");
@@ -986,6 +987,7 @@ function showDraftToast(message, type = "success") {
 }
 
   const [activeFilters, setActiveFilters] = useState(() => {
+    if (blankStart) return [];
     const preset = DEFAULT_FILTERS_BY_STAT[statType];
     return preset && preset.active.length ? preset.active : ["assignedTo"];
   });
@@ -993,6 +995,7 @@ function showDraftToast(message, type = "success") {
     const base = {
       assignedTo: [], dueDate: [], label: [], list: [], status: [], cardActivity: [], createdDate: [],
     };
+    if (blankStart) return base;
     const preset = DEFAULT_FILTERS_BY_STAT[statType];
     return { ...base, ...(preset ? preset.values(currentUserId) : {}) };
   });
@@ -1581,7 +1584,8 @@ export function CustomizeFlow({
   boardName, boardId, workspaceBoards, fetchWorkspaceBoards, fetchBoardScopedData,
   workspaceId, workspaceName, fetchWorkspaces,
   currentUserId, 
-  trelloT,  
+  trelloT,
+  blankStart,
 }) {
   if (!show) return null;
   if (!customizeStat) return <StatPicker onSelect={type => setCustomizeStat(type)} onClose={onClose} />;
@@ -1596,7 +1600,8 @@ export function CustomizeFlow({
       fetchBoardScopedData={fetchBoardScopedData}
       workspaceId={workspaceId} workspaceName={workspaceName} fetchWorkspaces={fetchWorkspaces}
       currentUserId={currentUserId}   
-      trelloT={trelloT} 
+      trelloT={trelloT}
+      blankStart={blankStart}
     />
   );
 }
