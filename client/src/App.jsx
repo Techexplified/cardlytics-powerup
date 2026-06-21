@@ -2220,6 +2220,17 @@ export default function App() {
               }
             : null;
 
+            // Resolve which members should be assigned to the tracker card itself.
+          // If the user filtered by specific people, mirror that on the card.
+          // Otherwise default to the current member (so "my" trackers show your avatar).
+          const cardMemberIds = (() => {
+            const filterMembers = (filterConfig?.members || []).filter(
+              (id) => id !== "unassigned",
+            );
+            if (filterMembers.length > 0) return filterMembers;
+            return currentMemberId ? [currentMemberId] : [];
+          })();
+
           const count = (() => {
             const hasExplicitFilters =
               filterConfig &&
@@ -2305,6 +2316,7 @@ export default function App() {
             desc,
             cover,
             coverImageDataUrl,
+            cardMemberIds,
           );
 
           if (saved?.coverImage && trelloT) {

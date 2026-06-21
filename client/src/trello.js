@@ -154,6 +154,7 @@ export async function createCard(
   desc,
   coverColor = "blue",
   coverImageDataUrl = null,
+  memberIds = [],
 ) {
   // Step 1: create the card
   const createParams = new URLSearchParams({
@@ -164,6 +165,9 @@ export async function createCard(
     desc,
     pos: "top",
   });
+  if (memberIds.length > 0) {
+    createParams.set("idMembers", memberIds.join(","));
+  }
   const createRes = await fetch(`${BASE}/cards`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
