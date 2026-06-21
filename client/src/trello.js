@@ -206,7 +206,7 @@ export async function createCard(
           body: JSON.stringify({
             cover: {
               idAttachment: attachment.id,
-              brightness: "light",
+              brightness: "dark",
               size: "full",
             },
           }),
