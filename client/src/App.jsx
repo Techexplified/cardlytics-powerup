@@ -110,7 +110,9 @@ const TRACKER_PREFIXES = [
 const isTrackerCard = (card) => {
   if (!card) return false;
   const name = (card.name || "").toLowerCase();
-  const matchesPrefix = TRACKER_PREFIXES.some((p) => name.startsWith(p.toLowerCase()));
+  const matchesPrefix = TRACKER_PREFIXES.some((p) =>
+    name.startsWith(p.toLowerCase()),
+  );
   if (matchesPrefix) return true;
   return /\[_\]: cardlytics:mode:/.test(card.desc || "");
 };
@@ -307,7 +309,7 @@ async function generateStyledCoverImage({
   });
   wrapper.appendChild(overlay);
 
-const numStyle = `font-size:96px;font-weight:800;color:${resolvedTextColor};line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
+  const numStyle = `font-size:96px;font-weight:800;color:${resolvedTextColor};line-height:1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
   const lblStyle = `font-size:46px;font-weight:700;color:${resolvedTextColor};line-height:1.25;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
   const subStyle = `font-size:32px;color:${resolvedTextColor};opacity:0.8;line-height:1.3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;`;
   let innerHtml = "";
@@ -424,10 +426,24 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }) {
           boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
         }}
       >
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#e6edf3", marginBottom: 8 }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: "#e6edf3",
+            marginBottom: 8,
+          }}
+        >
           {title}
         </div>
-        <div style={{ fontSize: 13, color: "#8b949e", lineHeight: 1.5, marginBottom: 20 }}>
+        <div
+          style={{
+            fontSize: 13,
+            color: "#8b949e",
+            lineHeight: 1.5,
+            marginBottom: 20,
+          }}
+        >
           {message}
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
@@ -614,7 +630,7 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
       /\d+ card\(s\) tracked/,
       `${newCount} card(s) tracked`,
     );
-   await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
+    await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -622,7 +638,7 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
         cover: {
           idAttachment: newAttachment.id,
           brightness: "dark",
-          size: "full",
+          size: "normal",
         },
       }),
     });
@@ -652,10 +668,9 @@ function parseCardFilterSummary(desc) {
   if (filters.members?.length) {
     chips.push({
       label: "Assigned To",
-      value:
-        filters.members.includes("unassigned")
-          ? "Unassigned"
-          : `${filters.members.length} member(s)`,
+      value: filters.members.includes("unassigned")
+        ? "Unassigned"
+        : `${filters.members.length} member(s)`,
     });
   }
   if (filters.due?.length) {
@@ -671,7 +686,10 @@ function parseCardFilterSummary(desc) {
           ? `${filters.customDateFrom} → ${filters.customDateTo}`
           : "Custom range",
     };
-    chips.push({ label: "Due Date", value: DUE_LABELS[filters.due[0]] || filters.due[0] });
+    chips.push({
+      label: "Due Date",
+      value: DUE_LABELS[filters.due[0]] || filters.due[0],
+    });
   }
   if (filters.labels?.length) {
     chips.push({ label: "Label", value: `${filters.labels.length} label(s)` });
@@ -680,15 +698,30 @@ function parseCardFilterSummary(desc) {
     chips.push({ label: "List", value: `${filters.lists.length} list(s)` });
   }
   if (filters.status?.length) {
-    const STATUS_LABELS = { complete: "Complete", incomplete: "Incomplete", overdue: "Overdue" };
-    chips.push({ label: "Status", value: STATUS_LABELS[filters.status[0]] || filters.status[0] });
+    const STATUS_LABELS = {
+      complete: "Complete",
+      incomplete: "Incomplete",
+      overdue: "Overdue",
+    };
+    chips.push({
+      label: "Status",
+      value: STATUS_LABELS[filters.status[0]] || filters.status[0],
+    });
   }
   if (filters.activity?.length) {
     chips.push({ label: "Activity", value: filters.activity[0] });
   }
   if (filters.createdDate?.length) {
-    const CREATED_LABELS = { today: "Today", yesterday: "Yesterday", "7days": "Last 7 days", "30days": "Last 30 days" };
-    chips.push({ label: "Created", value: CREATED_LABELS[filters.createdDate[0]] || filters.createdDate[0] });
+    const CREATED_LABELS = {
+      today: "Today",
+      yesterday: "Yesterday",
+      "7days": "Last 7 days",
+      "30days": "Last 30 days",
+    };
+    chips.push({
+      label: "Created",
+      value: CREATED_LABELS[filters.createdDate[0]] || filters.createdDate[0],
+    });
   }
 
   return chips;
@@ -701,7 +734,7 @@ function CardBackView() {
 
   useEffect(() => {
     if (!trelloT) return;
-   trelloT.card("name", "idList", "desc").then((card) => {
+    trelloT.card("name", "idList", "desc").then((card) => {
       setCardDesc(card.desc || "");
       if (isTrackerCard(card)) {
         setIsTracker(true);
@@ -806,7 +839,12 @@ function CardBackView() {
       style={{ flexDirection: "column", gap: 8, alignItems: "stretch" }}
     >
       <div
-        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 10,
+        }}
       >
         <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>
           Cardlytics
@@ -850,7 +888,9 @@ function CardBackView() {
                 whiteSpace: "nowrap",
               }}
             >
-              <span style={{ color: "#79c0ff", fontWeight: 600 }}>{chip.label}:</span>{" "}
+              <span style={{ color: "#79c0ff", fontWeight: 600 }}>
+                {chip.label}:
+              </span>{" "}
               {chip.value}
             </span>
           ))}
@@ -952,8 +992,7 @@ function CardDetailsView() {
 
         allCards = allCards.filter(
           (c) =>
-            !isTrackerCardDisplay(c) &&
-            !cardlyticsListIds.includes(c.idList),
+            !isTrackerCardDisplay(c) && !cardlyticsListIds.includes(c.idList),
         );
 
         const now = new Date();
@@ -1889,7 +1928,7 @@ function CardDetailsView() {
           </div>
         )}
 
-       <div className="cd-bottom-nav">
+        <div className="cd-bottom-nav">
           <button className="cd-nav-btn" onClick={() => comingSoon("Inbox")}>
             📥 Inbox
           </button>
@@ -2220,7 +2259,7 @@ export default function App() {
               }
             : null;
 
-            // Resolve which members should be assigned to the tracker card itself.
+          // Resolve which members should be assigned to the tracker card itself.
           // If the user filtered by specific people, mirror that on the card.
           // Otherwise default to the current member (so "my" trackers show your avatar).
           const cardMemberIds = (() => {
@@ -2280,7 +2319,7 @@ export default function App() {
               ? `\n\n[_]: cardlytics:mode:list:listId:${listId}:statType:${stat}${filterStr}`
               : `\n\n[_]: cardlytics:mode:board:statType:${stat}${filterStr}`;
 
-         const coverTitle = saved?.cardName || defaults.label;
+          const coverTitle = saved?.cardName || defaults.label;
 
           // Customized cards (styled image) → use a minimal emoji-only Trello
           // name, since the descriptive text is already baked into the cover
@@ -2291,7 +2330,7 @@ export default function App() {
           const desc = `${count} card(s) tracked by Cardlytics.${metaTag}`;
           const cover = saved?.cover || defaults.cover;
 
-        const coverImageDataUrl = saved
+          const coverImageDataUrl = saved
             ? await generateStyledCoverImage({
                 count,
                 cover: saved?.cover || defaults.cover,
@@ -2303,10 +2342,10 @@ export default function App() {
                 subtitle: saved?.subtitle || "",
                 coverImage: saved?.coverImage || null,
               })
-            // Plain (non-customized) cards: just the number on a plain color
-            // background — no title/subtitle baked in, since the card keeps
-            // its native Trello name for that.
-            : await generateStatCoverImage(count, cover);
+            : // Plain (non-customized) cards: just the number on a plain color
+              // background — no title/subtitle baked in, since the card keeps
+              // its native Trello name for that.
+              await generateStatCoverImage(count, cover);
 
           const newCard = await createCard(
             key,
@@ -2326,7 +2365,7 @@ export default function App() {
                 saved.coverImage,
               );
 
-             const stylePayload = {
+              const stylePayload = {
                 cover: saved.cover || defaults.cover,
                 customHex: saved.customHex || null,
                 textColor: saved.textColor || "white",
@@ -2375,7 +2414,7 @@ export default function App() {
       const newViews = statsToTrack.map((stat) => {
         const saved = configToUse[stat];
         const defaults = DEFAULT_STAT_CONFIG[stat];
-       return {
+        return {
           id: `${stat}-${Date.now()}`,
           cardId: createdCards.find((c) => c.stat === stat)?.cardId || null,
           statType: stat,
@@ -2434,7 +2473,7 @@ export default function App() {
         setCustomizeStat={setCustomizeStat}
         currentUserId={currentMemberId}
         blankStart={customizeBlankStart}
-       onSave={async (type, cfg) => {
+        onSave={async (type, cfg) => {
           const newConfig = { ...cardConfig, [type]: cfg };
           setCardConfig(newConfig);
           setShowCustomize(false);
@@ -2445,7 +2484,9 @@ export default function App() {
           // tearing down and a remove() call queued after it can lose the race
           // and never actually delete the draft from Trello's storage.
           if (trelloT) {
-            await trelloT.remove("board", "shared", `cardlytics_draft:${type}`).catch(() => {});
+            await trelloT
+              .remove("board", "shared", `cardlytics_draft:${type}`)
+              .catch(() => {});
           }
           await handleTrack([type], newConfig);
         }}
@@ -2454,10 +2495,10 @@ export default function App() {
           setCustomizeStat(null);
           setCustomizeBlankStart(false);
         }}
-       computeFilteredCount={(statType, filters) => {
+        computeFilteredCount={(statType, filters) => {
           const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
 
-         const hasExplicitFilters =
+          const hasExplicitFilters =
             filters.due?.length > 0 ||
             filters.members?.length > 0 ||
             filters.labels?.length > 0 ||
