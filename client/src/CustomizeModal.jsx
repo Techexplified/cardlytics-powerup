@@ -1195,14 +1195,14 @@ useEffect(() => {
     onClick={onBack}
     title="Back"
     style={{
-      background:"none", border:`1px solid ${T.border}`, borderRadius:7,
+      background:"none", border:"none", borderRadius:7,
       width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center",
-      color:T.textSub, cursor:"pointer", flexShrink:0, fontSize:15,
-      transition:"border-color 0.15s, color 0.15s",
+      color:T.textMuted, cursor:"pointer", flexShrink:0, fontSize:19,
+      transition:"background 0.15s, color 0.15s",
     }}
-    onMouseEnter={e => { e.currentTarget.style.borderColor = T.accent; e.currentTarget.style.color = T.accent; }}
-    onMouseLeave={e => { e.currentTarget.style.borderColor = T.border; e.currentTarget.style.color = T.textSub; }}
-  >←</button>
+    onMouseEnter={e => { e.currentTarget.style.background = T.bgItem; e.currentTarget.style.color = T.text; }}
+    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.textMuted; }}
+  >‹</button>
   <span style={{ fontSize:15, fontWeight:700, color:T.text }}>Create Stat Card</span>
           <span style={{
             fontSize:11, color:T.accent, background:T.accentDim,

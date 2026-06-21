@@ -49,7 +49,8 @@ export function getWeekBounds(now) {
 
   // "this week" = from start of today through the end of the upcoming Sunday
   const endOfWeek = new Date(startOfDay);
-  const daysUntilSunday = 7 - startOfDay.getDay(); // 0=Sun gives 7, 1=Mon gives 6, etc.
+  const dayOfWeek = startOfDay.getDay(); // 0=Sun..6=Sat
+  const daysUntilSunday = dayOfWeek === 0 ? 1 : 7 - dayOfWeek;
   endOfWeek.setDate(startOfDay.getDate() + daysUntilSunday);
 
   return { startOfDay, startOfWeek: startOfDay, endOfWeek };
@@ -205,7 +206,7 @@ export async function createCard(
           body: JSON.stringify({
             cover: {
               idAttachment: attachment.id,
-              brightness: "dark",
+              brightness: "light",
               size: "full",
             },
           }),

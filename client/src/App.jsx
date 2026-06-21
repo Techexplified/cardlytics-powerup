@@ -614,14 +614,14 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
       /\d+ card\(s\) tracked/,
       `${newCount} card(s) tracked`,
     );
-    await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
+   await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         desc: newDesc,
         cover: {
           idAttachment: newAttachment.id,
-          brightness: "dark",
+          brightness: "light",
           size: "full",
         },
       }),
