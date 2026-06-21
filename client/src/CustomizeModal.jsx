@@ -966,7 +966,6 @@ function CardConfigModal({
 }) {
   const [activeTab,          setActiveTab]          = useState("filters");
   const [cardName,           setCardName]           = useState(DEFAULT_NAMES[statType] || "");
-  const [description,        setDescription]        = useState("");
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
   const [boardScope, setBoardScope] = useState("this");
   const [filterSearch,       setFilterSearch]       = useState("");
@@ -1028,7 +1027,6 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
 
   const draftData = {
     cardName,
-    description,
     cover: coverColor,
     subtitle: styleSubtitle,
     customHex,    
@@ -1071,7 +1069,6 @@ useEffect(() => {
         setCardName(draft.cardName);
         setNameManuallyEdited(true);
       }
-      if (draft.description !== undefined) setDescription(draft.description);
       if (draft.cover) setCoverColor(draft.cover);
       if (draft.customHex) setCustomHex(draft.customHex); 
       if (draft.subtitle !== undefined) setStyleSubtitle(draft.subtitle);
@@ -1132,7 +1129,7 @@ useEffect(() => {
 
   function handleSave() {
     onSave(statType, {
-      cardName: previewName, description,
+      cardName: previewName,
       cover: coverColor, coverImage, customHex,
       subtitle: styleSubtitle, textColor, customTextHex, layout,
       members:        filterValues.assignedTo  || [],
@@ -1309,8 +1306,9 @@ useEffect(() => {
                           <label style={{ fontSize:11, color:T.textMuted, fontWeight:500, display:"block", marginBottom:5 }}>Description (optional)</label>
                           <input
                             type="text"
-                            value={description}
-                            onChange={e => setDescription(e.target.value)}
+                            value={styleSubtitle}
+                            onChange={e => setStyleSubtitle(e.target.value)}
+                            maxLength={30}
                             placeholder="Add a short description for this card..."
                             style={{
                               width:"100%", background:T.bgDeep, border:`1px solid ${T.border}`,
