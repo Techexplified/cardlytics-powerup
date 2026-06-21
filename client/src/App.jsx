@@ -621,7 +621,7 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
         desc: newDesc,
         cover: {
           idAttachment: newAttachment.id,
-          brightness: "light",
+          brightness: "dark",
           size: "full",
         },
       }),
