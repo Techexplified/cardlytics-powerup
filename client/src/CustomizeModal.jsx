@@ -1198,10 +1198,10 @@ useEffect(() => {
       background:"none", border:"none", borderRadius:7,
       width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center",
       color:T.textMuted, cursor:"pointer", flexShrink:0, fontSize:19,
-      transition:"background 0.15s, color 0.15s",
+      transition:"background 0.15s",
     }}
-    onMouseEnter={e => { e.currentTarget.style.background = T.bgItem; e.currentTarget.style.color = T.text; }}
-    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = T.textMuted; }}
+    onMouseEnter={e => { e.currentTarget.style.background = T.bgItem; }}
+    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
   >‹</button>
   <span style={{ fontSize:15, fontWeight:700, color:T.text }}>Create Stat Card</span>
           <span style={{
