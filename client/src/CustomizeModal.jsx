@@ -109,7 +109,6 @@ const STAT_LIST = [
 
 const DUE_OPTIONS = [
   { value:"thisWeek", label:"Due this week" },
-  { value:"1week",   label:"Due in 1 week"  },
   { value:"2weeks",  label:"Due in 2 weeks" },
   { value:"1month",  label:"Due in 1 month" },
   { value:"overdue", label:"Overdue"        },

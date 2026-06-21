@@ -264,10 +264,10 @@ export function applyFilters(cards, filters, memberId) {
         if (d === "nodate") return !due;
         if (!due) return false;
         if (d === "overdue") return due < now && !card.dueComplete;
-        if (d === "2days")
-          return due >= now && due <= new Date(now.getTime() + 2 * 86400000);
-        if (d === "1week")
-          return due >= now && due <= new Date(now.getTime() + 7 * 86400000);
+        if (d === "thisWeek") {
+          const { startOfWeek, endOfWeek } = getWeekBounds(now);
+          return due >= startOfWeek && due < endOfWeek;
+        }
         if (d === "2weeks")
           return due >= now && due <= new Date(now.getTime() + 14 * 86400000);
         if (d === "1month")

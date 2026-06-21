@@ -2081,7 +2081,10 @@ export default function App() {
       }
 
       const labels = await getBoardLabels(key, tkn, boardId);
-      setBoardLabels(labels);
+      const usedLabelIds = new Set(
+        fullBoardCards.flatMap((c) => (c.labels || []).map((l) => l.id)),
+      );
+      setBoardLabels(labels.filter((l) => usedLabelIds.has(l.id)));
 
       const computed = computeStats(filteredForStats, memberId);
       computed.cardsInList = mode === "list" ? filteredForStats.length : 0;
