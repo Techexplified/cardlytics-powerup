@@ -207,7 +207,7 @@ export async function createCard(
             cover: {
               idAttachment: attachment.id,
               brightness: "dark",
-              size: "normal",
+              size: "full",
             },
           }),
         });
@@ -228,7 +228,7 @@ export async function createCard(
           cover: {
             color: coverColor,
             brightness: "dark",
-            size: "normal",
+            size: "full",
           },
         }),
       },
