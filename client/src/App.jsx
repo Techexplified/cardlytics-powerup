@@ -785,6 +785,7 @@ function CardBackView() {
               .catch(() => {});
           })
           .catch(() => setIsTracker(false));
+      });
     });
   }, []);
 
