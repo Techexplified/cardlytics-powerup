@@ -979,13 +979,6 @@ function CardConfigModal({
   const [customTextHex, setCustomTextHex] = useState("#FFFFFF");
   const [liveResultsOpen, setLiveResultsOpen] = useState(true); 
 
-  const [draftToast, setDraftToast] = useState(null); // { message, type } | null
-
-function showDraftToast(message, type = "success") {
-  setDraftToast({ message, type });
-  setTimeout(() => setDraftToast(null), 2500);
-}
-
   const [activeFilters, setActiveFilters] = useState(() => {
     if (blankStart) return [];
     const preset = DEFAULT_FILTERS_BY_STAT[statType];
@@ -1021,34 +1014,6 @@ function showDraftToast(message, type = "success") {
 useEffect(() => { setScopedMembers(members || []); }, [members]);
 useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
 
-  async function handleSaveDraft() {
-  if (!trelloT) {
-    console.error("❌ trelloT not available");
-    return;
-  }
-
-  const draftData = {
-    cardName,
-    cover: coverColor,
-    subtitle: styleSubtitle,
-    customHex,    
-    textColor,
-    customTextHex,
-    layout,
-    boardScope,
-    filters: filterValues
-  };
-
-  try {
-    await trelloT.set("board", "shared", `cardlytics_draft:${statType}`, draftData);
-    console.log("✅ Draft saved to Trello", draftData);
-    showDraftToast("🔖 Draft saved");
-  } catch (err) {
-    console.error("❌ Failed to save draft", err);
-    showDraftToast("Failed to save draft", "error");
-  }
-}
-
   useEffect(() => {
     if (workspaceBoards?.length) { setBoards(workspaceBoards); return; }
     if (!fetchWorkspaceBoards) return;
@@ -1059,46 +1024,7 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
       .finally(() => setBoardsLoading(false));
   }, [fetchWorkspaceBoards]);
 
-  // ── Load saved draft on open ──────────────────────────────────────────────
-useEffect(() => {
-  if (!trelloT) return;
-
-  trelloT.get("board", "shared", `cardlytics_draft:${statType}`)
-    .then((draft) => {
-      if (!draft) return;
-
-      if (draft.cardName) {
-        setCardName(draft.cardName);
-        setNameManuallyEdited(true);
-      }
-      if (draft.cover) setCoverColor(draft.cover);
-      if (draft.customHex) setCustomHex(draft.customHex); 
-      if (draft.subtitle !== undefined) setStyleSubtitle(draft.subtitle);
-      if (draft.textColor) setTextColor(draft.textColor);
-      if (draft.customTextHex) setCustomTextHex(draft.customTextHex);
-      if (draft.layout) setLayout(draft.layout);
-      if (draft.boardScope) setBoardScope(draft.boardScope);
-
-      if (draft.filters) {
-        setFilterValues(draft.filters);
-        // Re-derive which filter rows should show as "active"
-        const activeKeys = Object.keys(draft.filters).filter(
-          (k) => Array.isArray(draft.filters[k]) && draft.filters[k].length > 0
-        );
-        setActiveFilters(activeKeys.length > 0 ? activeKeys : ["assignedTo"]);
-      }
-
-      console.log("📂 Draft loaded from Trello", draft);
-      showDraftToast("📂 Loaded your saved draft");
-    })
-    .catch((err) => {
-      // t.get throws if the key doesn't exist yet — that's expected on first use
-      console.log("No existing draft found (or failed to load):", err);
-    });
-}, [trelloT]);
-
-
-  const liveCount = computeFilteredCount
+ const liveCount = computeFilteredCount
     ? computeFilteredCount(statType, {
         members:        filterValues.assignedTo  || [],
         due:            filterValues.dueDate     || [],
@@ -1162,20 +1088,6 @@ useEffect(() => {
     zIndex: 9999,
     fontFamily: "'DM Sans', -apple-system, sans-serif",
   }}>
-    {draftToast && (
-      <div style={{
-        position: "absolute", top: 18, right: 24, zIndex: 10000,
-        display: "flex", alignItems: "center", gap: 8,
-        background: T.bgDeep,
-        border: `1px solid ${draftToast.type === "error" ? T.danger : T.success}`,
-        borderRadius: 8, padding: "9px 16px",
-        color: "#fff", fontSize: 12.5, fontWeight: 600,
-        boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
-      }}>
-        <span>{draftToast.type === "error" ? "⚠️" : "✅"}</span>
-        <span>{draftToast.message}</span>
-      </div>
-    )}
    <div style={{
   background: T.bgSection,
   width: "100%",
@@ -1504,20 +1416,10 @@ useEffect(() => {
 
         {/* ── Footer ── */}
         <div style={{
-          display:"flex", justifyContent:"space-between", alignItems:"center",
+          display:"flex", justifyContent:"flex-end", alignItems:"center",
           padding:"13px 20px", borderTop:`1px solid ${T.border}`, flexShrink:0,
           background: T.bg,
         }}>
-          <button  onClick={handleSaveDraft} style={{
-            background:"none", border:`1px solid ${T.border}`, borderRadius:7,
-            padding:"8px 18px", color:T.textSub, fontSize:13, fontFamily:"inherit",
-            cursor:"pointer", display:"flex", alignItems:"center", gap:6,
-            transition:"border-color 0.15s",
-          }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = T.textMuted}
-            onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
-          >🔖 Save as Draft</button>
-
           <div style={{ display:"flex", gap:10 }}>
             <button onClick={onClose} style={{
               background:"none", border:`1px solid ${T.border}`, borderRadius:7,
@@ -1541,36 +1443,25 @@ useEffect(() => {
                 Next: Style <span style={{ fontSize:14 }}>→</span>
               </button>
             ) : (
-              <>
-                <button onClick={() => setActiveTab("filters")} style={{
-                  background:"none", border:`1px solid ${T.border}`, borderRadius:7,
-                  padding:"8px 22px", color:T.textSub, fontSize:13, fontFamily:"inherit",
-                  cursor:"pointer", transition:"border-color 0.15s",
-                }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = T.textMuted}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
-                >← Back</button>
-
-                <button onClick={handleSave} style={{
-                  background:T.accent, border:"none", borderRadius:7,
-                  padding:"8px 22px", color:"#fff", fontSize:13, fontWeight:600,
-                  fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", gap:8,
-                  transition:"background 0.15s",
-                }}
-                  onMouseEnter={e => e.currentTarget.style.background = T.accentHover}
-                  onMouseLeave={e => e.currentTarget.style.background = T.accent}
-                >
-                  Create Card
-                  <span style={{
-                    width:18, height:18, borderRadius:4,
-                    border:"1.5px solid rgba(255,255,255,0.5)",
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    fontSize:11,
-                  }}>✦</span>
-                </button>
-             </>
+              <button onClick={handleSave} style={{
+                background:T.accent, border:"none", borderRadius:7,
+                padding:"8px 22px", color:"#fff", fontSize:13, fontWeight:600,
+                fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", gap:8,
+                transition:"background 0.15s",
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = T.accentHover}
+                onMouseLeave={e => e.currentTarget.style.background = T.accent}
+              >
+                Create Card
+                <span style={{
+                  width:18, height:18, borderRadius:4,
+                  border:"1.5px solid rgba(255,255,255,0.5)",
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  fontSize:11,
+                }}>✦</span>
+              </button>
             )}
-        </div>
+          </div>
         </div>
       </div>
     </div>
