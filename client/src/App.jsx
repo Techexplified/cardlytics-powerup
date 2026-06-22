@@ -187,8 +187,7 @@ const STAT_COVER_COLOR_MAP = {
 // ── Generate cover image canvas ───────────────────────────────────────────────
 function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarInitials = null, avatarColor = "#4ea1ff") {
   return new Promise((resolve) => {
-    const W = 800,
-      H = 320;
+    const W = 800, H = 320;
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
@@ -196,7 +195,7 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarI
 
     function drawAvatar() {
       if (!avatarInitials) return;
-      const r = 34, cx = W - 56, cy = H - 56;
+      const r = 34, cx = W - 56, cy = 56; // top-right corner, like Trello's native badge
       ctx.shadowBlur = 0;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -205,16 +204,18 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarI
       ctx.lineWidth = 3;
       ctx.strokeStyle = "rgba(255,255,255,0.9)";
       ctx.stroke();
-      ctx.font = `700 30px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.font = `700 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
       ctx.fillStyle = "#fff";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(avatarInitials, cx, cy + 2);
+      ctx.fillText(avatarInitials, cx, cy + 1);
     }
 
-    function drawNumber() {
-      ctx.fillStyle = "rgba(0,0,0,0.45)";
-      ctx.fillRect(0, 0, W, H);
+    function drawNumber(withDarkOverlay) {
+      if (withDarkOverlay) {
+        ctx.fillStyle = "rgba(0,0,0,0.40)";
+        ctx.fillRect(0, 0, W, H);
+      }
       const numStr = String(count);
       const fontSize = numStr.length > 3 ? 90 : numStr.length > 2 ? 110 : 130;
       ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
@@ -232,30 +233,28 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarI
       const img = new Image();
       img.onload = () => {
         const scale = Math.max(W / img.width, H / img.height);
-        const sw = img.width * scale,
-          sh = img.height * scale;
+        const sw = img.width * scale, sh = img.height * scale;
         ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
-        drawNumber();
+        drawNumber(true); // dark overlay only needed for legibility over a busy photo
       };
       img.onerror = () => {
         ctx.fillStyle = COVER_BG_COLORS[colorName] || "#1565c0";
         ctx.fillRect(0, 0, W, H);
-        drawNumber();
+        drawNumber(false);
       };
       img.src = bgImageDataUrl;
     } else {
       ctx.fillStyle = COVER_BG_COLORS[colorName] || "#1565c0";
       ctx.fillRect(0, 0, W, H);
       const grad = ctx.createLinearGradient(0, 0, W, H);
-      grad.addColorStop(0, "rgba(255,255,255,0.07)");
-      grad.addColorStop(1, "rgba(0,0,0,0.25)");
+      grad.addColorStop(0, "rgba(255,255,255,0.12)");
+      grad.addColorStop(1, "rgba(0,0,0,0.22)");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
-      drawNumber();
+      drawNumber(false); // plain color cards: no blanket black layer, just the natural shade
     }
   });
 }
-
 // ── Generate cover image from a styled DOM node (matches LiveStylePreview) ───
 async function generateStyledCoverImage({
   count,
