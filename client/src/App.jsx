@@ -185,7 +185,7 @@ const STAT_COVER_COLOR_MAP = {
 };
 
 // ── Generate cover image canvas ───────────────────────────────────────────────
-function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
+function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarInitials = null, avatarColor = "#4ea1ff") {
   return new Promise((resolve) => {
     const W = 800,
       H = 320;
@@ -193,6 +193,24 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext("2d");
+
+    function drawAvatar() {
+      if (!avatarInitials) return;
+      const r = 34, cx = W - 56, cy = H - 56;
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = avatarColor;
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      ctx.stroke();
+      ctx.font = `700 30px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(avatarInitials, cx, cy + 2);
+    }
 
     function drawNumber() {
       ctx.fillStyle = "rgba(0,0,0,0.45)";
@@ -206,6 +224,7 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null) {
       ctx.shadowColor = "rgba(0,0,0,0.5)";
       ctx.shadowBlur = 28;
       ctx.fillText(numStr, W / 2, H / 2);
+      drawAvatar();
       resolve(canvas.toDataURL("image/jpeg", 0.92));
     }
 
@@ -248,6 +267,8 @@ async function generateStyledCoverImage({
   title,
   subtitle,
   coverImage,
+  avatarInitials,
+  avatarColor,
 }) {
   const COVER_COLORS_MAP = {
     blue: "#0052cc",
@@ -353,6 +374,30 @@ async function generateStyledCoverImage({
   content.style.height = "100%";
   content.innerHTML = innerHtml;
   wrapper.appendChild(content);
+
+  if (avatarInitials) {
+    const avatarEl = document.createElement("div");
+    Object.assign(avatarEl.style, {
+      position: "absolute",
+      bottom: "24px",
+      right: "24px",
+      width: "56px",
+      height: "56px",
+      borderRadius: "50%",
+      background: avatarColor || "#4ea1ff",
+      border: "3px solid rgba(255,255,255,0.9)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#fff",
+      fontWeight: "700",
+      fontSize: "22px",
+      fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+      zIndex: "2",
+    });
+    avatarEl.textContent = avatarInitials;
+    wrapper.appendChild(avatarEl);
+  }
 
   document.body.appendChild(wrapper);
   try {
@@ -588,6 +633,12 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
       }
     } catch (_) {}
 
+    let avatarInfo = null;
+    try {
+      const raw = localStorage.getItem(`cardlytics:avatar:${card.id}`);
+      if (raw) avatarInfo = JSON.parse(raw);
+    } catch (_) {}
+
     // Delete old attachments
     const attachRes = await fetch(
       `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
@@ -613,8 +664,16 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
           title: savedStyle.title || card.name,
           subtitle: savedStyle.subtitle || "",
           coverImage: existingBgDataUrl,
+          avatarInitials: avatarInfo?.avatarInitials || null,
+          avatarColor: avatarInfo?.avatarColor || null,
         })
-      : await generateStatCoverImage(newCount, coverColor, existingBgDataUrl);
+      : await generateStatCoverImage(
+          newCount,
+          coverColor,
+          existingBgDataUrl,
+          avatarInfo?.avatarInitials || null,
+          avatarInfo?.avatarColor || null,
+        );
 
     const blob = dataUrlToBlob(newCoverDataUrl);
     const formData = new FormData();
@@ -2322,6 +2381,12 @@ export default function App() {
             return currentMemberId ? [currentMemberId] : [];
           })();
 
+          const avatarMemberId = cardMemberIds[0] || null;
+          const avatarInitials = avatarMemberId
+            ? boardMembers.find((m) => m.id === avatarMemberId)?.initials || null
+            : null;
+          const avatarColor = avatarMemberId ? memberColor(avatarMemberId) : null;
+
           const count = (() => {
             const hasExplicitFilters =
               filterConfig &&
@@ -2393,11 +2458,13 @@ export default function App() {
                 title: coverTitle,
                 subtitle: saved?.subtitle || "",
                 coverImage: saved?.coverImage || null,
+                avatarInitials,
+                avatarColor,
               })
             : // Plain (non-customized) cards: just the number on a plain color
               // background — no title/subtitle baked in, since the card keeps
               // its native Trello name for that.
-              await generateStatCoverImage(count, cover);
+              await generateStatCoverImage(count, cover, null, avatarInitials, avatarColor);
 
           const newCard = await createCard(
             key,
@@ -2407,7 +2474,7 @@ export default function App() {
             desc,
             cover,
             coverImageDataUrl,
-            cardMemberIds,
+            [], // no real Trello member assignment — avatar is baked into the cover image instead
           );
 
           if (saved?.coverImage && trelloT) {
@@ -2452,6 +2519,14 @@ export default function App() {
               console.error("❌ customBg save failed", err);
             }
           }
+
+          if (avatarInitials) {
+            localStorage.setItem(
+              `cardlytics:avatar:${newCard.id}`,
+              JSON.stringify({ avatarInitials, avatarColor }),
+            );
+          }
+
           return { stat, cardId: newCard.id };
         }),
       );
