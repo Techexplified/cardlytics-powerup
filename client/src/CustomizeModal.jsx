@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 
+// ── Tabler icons CDN (outline, consistent weight) ─────────────────────────────
+// Already loaded in the host environment via:
+// <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+
 // ── Theme tokens ──────────────────────────────────────────────────────────────
 const T = {
   bg:          "#161b22",
@@ -85,7 +89,37 @@ const TRELLO_LABEL_COLORS = {
   lime:"#51e898", black:"#374151", null:"#888888",
 };
 
-const STAT_EMOJIS    = { assigned:"📌", dueThisWeek:"📅", overdue:"⚠️", unassigned:"👤", withLabel:"🏷️", stale:"💤", createdToday:"✨", custom:"🛠️" };
+// ── Tabler icon map — replaces all emoji usage ────────────────────────────────
+const FILTER_ICONS = {
+  assignedTo:   { icon: "ti-user-check",    color: "#7e57c2" },
+  dueDate:      { icon: "ti-calendar-due",  color: "#1565c0" },
+  label:        { icon: "ti-tag",           color: "#e6a817" },
+  list:         { icon: "ti-layout-list",   color: "#4c8fff" },
+  priority:     { icon: "ti-flag-2",        color: "#f85149" },
+  status:       { icon: "ti-circle-check",  color: "#3fb950" },
+  cardActivity: { icon: "ti-activity",      color: "#8b949e" },
+  createdDate:  { icon: "ti-clock-plus",    color: "#2ec4b6" },
+  updatedDate:  { icon: "ti-pencil",        color: "#4c8fff" },
+  completedDate:{ icon: "ti-circle-check",  color: "#3fb950" },
+  hasAttachments:{ icon: "ti-paperclip",   color: "#e6a817" },
+  hasChecklist: { icon: "ti-checkbox",      color: "#29b6f6" },
+  hasComments:  { icon: "ti-message-circle",color: "#7e57c2" },
+  hasCover:     { icon: "ti-photo",         color: "#f85149" },
+  customFields: { icon: "ti-adjustments-horizontal", color: "#4c8fff" },
+  advanced:     { icon: "ti-sliders",       color: "#8b949e" },
+};
+
+const STAT_ICONS = {
+  assigned:     "ti-map-pin",
+  dueThisWeek:  "ti-calendar-due",
+  overdue:      "ti-alert-triangle",
+  unassigned:   "ti-user-off",
+  withLabel:    "ti-tag",
+  stale:        "ti-zzz",
+  createdToday: "ti-sparkles",
+  custom:       "ti-tool",
+};
+
 const DEFAULT_COVER  = { assigned:"blue", dueThisWeek:"yellow", overdue:"red", unassigned:"purple", withLabel:"orange", stale:"black", createdToday:"green" };
 const DEFAULT_NAMES  = {
   assigned:    "Assigned to Me",
@@ -99,13 +133,13 @@ const DEFAULT_NAMES  = {
 };
 
 const STAT_LIST = [
-  { type:"assigned",     label:"Assigned to Me",   emoji:"📌" },
-  { type:"dueThisWeek",  label:"Due This Week",     emoji:"📅" },
-  { type:"overdue",      label:"Overdue Cards",     emoji:"⚠️" },
-  { type:"unassigned",   label:"Unassigned Cards",  emoji:"👤" },
-  { type:"withLabel",    label:"Cards With Label",  emoji:"🏷️" },
-  { type:"stale",        label:"Stale Cards",       emoji:"💤" },
-  { type:"createdToday", label:"Created Today",     emoji:"✨" },
+  { type:"assigned",     label:"Assigned to Me",   iconClass:"ti-user-check"     },
+  { type:"dueThisWeek",  label:"Due This Week",     iconClass:"ti-calendar-due"   },
+  { type:"overdue",      label:"Overdue Cards",     iconClass:"ti-alert-triangle" },
+  { type:"unassigned",   label:"Unassigned Cards",  iconClass:"ti-user-off"       },
+  { type:"withLabel",    label:"Cards With Label",  iconClass:"ti-tag"            },
+  { type:"stale",        label:"Stale Cards",       iconClass:"ti-zzz"            },
+  { type:"createdToday", label:"Created Today",     iconClass:"ti-sparkles"       },
 ];
 
 const DUE_OPTIONS = [
@@ -134,27 +168,56 @@ const CARD_ACTIVITY_OPTIONS = [
   { value:"stale30", label:"Stale — 30+ days"     },
 ];
 
+// ── Full filter grid matching the design screenshot ───────────────────────────
 const FILTER_GRID_ITEMS = [
-  { key:"assignedTo",    icon:"👤", label:"Assigned To",    sub:"Filter by card assignee",      color:"#7e57c2" },
-  { key:"dueDate",       icon:"📅", label:"Due Date",       sub:"Filter by due dates",           color:"#1565c0" },
-  { key:"label",         icon:"🏷", label:"Label",          sub:"Filter by labels",              color:"#e6a817" },
-  { key:"list",          icon:"☰",  label:"List",           sub:"Filter by lists",               color:"#4c8fff" },
-  { key:"status",        icon:"✅", label:"Status",         sub:"Filter by card status",         color:"#3fb950" },
-  { key:"cardActivity",  icon:"🕐", label:"Card Activity",  sub:"Filter by activity dates",      color:"#8b949e" },
-  { key:"createdDate",   icon:"✨", label:"Created Date",   sub:"Filter by card creation date",  color:"#2ec4b6" },
+  { key:"assignedTo",     iconClass:"ti-user-check",             label:"Assigned To",     sub:"Filter by assignee",          color:"#7e57c2" },
+  { key:"dueDate",        iconClass:"ti-calendar-due",           label:"Due Date",         sub:"Filter by due dates",         color:"#1565c0" },
+  { key:"label",          iconClass:"ti-tag",                    label:"Label",            sub:"Filter by labels",            color:"#e6a817" },
+  { key:"list",           iconClass:"ti-layout-list",            label:"List",             sub:"Filter by lists",             color:"#4c8fff" },
+  { key:"priority",       iconClass:"ti-flag-2",                 label:"Priority",         sub:"Filter by priority",          color:"#f85149" },
+  { key:"status",         iconClass:"ti-circle-check",           label:"Status",           sub:"Filter by card status",       color:"#3fb950" },
+  { key:"cardActivity",   iconClass:"ti-activity",               label:"Card Activity",    sub:"Filter by activity dates",    color:"#8b949e" },
+  { key:"createdDate",    iconClass:"ti-clock-plus",             label:"Created Date",     sub:"Filter by card creation date",color:"#2ec4b6" },
+  { key:"updatedDate",    iconClass:"ti-pencil",                 label:"Updated Date",     sub:"Filter by last updated date", color:"#4c8fff" },
+  { key:"completedDate",  iconClass:"ti-calendar-check",         label:"Completed Date",   sub:"Filter by completion date",   color:"#3fb950" },
+  { key:"hasAttachments", iconClass:"ti-paperclip",              label:"Has Attachments",  sub:"Filter by attachment",        color:"#e6a817" },
+  { key:"hasChecklist",   iconClass:"ti-checkbox",               label:"Has Checklist",    sub:"Filter by checklist",         color:"#29b6f6" },
+  { key:"hasComments",    iconClass:"ti-message-circle",         label:"Has Comments",     sub:"Filter by comments",          color:"#7e57c2" },
+  { key:"hasCover",       iconClass:"ti-photo",                  label:"Has Cover",        sub:"Filter by cover",             color:"#f85149" },
+  { key:"customFields",   iconClass:"ti-adjustments-horizontal", label:"Custom Fields",    sub:"Filter by custom fields",     color:"#4c8fff" },
+  { key:"advanced",       iconClass:"ti-sliders",                label:"Advanced",         sub:"Advanced conditions",         color:"#8b949e" },
 ];
 
 const FILTER_DEFS = {
-  assignedTo:    { icon:"👤", label:"Assigned To",    valueKey:"members"     },
-  dueDate:       { icon:"📅", label:"Due Date",       valueKey:"due"         },
-  label:         { icon:"🏷", label:"Label",          valueKey:"labels"      },
-  list:          { icon:"☰",  label:"List",           valueKey:"lists"       },
-  status:        { icon:"✅", label:"Status",         valueKey:"status"      },
-  cardActivity:  { icon:"🕐", label:"Card Activity",  valueKey:"activity"    },
-  createdDate:   { icon:"✨", label:"Created Date",   valueKey:"createdDate" },
+  assignedTo:    { iconClass:"ti-user-check",             label:"Assigned To",    valueKey:"members"      },
+  dueDate:       { iconClass:"ti-calendar-due",           label:"Due Date",       valueKey:"due"          },
+  label:         { iconClass:"ti-tag",                    label:"Label",          valueKey:"labels"       },
+  list:          { iconClass:"ti-layout-list",            label:"List",           valueKey:"lists"        },
+  priority:      { iconClass:"ti-flag-2",                 label:"Priority",       valueKey:"priority"     },
+  status:        { iconClass:"ti-circle-check",           label:"Status",         valueKey:"status"       },
+  cardActivity:  { iconClass:"ti-activity",               label:"Card Activity",  valueKey:"activity"     },
+  createdDate:   { iconClass:"ti-clock-plus",             label:"Created Date",   valueKey:"createdDate"  },
+  updatedDate:   { iconClass:"ti-pencil",                 label:"Updated Date",   valueKey:"updatedDate"  },
+  completedDate: { iconClass:"ti-calendar-check",         label:"Completed Date", valueKey:"completedDate"},
+  hasAttachments:{ iconClass:"ti-paperclip",              label:"Has Attachments",valueKey:"hasAttachments"},
+  hasChecklist:  { iconClass:"ti-checkbox",               label:"Has Checklist",  valueKey:"hasChecklist" },
+  hasComments:   { iconClass:"ti-message-circle",         label:"Has Comments",   valueKey:"hasComments"  },
+  hasCover:      { iconClass:"ti-photo",                  label:"Has Cover",      valueKey:"hasCover"     },
+  customFields:  { iconClass:"ti-adjustments-horizontal", label:"Custom Fields",  valueKey:"customFields" },
+  advanced:      { iconClass:"ti-sliders",                label:"Advanced",       valueKey:"advanced"     },
 };
 
 // ── Tiny helpers ──────────────────────────────────────────────────────────────
+function TablerIcon({ name, size = 16, style = {} }) {
+  return (
+    <i
+      className={`ti ${name}`}
+      aria-hidden="true"
+      style={{ fontSize: size, lineHeight: 1, ...style }}
+    />
+  );
+}
+
 function SectionNumber({ n }) {
   return (
     <span style={{
@@ -203,7 +266,7 @@ function StyleDivider() {
   return <div style={{ borderTop: `1px solid ${T.border}`, margin: "20px 0" }} />;
 }
 
-// ── Live results banner (between tab content and footer) ──────────────────────
+// ── Live results banner ───────────────────────────────────────────────────────
 function LiveResultsSection({ liveCount, collapsed, onToggle }) {
   return (
     <div style={{
@@ -317,9 +380,6 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
         const isSelected = selected.includes(opt.value);
         return (
           <DropdownItem key={opt.value} checked={isSelected}
-            // Due Date is single-choice: picking a new option replaces the
-            // previous one, rather than combining ("this week" OR "custom"),
-            // which would silently widen the match set and inflate counts.
             onClick={() => onChange(isSelected ? [] : [opt.value])}>
             {opt.label}
           </DropdownItem>
@@ -329,28 +389,18 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
         <div style={{ padding:"10px 14px 12px", borderTop:`1px solid ${T.border}`, display:"flex", flexDirection:"column", gap:8 }}>
           <div>
             <label style={{ fontSize:10.5, color:T.textMuted, fontWeight:600, display:"block", marginBottom:4 }}>From</label>
-            <input
-              type="date" value={customDateFrom || ""}
+            <input type="date" value={customDateFrom || ""}
               onChange={(e) => onCustomDateChange?.("from", e.target.value)}
               onClick={(e) => e.stopPropagation()}
-              style={{
-                width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:6,
-                padding:"6px 8px", color:T.text, fontSize:12, fontFamily:"inherit", outline:"none",
-                boxSizing:"border-box", colorScheme:"dark",
-              }}
+              style={{ width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:6, padding:"6px 8px", color:T.text, fontSize:12, fontFamily:"inherit", outline:"none", boxSizing:"border-box", colorScheme:"dark" }}
             />
           </div>
           <div>
             <label style={{ fontSize:10.5, color:T.textMuted, fontWeight:600, display:"block", marginBottom:4 }}>To</label>
-            <input
-              type="date" value={customDateTo || ""}
+            <input type="date" value={customDateTo || ""}
               onChange={(e) => onCustomDateChange?.("to", e.target.value)}
               onClick={(e) => e.stopPropagation()}
-              style={{
-                width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:6,
-                padding:"6px 8px", color:T.text, fontSize:12, fontFamily:"inherit", outline:"none",
-                boxSizing:"border-box", colorScheme:"dark",
-              }}
+              style={{ width:"100%", background:T.bg, border:`1px solid ${T.border}`, borderRadius:6, padding:"6px 8px", color:T.text, fontSize:12, fontFamily:"inherit", outline:"none", boxSizing:"border-box", colorScheme:"dark" }}
             />
           </div>
         </div>
@@ -365,7 +415,9 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
         <DropdownItem checked={unassignedChecked}
           onClick={() => onChange(unassignedChecked ? selected.filter(v=>v!=="unassigned") : [...selected,"unassigned"])}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ width:24, height:24, borderRadius:"50%", background:T.bgItem, border:`1px solid ${T.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, flexShrink:0 }}>👤</div>
+            <div style={{ width:24, height:24, borderRadius:"50%", background:T.bgItem, border:`1px solid ${T.border}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <TablerIcon name="ti-user-off" size={13} style={{ color: T.textMuted }} />
+            </div>
             <span>Unassigned</span>
           </div>
         </DropdownItem>
@@ -435,9 +487,9 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
   }
   if (filterKey === "status") {
     const STATUS_OPTIONS = [
-      { value:"incomplete", label:"Incomplete" },
-      { value:"complete",   label:"Complete"   },
-      { value:"overdue",    label:"Overdue"    },
+      { value:"incomplete", label:"Incomplete", dot:"#d29922" },
+      { value:"complete",   label:"Complete",   dot:"#3fb950" },
+      { value:"overdue",    label:"Overdue",    dot:"#f85149" },
     ];
     return <>{STATUS_OPTIONS.map((opt) => {
       const isSelected = selected.includes(opt.value);
@@ -445,7 +497,7 @@ function FilterValuePicker({ filterKey, selected, onChange, lists, members, boar
         <DropdownItem key={opt.value} checked={isSelected}
           onClick={() => onChange(isSelected ? [] : [opt.value])}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <span style={{ width:10, height:10, borderRadius:"50%", flexShrink:0, display:"inline-block", background: opt.value==="complete" ? "#3fb950" : opt.value==="overdue" ? "#f85149" : "#d29922" }}/>
+            <span style={{ width:10, height:10, borderRadius:"50%", flexShrink:0, display:"inline-block", background: opt.dot }}/>
             {opt.label}
           </div>
         </DropdownItem>
@@ -475,68 +527,65 @@ function ActiveFilterRow({ filterKey, values, onValuesChange, onRemove, lists, m
   const def = FILTER_DEFS[filterKey];
   if (!def) return null;
 
-function pillValue() {
-  if (filterKey === "assignedTo") {
-    if (!values || !values.length) return null; // shows "Any"
-    if (values.length === 1) {
-      if (values[0] === "unassigned") return "Unassigned";
-      const m = (members || []).find(x => x.id === values[0]);
-      if (!m) return "Selected";
-      return values[0] === currentUserId ? `Me (${m.fullName})` : m.fullName;
-    }
-    return `${values.length} selected`;
-  }
-  if (!values || !values.length) return null;
-  if (filterKey === "dueDate") {
-    if (values.length === 1) {
-      if (values[0] === "custom") {
-        if (customDateFrom && customDateTo) return `${customDateFrom} → ${customDateTo}`;
-        return "Custom range…";
-      }
-      return DUE_OPTIONS.find(o => o.value === values[0])?.label || values[0];
-    }
-    return `${values.length} dates`;
-  }
-  if (filterKey === "label") {
-    if (values.length === 1) { const l = (boardLabels || []).find(x => x.id === values[0]); return l?.name?.trim() || l?.color || values[0]; }
-    return `${values.length} labels`;
-  }
-  if (filterKey === "list") {
-    if (values.length === 1) return (lists || []).find(l => l.id === values[0])?.name || values[0];
-    return `${values.length} lists`;
-  }
-  if (filterKey === "status") {
-    if (values.length === 1) return { complete: "Complete", incomplete: "Incomplete", overdue: "Overdue" }[values[0]] || values[0];
-  }
-  if (filterKey === "cardActivity") {
-    if (values.length === 1) return CARD_ACTIVITY_OPTIONS.find(o => o.value === values[0])?.label || values[0];
-    return `${values.length} selected`;
-  }
-  if (filterKey === "createdDate") {
-    if (values.length === 1) return CREATED_DATE_OPTIONS.find(o => o.value === values[0])?.label || values[0];
-    return `${values.length} selected`;
-  }
-  return null;
-}
-  const val = pillValue();
+  const iconColor = FILTER_ICONS[filterKey]?.color || T.accent;
 
-  const iconBg = {
-    assignedTo:   "#7e57c2",
-    dueDate:      "#1565c0",
-    label:        "#e6a817",
-    list:         "#1565c0",
-    status:       "#3fb950",
-    cardActivity: "#4c8fff",
-    createdDate:  "#2ec4b6",
-  }[filterKey] || T.accent;
+  function pillValue() {
+    if (filterKey === "assignedTo") {
+      if (!values || !values.length) return null;
+      if (values.length === 1) {
+        if (values[0] === "unassigned") return "Unassigned";
+        const m = (members || []).find(x => x.id === values[0]);
+        if (!m) return "Selected";
+        return values[0] === currentUserId ? `Me (${m.fullName})` : m.fullName;
+      }
+      return `${values.length} selected`;
+    }
+    if (!values || !values.length) return null;
+    if (filterKey === "dueDate") {
+      if (values.length === 1) {
+        if (values[0] === "custom") {
+          if (customDateFrom && customDateTo) return `${customDateFrom} → ${customDateTo}`;
+          return "Custom range…";
+        }
+        return DUE_OPTIONS.find(o => o.value === values[0])?.label || values[0];
+      }
+      return `${values.length} dates`;
+    }
+    if (filterKey === "label") {
+      if (values.length === 1) { const l = (boardLabels || []).find(x => x.id === values[0]); return l?.name?.trim() || l?.color || values[0]; }
+      return `${values.length} labels`;
+    }
+    if (filterKey === "list") {
+      if (values.length === 1) return (lists || []).find(l => l.id === values[0])?.name || values[0];
+      return `${values.length} lists`;
+    }
+    if (filterKey === "status") {
+      if (values.length === 1) return { complete: "Complete", incomplete: "Incomplete", overdue: "Overdue" }[values[0]] || values[0];
+    }
+    if (filterKey === "cardActivity") {
+      if (values.length === 1) return CARD_ACTIVITY_OPTIONS.find(o => o.value === values[0])?.label || values[0];
+      return `${values.length} selected`;
+    }
+    if (filterKey === "createdDate") {
+      if (values.length === 1) return CREATED_DATE_OPTIONS.find(o => o.value === values[0])?.label || values[0];
+      return `${values.length} selected`;
+    }
+    return null;
+  }
+
+  const val = pillValue();
 
   return (
     <div ref={wrapRef} style={{ display:"flex", alignItems:"center", gap:10 }}>
+      {/* Icon box */}
       <div style={{
-        width:30, height:30, borderRadius:6, background: iconBg + "33",
+        width:30, height:30, borderRadius:6,
+        background: iconColor + "22",
         display:"flex", alignItems:"center", justifyContent:"center",
-        fontSize:14, flexShrink:0,
-      }}>{def.icon}</div>
+        flexShrink:0,
+      }}>
+        <TablerIcon name={def.iconClass} size={15} style={{ color: iconColor }} />
+      </div>
 
       <div style={{ flex:"0 0 100px", fontSize:12, color:T.textSub, fontWeight:500 }}>{def.label}</div>
 
@@ -549,17 +598,16 @@ function pillValue() {
         <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", color: val ? T.text : T.textMuted }}>
           {val || "Any"}
         </span>
-        <span style={{ fontSize:9, color:T.textMuted, flexShrink:0, marginLeft:6 }}>{open?"▲":"▼"}</span>
+        <TablerIcon name={open ? "ti-chevron-up" : "ti-chevron-down"} size={12} style={{ color: T.textMuted, flexShrink:0, marginLeft:6 }} />
       </div>
 
-      <button onClick={onRemove} style={{
-        background:"none", border:"none", cursor:"pointer",
-        color:T.textMuted, fontSize:16, padding:"0 4px", lineHeight:1,
-        display:"flex", alignItems:"center",
-      }}
+      <button onClick={onRemove}
+        style={{ background:"none", border:"none", cursor:"pointer", color:T.textMuted, padding:"0 4px", display:"flex", alignItems:"center" }}
         onMouseEnter={e => e.currentTarget.style.color = T.danger}
         onMouseLeave={e => e.currentTarget.style.color = T.textMuted}
-      >✕</button>
+      >
+        <TablerIcon name="ti-x" size={15} />
+      </button>
 
       <PortalDropdown anchorRef={triggerRef} open={open} portalRef={portalRef}>
         <div style={{ padding:"8px 14px 6px", borderBottom:`1px solid ${T.border}` }}>
@@ -581,7 +629,7 @@ function pillValue() {
   );
 }
 
-// ── Filter grid item ──────────────────────────────────────────────────────────
+// ── Filter grid item — Tabler icon version ────────────────────────────────────
 function FilterGridItem({ item, active, onClick }) {
   const [hover, setHover] = useState(false);
   return (
@@ -590,19 +638,21 @@ function FilterGridItem({ item, active, onClick }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display:"flex", alignItems:"center", gap:8,
-        padding:"8px 10px", borderRadius:8, cursor:"pointer",
+        display:"flex", alignItems:"center", gap:10,
+        padding:"9px 11px", borderRadius:8, cursor:"pointer",
         background: active ? T.accentDim : hover ? T.bgItem : "transparent",
         border:`1px solid ${active ? T.accent : hover ? T.border : "transparent"}`,
         transition:"all 0.15s",
       }}
     >
+      {/* Icon box */}
       <div style={{
-        width:28, height:28, borderRadius:6, flexShrink:0,
+        width:30, height:30, borderRadius:6, flexShrink:0,
         background: item.color + "22",
         display:"flex", alignItems:"center", justifyContent:"center",
-        fontSize:14,
-      }}>{item.icon}</div>
+      }}>
+        <TablerIcon name={item.iconClass} size={15} style={{ color: active ? T.accent : item.color }} />
+      </div>
       <div style={{ minWidth:0 }}>
         <div style={{ fontSize:12, fontWeight:600, color: active ? T.accent : T.textSub, lineHeight:1.3 }}>{item.label}</div>
         <div style={{ fontSize:10, color:T.textMuted, marginTop:1, lineHeight:1.3 }}>{item.sub}</div>
@@ -613,7 +663,7 @@ function FilterGridItem({ item, active, onClick }) {
 
 // ── Stat card preview (left panel, Filters tab) ──────────────────────────────
 function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage, customHex }) {
-  const emoji = STAT_EMOJIS[statType] || "📌";
+  const iconClass = STAT_ICONS[statType] || "ti-map-pin";
   return (
     <div style={{
       background: resolveCoverBackground(coverColor, customHex),
@@ -623,7 +673,9 @@ function StatCardPreview({ statType, liveCount, cardName, coverColor, coverImage
     }}>
       {coverImage && <img src={coverImage} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }} />}
       <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.25)" }} />
-      <div style={{ position:"absolute", top:10, right:12, fontSize:22, zIndex:1 }}>{emoji}</div>
+      <div style={{ position:"absolute", top:10, right:12, zIndex:1 }}>
+        <TablerIcon name={iconClass} size={22} style={{ color:"rgba(255,255,255,0.85)" }} />
+      </div>
       <div style={{ position:"relative", zIndex:1, padding:"20px 16px 14px" }}>
         <div style={{ fontSize:26, fontWeight:800, color:"#fff", lineHeight:1 }}>{liveCount}</div>
       </div>
@@ -642,7 +694,7 @@ function LiveStylePreview({ count, title, subtitle, textColor, customTextHex, ca
       || TEXT_COLORS.find(t => t.id === textColor)?.hex
       || "#FFFFFF";
 
- const numStyle = { fontSize: 26, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
+  const numStyle = { fontSize: 26, fontWeight: 800, color: resolvedTextColor, lineHeight: 1 };
   const lblStyle = { fontSize: 13, fontWeight: 700, color: resolvedTextColor, lineHeight: 1.4 };
   const subStyle = { fontSize: 11, color: resolvedTextColor, opacity: 0.75, lineHeight: 1.3 };
 
@@ -689,13 +741,15 @@ function LiveStylePreview({ count, title, subtitle, textColor, customTextHex, ca
       position:"relative", boxShadow:"0 4px 20px rgba(0,0,0,0.4)",
     }}>
       <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.08)" }} />
-      <div style={{ position:"absolute", top:10, right:12, fontSize:20, zIndex:1 }}>📌</div>
+      <div style={{ position:"absolute", top:10, right:12, zIndex:1 }}>
+        <TablerIcon name="ti-map-pin" size={20} style={{ color:"rgba(255,255,255,0.8)" }} />
+      </div>
       <LayoutContent />
     </div>
   );
 }
 
-// ── Mini card layout preview (Style tab, layout picker) ──────────────────────
+// ── Mini card layout preview ──────────────────────────────────────────────────
 function LayoutMini({ layout, count, title, subtitle, textColor, customTextHex, cardBg, selected, onClick }) {
   const resolvedTextColor = textColor === "custom" && customTextHex
     ? customTextHex
@@ -751,126 +805,70 @@ function LayoutMini({ layout, count, title, subtitle, textColor, customTextHex, 
 
   return (
     <div onClick={onClick} style={{ display:"flex", flexDirection:"column", gap:8, cursor:"pointer" }}>
-      <div style={{
-        ...baseCard,
-        border: selected ? `2px solid ${T.accent}` : `2px solid ${T.border}`,
-        transition:"border-color 0.15s",
-      }}>
+      <div style={{ ...baseCard, border: selected ? `2px solid ${T.accent}` : `2px solid ${T.border}`, transition:"border-color 0.15s" }}>
         {selected && (
-          <div style={{
-            position:"absolute", top:6, left:6, zIndex:2,
-            width:16, height:16, borderRadius:"50%",
-            background:T.accent,
-            display:"flex", alignItems:"center", justifyContent:"center",
-          }}>
+          <div style={{ position:"absolute", top:6, left:6, zIndex:2, width:16, height:16, borderRadius:"50%", background:T.accent, display:"flex", alignItems:"center", justifyContent:"center" }}>
             <span style={{ color:"#fff", fontSize:9, fontWeight:700 }}>✓</span>
           </div>
         )}
         <Content />
       </div>
-      <span style={{
-        fontSize:11, textAlign:"center",
-        color: selected ? T.accent : T.textMuted,
-        fontWeight: selected ? 600 : 400,
-      }}>
+      <span style={{ fontSize:11, textAlign:"center", color: selected ? T.accent : T.textMuted, fontWeight: selected ? 600 : 400 }}>
         {LAYOUTS.find(l => l.id === layout)?.label}
       </span>
     </div>
   );
 }
 
-// ── Color swatch button (Style tab) ───────────────────────────────────────────
+// ── Color swatch ──────────────────────────────────────────────────────────────
 function Swatch({ bg, selected, onClick, size = 32 }) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        width:size, height:size, borderRadius:8,
-        background:bg,
-        border: selected ? "2px solid #fff" : "2px solid transparent",
-        outline: selected ? `2px solid ${T.accent}` : "2px solid transparent",
-        cursor:"pointer", padding:0, flexShrink:0,
-        transform: selected ? "scale(1.15)" : "scale(1)",
-        transition:"transform 0.12s, outline 0.12s",
-        position:"relative",
-      }}
-    >
+    <button onClick={onClick} style={{
+      width:size, height:size, borderRadius:8, background:bg,
+      border: selected ? "2px solid #fff" : "2px solid transparent",
+      outline: selected ? `2px solid ${T.accent}` : "2px solid transparent",
+      cursor:"pointer", padding:0, flexShrink:0,
+      transform: selected ? "scale(1.15)" : "scale(1)",
+      transition:"transform 0.12s, outline 0.12s", position:"relative",
+    }}>
       {selected && (
-        <span style={{
-          position:"absolute", inset:0,
-          display:"flex", alignItems:"center", justifyContent:"center",
-          color:"#fff", fontSize:13, fontWeight:800,
-          textShadow:"0 1px 3px rgba(0,0,0,0.4)",
-        }}>✓</span>
+        <span style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff", fontSize:13, fontWeight:800, textShadow:"0 1px 3px rgba(0,0,0,0.4)" }}>✓</span>
       )}
     </button>
   );
 }
 
-// ── Custom hex input (Style tab) ──────────────────────────────────────────────
+// ── Custom hex input ──────────────────────────────────────────────────────────
 function CustomHexInput({ value, onChange }) {
   const [focused, setFocused] = useState(false);
   return (
     <div style={{
-      display:"flex", alignItems:"center", gap:10,
-      background:T.bgDeep,
-      border:`1px solid ${focused ? T.accent : T.border}`,
-      borderRadius:8, padding:"9px 14px",
-      transition:"border-color 0.15s", cursor:"text",
-      width:"100%", boxSizing:"border-box",
+      display:"flex", alignItems:"center", gap:10, background:T.bgDeep,
+      border:`1px solid ${focused ? T.accent : T.border}`, borderRadius:8, padding:"9px 14px",
+      transition:"border-color 0.15s", width:"100%", boxSizing:"border-box",
     }}>
-      <div style={{
-        width:22, height:22, borderRadius:"50%",
-        background:value, flexShrink:0,
-        border:`1px solid ${T.border}`,
-      }} />
-      <input
-        type="text" value={value}
-        onChange={e => onChange(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={{
-          flex:1, background:"none", border:"none", outline:"none",
-          color:T.text, fontSize:13, fontFamily:"'DM Mono', monospace",
-          letterSpacing:"0.04em",
-        }}
+      <div style={{ width:22, height:22, borderRadius:"50%", background:value, flexShrink:0, border:`1px solid ${T.border}` }} />
+      <input type="text" value={value} onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        style={{ flex:1, background:"none", border:"none", outline:"none", color:T.text, fontSize:13, fontFamily:"'DM Mono', monospace", letterSpacing:"0.04em" }}
       />
-      <span style={{ color:T.textMuted, fontSize:14, cursor:"pointer" }}>✏️</span>
+      <TablerIcon name="ti-pencil" size={14} style={{ color: T.textMuted }} />
     </div>
   );
 }
 
-// ── Character-counted text input (Style tab) ──────────────────────────────────
+// ── Character-counted text input ──────────────────────────────────────────────
 function LimitedInput({ label, value, onChange, max, placeholder }) {
   const [focused, setFocused] = useState(false);
   return (
     <div style={{ flex:1 }}>
-      <label style={{ fontSize:11, color:T.textMuted, fontWeight:500, display:"block", marginBottom:5 }}>
-        {label}
-      </label>
-      <div style={{
-        position:"relative",
-        background:T.bgDeep,
-        border:`1px solid ${focused ? T.accent : T.border}`,
-        borderRadius:8, transition:"border-color 0.15s",
-      }}>
-        <input
-          type="text" value={value} maxLength={max}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={{
-            width:"100%", background:"none", border:"none", outline:"none",
-            color:T.text, fontSize:13, fontFamily:"inherit",
-            padding:"9px 52px 9px 12px", boxSizing:"border-box",
-          }}
+      <label style={{ fontSize:11, color:T.textMuted, fontWeight:500, display:"block", marginBottom:5 }}>{label}</label>
+      <div style={{ position:"relative", background:T.bgDeep, border:`1px solid ${focused ? T.accent : T.border}`, borderRadius:8, transition:"border-color 0.15s" }}>
+        <input type="text" value={value} maxLength={max} onChange={e => onChange(e.target.value)}
+          placeholder={placeholder} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+          style={{ width:"100%", background:"none", border:"none", outline:"none", color:T.text, fontSize:13, fontFamily:"inherit", padding:"9px 52px 9px 12px", boxSizing:"border-box" }}
         />
-        <span style={{
-          position:"absolute", right:10, top:"50%",
-          transform:"translateY(-50%)",
-          fontSize:11, color:T.textMuted, pointerEvents:"none",
-        }}>
+        <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:11, color:T.textMuted, pointerEvents:"none" }}>
           {value.length}/{max}
         </span>
       </div>
@@ -879,25 +877,26 @@ function LimitedInput({ label, value, onChange, max, placeholder }) {
 }
 
 // ── Scope selectors ───────────────────────────────────────────────────────────
-function ScopeSelect({ label, value, onChange, options, loading, icon, iconBg }) {
+function ScopeSelect({ label, value, onChange, options, loading, iconClass, iconColor }) {
   return (
     <div style={{ flex:1 }}>
       <div style={{ fontSize:11, color:T.textMuted, marginBottom:6, fontWeight:500 }}>{label}</div>
       <div style={{ position:"relative" }}>
-        {icon && (
+        {iconClass && (
           <span style={{
             position:"absolute", left:8, top:"50%", transform:"translateY(-50%)",
-            width:18, height:18, borderRadius:4, background:(iconBg||T.accent)+"33",
+            width:18, height:18, borderRadius:4, background:(iconColor||T.accent)+"33",
             display:"flex", alignItems:"center", justifyContent:"center",
-            fontSize:11, pointerEvents:"none",
-          }}>{icon}</span>
+            pointerEvents:"none",
+          }}>
+            <TablerIcon name={iconClass} size={11} style={{ color: iconColor || T.accent }} />
+          </span>
         )}
-        <select
-          value={value} onChange={e => onChange(e.target.value)} disabled={loading}
+        <select value={value} onChange={e => onChange(e.target.value)} disabled={loading}
           style={{
             width:"100%", background:T.bgDeep, border:`1px solid ${T.border}`,
             borderRadius:6, color: loading ? T.textMuted : T.text,
-            fontSize:13, padding: icon ? "8px 32px 8px 34px" : "8px 32px 8px 10px",
+            fontSize:13, padding: iconClass ? "8px 32px 8px 34px" : "8px 32px 8px 10px",
             fontFamily:"inherit", outline:"none", cursor:"pointer",
             appearance:"none", WebkitAppearance:"none", transition:"border-color 0.15s",
           }}
@@ -913,25 +912,27 @@ function ScopeSelect({ label, value, onChange, options, loading, icon, iconBg })
   );
 }
 
-// ── Stat picker (step 1) ──────────────────────────────────────────────────────
+// ── Stat picker ───────────────────────────────────────────────────────────────
 function StatPicker({ onSelect, onClose }) {
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:9999, fontFamily:"'DM Sans',sans-serif" }} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{ background:T.bgSection, border:`1px solid ${T.border}`, borderRadius:14, width:300, overflow:"hidden", boxShadow:"0 20px 60px rgba(0,0,0,0.7)" }}>
         <div style={{ padding:"14px 18px", borderBottom:`1px solid ${T.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
           <span style={{ fontSize:14, fontWeight:600, color:T.text }}>Create Stat Card</span>
-          <button onClick={onClose} style={{ background:"none", border:"none", color:T.textMuted, fontSize:18, cursor:"pointer" }}>✕</button>
+          <button onClick={onClose} style={{ background:"none", border:"none", color:T.textMuted, cursor:"pointer", display:"flex", alignItems:"center" }}>
+            <TablerIcon name="ti-x" size={17} />
+          </button>
         </div>
-         <div style={{ padding:"8px 0 12px" }}>
-          {STAT_LIST.map(({ type, label, emoji }) => (
+        <div style={{ padding:"8px 0 12px" }}>
+          {STAT_LIST.map(({ type, label, iconClass }) => (
             <div key={type} onClick={() => onSelect(type)}
               style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 18px", cursor:"pointer", transition:"background 0.1s" }}
               onMouseEnter={e => e.currentTarget.style.background = T.bgItem}
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
-              <span style={{ fontSize:18 }}>{emoji}</span>
+              <TablerIcon name={iconClass} size={17} style={{ color: T.textMuted, flexShrink:0 }} />
               <span style={{ fontSize:13, color:T.textSub }}>{label}</span>
-              <span style={{ marginLeft:"auto", color:T.textMuted, fontSize:14 }}>›</span>
+              <TablerIcon name="ti-chevron-right" size={14} style={{ color: T.textMuted, marginLeft:"auto" }} />
             </div>
           ))}
 
@@ -942,9 +943,9 @@ function StatPicker({ onSelect, onClose }) {
             onMouseEnter={e => e.currentTarget.style.background = T.bgItem}
             onMouseLeave={e => e.currentTarget.style.background = "transparent"}
           >
-            <span style={{ fontSize:18 }}>🛠️</span>
+            <TablerIcon name="ti-tool" size={17} style={{ color: T.accent, flexShrink:0 }} />
             <span style={{ fontSize:13, color:T.textSub, fontWeight:600 }}>Create Custom Card</span>
-            <span style={{ marginLeft:"auto", color:T.textMuted, fontSize:14 }}>›</span>
+            <TablerIcon name="ti-chevron-right" size={14} style={{ color: T.textMuted, marginLeft:"auto" }} />
           </div>
         </div>
       </div>
@@ -952,11 +953,7 @@ function StatPicker({ onSelect, onClose }) {
   );
 }
 
-// ── Default active filters per stat type — applied when Customize opens ──────
-// Each entry defines which filter row(s) are active by default and what
-// value(s) they're pre-set to, so the modal opens already reflecting the
-// stat's natural meaning (e.g. "Unassigned Cards" opens with Assigned To →
-// Unassigned, not the current user).
+// ── Default filters per stat type ─────────────────────────────────────────────
 const DEFAULT_FILTERS_BY_STAT = {
   assigned:     { active: ["assignedTo"],   values: (uid) => ({ assignedTo: uid ? [uid] : [] }) },
   unassigned:   { active: ["assignedTo"],   values: () => ({ assignedTo: ["unassigned"] }) },
@@ -964,7 +961,7 @@ const DEFAULT_FILTERS_BY_STAT = {
   overdue:      { active: ["dueDate"],      values: () => ({ dueDate: ["overdue"] }) },
   stale:        { active: ["cardActivity"], values: () => ({ cardActivity: ["stale30"] }) },
   createdToday: { active: ["createdDate"],  values: () => ({ createdDate: ["today"] }) },
-  withLabel:    { active: ["label"],        values: () => ({ label: [] }) }, // left open — user picks the label
+  withLabel:    { active: ["label"],        values: () => ({ label: [] }) },
   cardsInList:  { active: [],               values: () => ({}) },
 };
 
@@ -973,15 +970,12 @@ function CardConfigModal({
   statType, statValue, lists, memberName, members, boardLabels,
   isPremium, computeFilteredCount, onSave, onBack, onClose, onUpgradeClick,
   boardName, boardId, workspaceBoards = [], fetchWorkspaceBoards, fetchBoardScopedData,
-   currentUserId,
-   trelloT,
-   blankStart,
+  currentUserId, trelloT, blankStart,
 }) {
-  const [activeTab,          setActiveTab]          = useState("filters");
-  const [cardName,           setCardName]           = useState(DEFAULT_NAMES[statType] || "");
-  const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
-  const [boardScope, setBoardScope] = useState("this");
-  const [filterSearch,       setFilterSearch]       = useState("");
+  const [activeTab,      setActiveTab]      = useState("filters");
+  const [cardName,       setCardName]       = useState("");
+  const [boardScope,     setBoardScope]     = useState("this");
+  const [filterSearch,   setFilterSearch]   = useState("");
 
   const [coverColor,    setCoverColor]    = useState(DEFAULT_COVER[statType] || "blue");
   const [coverImage,    setCoverImage]    = useState(null);
@@ -990,7 +984,7 @@ function CardConfigModal({
   const [layout,        setLayout]        = useState("center");
   const [customHex,     setCustomHex]     = useState("#3B82F6");
   const [customTextHex, setCustomTextHex] = useState("#FFFFFF");
-  const [liveResultsOpen, setLiveResultsOpen] = useState(true); 
+  const [liveResultsOpen, setLiveResultsOpen] = useState(true);
 
   const [activeFilters, setActiveFilters] = useState(() => {
     if (blankStart || statType === "custom") return [];
@@ -998,15 +992,13 @@ function CardConfigModal({
     return preset && preset.active.length ? preset.active : ["assignedTo"];
   });
   const [filterValues, setFilterValues] = useState(() => {
-    const base = {
-      assignedTo: [], dueDate: [], label: [], list: [], status: [], cardActivity: [], createdDate: [],
-    };
+    const base = { assignedTo: [], dueDate: [], label: [], list: [], status: [], cardActivity: [], createdDate: [] };
     if (blankStart || statType === "custom") return base;
     const preset = DEFAULT_FILTERS_BY_STAT[statType];
     return { ...base, ...(preset ? preset.values(currentUserId) : {}) };
   });
   const [customDateFrom, setCustomDateFrom] = useState("");
-  const [customDateTo, setCustomDateTo] = useState("");
+  const [customDateTo,   setCustomDateTo]   = useState("");
 
   function handleCustomDateChange(which, value) {
     if (which === "from") setCustomDateFrom(value);
@@ -1024,8 +1016,8 @@ function CardConfigModal({
   const [scopedLabels,  setScopedLabels]  = useState(boardLabels || []);
 
   useEffect(() => { setScopedLists(lists || []); }, [lists]);
-useEffect(() => { setScopedMembers(members || []); }, [members]);
-useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
+  useEffect(() => { setScopedMembers(members || []); }, [members]);
+  useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
 
   useEffect(() => {
     if (workspaceBoards?.length) { setBoards(workspaceBoards); return; }
@@ -1037,7 +1029,7 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
       .finally(() => setBoardsLoading(false));
   }, [fetchWorkspaceBoards]);
 
- const liveCount = computeFilteredCount
+  const liveCount = computeFilteredCount
     ? computeFilteredCount(statType, {
         members:        filterValues.assignedTo  || [],
         due:            filterValues.dueDate     || [],
@@ -1046,12 +1038,11 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
         status:         filterValues.status      || [],
         activity:       filterValues.cardActivity|| [],
         createdDate:    filterValues.createdDate || [],
-        customDateFrom: customDateFrom,
-        customDateTo:   customDateTo,
+        customDateFrom, customDateTo,
       })
     : statValue ?? 24;
 
-  const previewName = nameManuallyEdited ? cardName : (DEFAULT_NAMES[statType] || "Assigned to Me");
+  const previewName = cardName.trim() ? cardName : (DEFAULT_NAMES[statType] || "Untitled Card");
 
   const workspaceOptions = [{ value:"my-workspace", label:"My Workspace" }];
   const boardOptions = [
@@ -1090,71 +1081,42 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
     { key:"style",   label:"Style"   },
   ];
 
- return (
-  <div style={{
-    position: "absolute",
-    inset: 0,
-    background: "rgba(0,0,0,0.75)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 9999,
-    fontFamily: "'DM Sans', -apple-system, sans-serif",
-  }}>
-   <div style={{
-  background: T.bgSection,
-  width: "100%",
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-}}>
+  return (
+    <div style={{
+      position:"absolute", inset:0,
+      background:"rgba(0,0,0,0.75)",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      zIndex:9999, fontFamily:"'DM Sans', -apple-system, sans-serif",
+    }}>
+      <div style={{ background:T.bgSection, width:"100%", height:"100%", display:"flex", flexDirection:"column", overflow:"hidden" }}>
 
-        {/* ── Header (title + template badge — close button removed, Trello's popup chrome already has one) ── */}
-        <div style={{
-  display:"flex", alignItems:"center", gap:12,
-  padding:"14px 20px", borderBottom:`1px solid ${T.border}`, flexShrink:0,
-  background: T.bg,
-}}>
-  <button
-    onClick={onBack}
-    title="Back"
-    style={{
-      background:"none", border:"none", borderRadius:7,
-      width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center",
-      color:T.textMuted, cursor:"pointer", flexShrink:0, fontSize:19,
-      transition:"background 0.15s",
-    }}
-    onMouseEnter={e => { e.currentTarget.style.background = T.bgItem; }}
-    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-  >‹</button>
-  <span style={{ fontSize:15, fontWeight:700, color:T.text }}>Create Stat Card</span>
-          <span style={{
-            fontSize:11, color:T.accent, background:T.accentDim,
-            border:`1px solid ${T.accent}44`, borderRadius:20,
-            padding:"2px 10px", fontWeight:600,
-          }}>Template: {previewName}</span>
+        {/* Header */}
+        <div style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 20px", borderBottom:`1px solid ${T.border}`, flexShrink:0, background:T.bg }}>
+          <button onClick={onBack} title="Back" style={{
+            background:"none", border:"none", borderRadius:7, width:30, height:30,
+            display:"flex", alignItems:"center", justifyContent:"center",
+            color:T.textMuted, cursor:"pointer", flexShrink:0, transition:"background 0.15s",
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = T.bgItem}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >
+            <TablerIcon name="ti-chevron-left" size={18} />
+          </button>
+          <span style={{ fontSize:15, fontWeight:700, color:T.text }}>Create Stat Card</span>
+          <span style={{ fontSize:11, color:T.accent, background:T.accentDim, border:`1px solid ${T.accent}44`, borderRadius:20, padding:"2px 10px", fontWeight:600 }}>
+            Template: {previewName}
+          </span>
         </div>
 
-        {/* ── Body ── */}
+        {/* Body */}
         <div style={{ display:"flex", flex:1, minHeight:0, overflow:"hidden" }}>
 
           {/* Left Panel */}
-          <div style={{
-            width:200, flexShrink:0, padding:12, borderRight:`1px solid ${T.border}`,
-            display:"flex", flexDirection:"column", gap:14, overflowY:"auto",
-            background: T.bg,
-          }}>
+          <div style={{ width:200, flexShrink:0, padding:12, borderRight:`1px solid ${T.border}`, display:"flex", flexDirection:"column", gap:14, overflowY:"auto", background:T.bg }}>
             {activeTab === "filters" ? (
-              <StatCardPreview
-                statType={statType} liveCount={liveCount} cardName={previewName}
-                coverColor={coverColor} coverImage={coverImage} customHex={customHex}
-              />
+              <StatCardPreview statType={statType} liveCount={liveCount} cardName={previewName} coverColor={coverColor} coverImage={coverImage} customHex={customHex} />
             ) : (
-             <LiveStylePreview
-                count={liveCount} title={previewName} subtitle={styleSubtitle}
-                textColor={textColor} customTextHex={customTextHex} cardBg={cardBg} layout={layout}
-              />
+              <LiveStylePreview count={liveCount} title={previewName} subtitle={styleSubtitle} textColor={textColor} customTextHex={customTextHex} cardBg={cardBg} layout={layout} />
             )}
             <div style={{ fontSize:10, color:T.textMuted, textAlign:"center" }}>
               {activeTab === "filters"
@@ -1163,7 +1125,7 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
             </div>
             <div style={{ background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:8, padding:"12px 14px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
-                <span style={{ fontSize:13, color:T.accent }}>ℹ</span>
+                <TablerIcon name="ti-info-circle" size={13} style={{ color: T.accent }} />
                 <span style={{ fontSize:11, fontWeight:700, color:T.textSub }}>
                   {activeTab === "filters" ? "About this card" : "About style"}
                 </span>
@@ -1196,16 +1158,12 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
             </div>
 
             {/* Tab content */}
-            <div style={{
-              flex:1, overflowY:"auto", background:T.surface,
-              scrollbarWidth:"thin", scrollbarColor:`${T.border} transparent`,
-            }}>
+            <div style={{ flex:1, overflowY:"auto", background:T.surface, scrollbarWidth:"thin", scrollbarColor:`${T.border} transparent` }}>
 
-              {/* ── FILTERS TAB ── */}
+              {/* FILTERS TAB */}
               {activeTab === "filters" && (
                 <div style={{ display:"flex", flexDirection:"column" }}>
 
-                  {/* Row 1: Card Details + Scope side by side */}
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:0 }}>
 
                     {/* Section 1: Card Details */}
@@ -1214,35 +1172,18 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
                       <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
                         <div>
                           <label style={{ fontSize:11, color:T.textMuted, fontWeight:500, display:"block", marginBottom:5 }}>Card Name</label>
-                          <input
-                            type="text"
-                            value={nameManuallyEdited ? cardName : previewName}
-                            onChange={e => { setCardName(e.target.value); setNameManuallyEdited(true); }}
-                            placeholder="Card name"
-                            style={{
-                              width:"100%", background:T.bgDeep, border:`1px solid ${T.border}`,
-                              borderRadius:6, padding:"8px 11px", color:T.text,
-                              fontSize:13, fontFamily:"inherit", outline:"none",
-                              boxSizing:"border-box", transition:"border-color 0.15s",
-                            }}
+                          <input type="text" value={cardName} onChange={e => setCardName(e.target.value)}
+                            placeholder={DEFAULT_NAMES[statType] || "Card name"}
+                            style={{ width:"100%", background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:6, padding:"8px 11px", color:T.text, fontSize:13, fontFamily:"inherit", outline:"none", boxSizing:"border-box", transition:"border-color 0.15s" }}
                             onFocus={e => e.target.style.borderColor = T.accent}
                             onBlur={e  => e.target.style.borderColor = T.border}
                           />
                         </div>
                         <div>
                           <label style={{ fontSize:11, color:T.textMuted, fontWeight:500, display:"block", marginBottom:5 }}>Description (optional)</label>
-                          <input
-                            type="text"
-                            value={styleSubtitle}
-                            onChange={e => setStyleSubtitle(e.target.value)}
-                            maxLength={30}
-                            placeholder="Add a short description for this card..."
-                            style={{
-                              width:"100%", background:T.bgDeep, border:`1px solid ${T.border}`,
-                              borderRadius:6, padding:"8px 11px", color:T.text,
-                              fontSize:13, fontFamily:"inherit", outline:"none",
-                              boxSizing:"border-box", transition:"border-color 0.15s",
-                            }}
+                          <input type="text" value={styleSubtitle} onChange={e => setStyleSubtitle(e.target.value)}
+                            maxLength={30} placeholder="Add a short description..."
+                            style={{ width:"100%", background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:6, padding:"8px 11px", color:T.text, fontSize:13, fontFamily:"inherit", outline:"none", boxSizing:"border-box", transition:"border-color 0.15s" }}
                             onFocus={e => e.target.style.borderColor = T.accent}
                             onBlur={e  => e.target.style.borderColor = T.border}
                           />
@@ -1254,22 +1195,15 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
                     <div style={{ padding:"14px 16px" }}>
                       <SectionHeader number="2" title="Scope" />
                       <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-                        <ScopeSelect
-                          label="Workspace" value="my-workspace" onChange={() => {}}
-                          options={workspaceOptions} icon="👤" iconBg="#7e57c2"
-                        />
-                       <ScopeSelect
-                          label="Board" value={boardScope} onChange={setBoardScope}
-                          options={boardOptions} loading={boardsLoading}
-                          icon="🗂" iconBg="#1565c0"
-                        />
+                        <ScopeSelect label="Workspace" value="my-workspace" onChange={() => {}} options={workspaceOptions} iconClass="ti-user" iconColor="#7e57c2" />
+                        <ScopeSelect label="Board" value={boardScope} onChange={setBoardScope} options={boardOptions} loading={boardsLoading} iconClass="ti-layout-board" iconColor="#1565c0" />
                       </div>
                     </div>
                   </div>
 
                   <Divider />
 
-                  {/* Section 3: Active Filters (full width) */}
+                  {/* Section 3: Active Filters */}
                   <div style={{ padding:"14px 16px" }}>
                     <SectionHeader number={activeFilters.length} title="Active Filters" />
                     <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -1281,14 +1215,13 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
                           onRemove={() => removeFilter(key)}
                           lists={scopedLists} members={scopedMembers} boardLabels={scopedLabels}
                           currentUserId={currentUserId}
-                          customDateFrom={customDateFrom}
-                          customDateTo={customDateTo}
+                          customDateFrom={customDateFrom} customDateTo={customDateTo}
                           onCustomDateChange={handleCustomDateChange}
                         />
                       ))}
                       {activeFilters.length === 0 && (
                         <div style={{ fontSize:12, color:T.textMuted, padding:"8px 0", textAlign:"center" }}>
-                          No active filters. Add from the grid below →
+                          No active filters. Add from the grid below.
                         </div>
                       )}
                       <div style={{ fontSize:11, color:T.textMuted, marginTop:4 }}>
@@ -1299,7 +1232,7 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
 
                   <Divider />
 
-                  {/* Section 4: Add More Filters (full width — fits in 4 columns, no inner scroll) */}
+                  {/* Section 4: Add More Filters */}
                   <div style={{ padding:"14px 16px" }}>
                     <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -1307,26 +1240,21 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
                         <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>Add More Filters</span>
                       </div>
                       <div style={{ position:"relative" }}>
-                        <input
-                          type="text" value={filterSearch}
-                          onChange={e => setFilterSearch(e.target.value)}
+                        <input type="text" value={filterSearch} onChange={e => setFilterSearch(e.target.value)}
                           placeholder="Search filters..."
-                          style={{
-                            background:T.bgDeep, border:`1px solid ${T.border}`,
-                            borderRadius:6, padding:"5px 28px 5px 10px",
-                            color:T.text, fontSize:11, fontFamily:"inherit",
-                            outline:"none", width:180, transition:"border-color 0.15s",
-                          }}
+                          style={{ background:T.bgDeep, border:`1px solid ${T.border}`, borderRadius:6, padding:"5px 30px 5px 10px", color:T.text, fontSize:11, fontFamily:"inherit", outline:"none", width:180, transition:"border-color 0.15s" }}
                           onFocus={e => e.target.style.borderColor = T.accent}
                           onBlur={e  => e.target.style.borderColor = T.border}
                         />
-                        <span style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", color:T.textMuted, fontSize:12 }}>🔍</span>
+                        <span style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", pointerEvents:"none" }}>
+                          <TablerIcon name="ti-search" size={12} style={{ color: T.textMuted }} />
+                        </span>
                       </div>
                     </div>
                     <p style={{ fontSize:11, color:T.textMuted, margin:"0 0 12px", lineHeight:1.5 }}>
                       Choose from the available filters to refine your results.
                     </p>
-                    <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:8 }}>
+                    <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:6 }}>
                       {filteredGridItems.map(item => (
                         <FilterGridItem
                           key={item.key} item={item}
@@ -1342,23 +1270,14 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
                 </div>
               )}
 
-              {/* ── STYLE TAB ── */}
+              {/* STYLE TAB */}
               {activeTab === "style" && (
                 <div style={{ padding:"22px 28px" }}>
-
                   <SectionLabel n="1" title="Text Customization" />
                   <SectionSub>Customize the text shown on your card.</SectionSub>
                   <div style={{ display:"flex", gap:14 }}>
-                    <LimitedInput
-                      label="Title (Label)" value={previewName} max={30}
-                      onChange={v => { setCardName(v); setNameManuallyEdited(true); }}
-                      placeholder="Card title"
-                    />
-                    <LimitedInput
-                      label="Subtitle (Optional)" value={styleSubtitle} max={30}
-                      onChange={setStyleSubtitle}
-                      placeholder="e.g. Across 3 boards"
-                    />
+                    <LimitedInput label="Title (Label)" value={previewName} max={30} onChange={v => setCardName(v)} placeholder="Card title" />
+                    <LimitedInput label="Subtitle (Optional)" value={styleSubtitle} max={30} onChange={setStyleSubtitle} placeholder="e.g. Across 3 boards" />
                   </div>
 
                   <StyleDivider />
@@ -1373,10 +1292,7 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
                   <div style={{ marginTop:4 }}>
                     <div style={{ fontSize:12, color:T.textMuted, fontWeight:500, marginBottom:8 }}>Custom Color</div>
                     <div style={{ maxWidth:340 }}>
-                      <CustomHexInput
-                        value={customTextHex}
-                        onChange={(v) => { setCustomTextHex(v); setTextColor("custom"); }}
-                      />
+                      <CustomHexInput value={customTextHex} onChange={(v) => { setCustomTextHex(v); setTextColor("custom"); }} />
                     </div>
                   </div>
 
@@ -1386,21 +1302,16 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
                   <SectionSub>Choose a color for your card.</SectionSub>
                   <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:14 }}>
                     {COVER_COLORS.map(({ id, hex }) => (
-                      <Swatch key={id} bg={hex} selected={coverColor === id}
-                        onClick={() => { setCoverColor(id); setCoverImage(null); }} />
+                      <Swatch key={id} bg={hex} selected={coverColor === id} onClick={() => { setCoverColor(id); setCoverImage(null); }} />
                     ))}
                     {COVER_GRADIENTS.map(({ id, css }) => (
-                      <Swatch key={id} bg={css} selected={coverColor === id}
-                        onClick={() => { setCoverColor(id); setCoverImage(null); }} />
+                      <Swatch key={id} bg={css} selected={coverColor === id} onClick={() => { setCoverColor(id); setCoverImage(null); }} />
                     ))}
                   </div>
                   <div style={{ marginTop:4 }}>
                     <div style={{ fontSize:12, color:T.textMuted, fontWeight:500, marginBottom:8 }}>Custom Color</div>
                     <div style={{ maxWidth:340 }}>
-                      <CustomHexInput
-                        value={customHex}
-                        onChange={(v) => { setCustomHex(v); setCoverColor("custom"); setCoverImage(null); }}
-                      />
+                      <CustomHexInput value={customHex} onChange={(v) => { setCustomHex(v); setCoverColor("custom"); setCoverImage(null); }} />
                     </div>
                   </div>
 
@@ -1409,13 +1320,8 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
                   <SectionLabel n="4" title="Card Layout" />
                   <SectionSub>Choose where the text appears on your card.</SectionSub>
                   <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:12 }}>
-                   {LAYOUTS.map(({ id }) => (
-                      <LayoutMini
-                        key={id} layout={id} count={liveCount}
-                        title={previewName} subtitle={styleSubtitle}
-                        textColor={textColor} customTextHex={customTextHex} cardBg={cardBg}
-                        selected={layout === id} onClick={() => setLayout(id)}
-                      />
+                    {LAYOUTS.map(({ id }) => (
+                      <LayoutMini key={id} layout={id} count={liveCount} title={previewName} subtitle={styleSubtitle} textColor={textColor} customTextHex={customTextHex} cardBg={cardBg} selected={layout === id} onClick={() => setLayout(id)} />
                     ))}
                   </div>
                 </div>
@@ -1424,42 +1330,24 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
           </div>
         </div>
 
-       {/* ── Live Results Banner ── */}
-<LiveResultsSection liveCount={liveCount} collapsed={!liveResultsOpen} onToggle={() => setLiveResultsOpen(o => !o)} />
+        {/* Live Results Banner */}
+        <LiveResultsSection liveCount={liveCount} collapsed={!liveResultsOpen} onToggle={() => setLiveResultsOpen(o => !o)} />
 
-        {/* ── Footer ── */}
-        <div style={{
-          display:"flex", justifyContent:"flex-end", alignItems:"center",
-          padding:"13px 20px", borderTop:`1px solid ${T.border}`, flexShrink:0,
-          background: T.bg,
-        }}>
+        {/* Footer */}
+        <div style={{ display:"flex", justifyContent:"flex-end", alignItems:"center", padding:"13px 20px", borderTop:`1px solid ${T.border}`, flexShrink:0, background:T.bg }}>
           <div style={{ display:"flex", gap:10 }}>
-            <button onClick={onClose} style={{
-              background:"none", border:`1px solid ${T.border}`, borderRadius:7,
-              padding:"8px 22px", color:T.textSub, fontSize:13, fontFamily:"inherit",
-              cursor:"pointer", transition:"border-color 0.15s",
-            }}
+            <button onClick={onClose} style={{ background:"none", border:`1px solid ${T.border}`, borderRadius:7, padding:"8px 22px", color:T.textSub, fontSize:13, fontFamily:"inherit", cursor:"pointer", transition:"border-color 0.15s" }}
               onMouseEnter={e => e.currentTarget.style.borderColor = T.textMuted}
               onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
             >Cancel</button>
 
-            <button onClick={handleSave} style={{
-  background:T.accent, border:"none", borderRadius:7,
-  padding:"8px 22px", color:"#fff", fontSize:13, fontWeight:600,
-  fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", gap:8,
-  transition:"background 0.15s",
-}}
-  onMouseEnter={e => e.currentTarget.style.background = T.accentHover}
-  onMouseLeave={e => e.currentTarget.style.background = T.accent}
->
-  Create Card
-  <span style={{
-    width:18, height:18, borderRadius:4,
-    border:"1.5px solid rgba(255,255,255,0.5)",
-    display:"flex", alignItems:"center", justifyContent:"center",
-    fontSize:11,
-  }}>✦</span>
-</button>
+            <button onClick={handleSave} style={{ background:T.accent, border:"none", borderRadius:7, padding:"8px 22px", color:"#fff", fontSize:13, fontWeight:600, fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", gap:8, transition:"background 0.15s" }}
+              onMouseEnter={e => e.currentTarget.style.background = T.accentHover}
+              onMouseLeave={e => e.currentTarget.style.background = T.accent}
+            >
+              Create Card
+              <TablerIcon name="ti-sparkles" size={14} style={{ color:"rgba(255,255,255,0.85)" }} />
+            </button>
           </div>
         </div>
       </div>
@@ -1473,9 +1361,7 @@ export function CustomizeFlow({
   onSave, onClose, isPremium, onUpgradeClick, computeFilteredCount,
   boardName, boardId, workspaceBoards, fetchWorkspaceBoards, fetchBoardScopedData,
   workspaceId, workspaceName, fetchWorkspaces,
-  currentUserId, 
-  trelloT,
-  blankStart,
+  currentUserId, trelloT, blankStart,
 }) {
   if (!show) return null;
   if (!customizeStat) return <StatPicker onSelect={type => setCustomizeStat(type)} onClose={onClose} />;
@@ -1486,15 +1372,13 @@ export function CustomizeFlow({
       isPremium={isPremium} computeFilteredCount={computeFilteredCount}
       onSave={onSave} onBack={() => setCustomizeStat(null)} onClose={onClose} onUpgradeClick={onUpgradeClick}
       boardName={boardName} boardId={boardId} workspaceBoards={workspaceBoards}
-      fetchWorkspaceBoards={fetchWorkspaceBoards}
-      fetchBoardScopedData={fetchBoardScopedData}
+      fetchWorkspaceBoards={fetchWorkspaceBoards} fetchBoardScopedData={fetchBoardScopedData}
       workspaceId={workspaceId} workspaceName={workspaceName} fetchWorkspaces={fetchWorkspaces}
-      currentUserId={currentUserId}   
-      trelloT={trelloT}
-      blankStart={blankStart}
+      currentUserId={currentUserId} trelloT={trelloT} blankStart={blankStart}
     />
   );
 }
+
 // ── Standalone demo ───────────────────────────────────────────────────────────
 export default function App() {
   const [show, setShow] = useState(true);
@@ -1503,15 +1387,12 @@ export default function App() {
   return (
     <div style={{ background:"#0d1117", minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center" }}>
       {!show && (
-        <button onClick={() => setShow(true)} style={{
-          background:"#4c8fff", border:"none", borderRadius:8, padding:"10px 24px",
-          color:"#fff", fontSize:14, fontWeight:600, cursor:"pointer",
-        }}>Open Create Stat Card</button>
+        <button onClick={() => setShow(true)} style={{ background:"#4c8fff", border:"none", borderRadius:8, padding:"10px 24px", color:"#fff", fontSize:14, fontWeight:600, cursor:"pointer" }}>
+          Open Create Stat Card
+        </button>
       )}
       <CustomizeFlow
-        show={show}
-        customizeStat={stat}
-        setCustomizeStat={setStat}
+        show={show} customizeStat={stat} setCustomizeStat={setStat}
         stats={{ assigned:24, dueThisWeek:7, overdue:3 }}
         memberName="Demo User"
         members={[
@@ -1529,8 +1410,7 @@ export default function App() {
           { id:"lb2", name:"Feature", color:"blue"   },
           { id:"lb3", name:"Design",  color:"purple" },
         ]}
-        boardName="My Trello board"
-        boardId="b1"
+        boardName="My Trello board" boardId="b1"
         workspaceBoards={[
           { id:"b2", name:"Product Roadmap" },
           { id:"b3", name:"Sprint Board"    },
