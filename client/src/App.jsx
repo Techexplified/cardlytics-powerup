@@ -648,7 +648,7 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
 // ── Build a short, human-readable summary of a tracker card's active filters ─
 // Mirrors the same meta-tag regex used elsewhere (runTrackerRefresh, handleOpenDetails),
 // so the card-back view stays in sync with however the card was actually created.
-function parseCardFilterSummary(desc) {
+function parseCardFilterSummary(desc, boardMembers = [], boardLabels = [], boardLists = []) {
   if (!desc) return [];
   const statMatch = desc.match(
     /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
@@ -666,36 +666,46 @@ function parseCardFilterSummary(desc) {
   const chips = [];
 
   if (filters.members?.length) {
-    chips.push({
-      label: "Assigned To",
-      value: filters.members.includes("unassigned")
-        ? "Unassigned"
-        : `${filters.members.length} member(s)`,
-    });
+    const wantsUnassigned = filters.members.includes("unassigned");
+    const namedIds = filters.members.filter((id) => id !== "unassigned");
+    const names = namedIds.map(
+      (id) => boardMembers.find((m) => m.id === id)?.fullName || id
+    );
+    const parts = [...(wantsUnassigned ? ["Unassigned"] : []), ...names];
+    chips.push({ label: "Assigned To", value: parts.join(", ") });
   }
   if (filters.due?.length) {
     const DUE_LABELS = {
-      thisWeek: "Due this week",
-      "1week": "Due in 1 week",
-      "2weeks": "Due in 2 weeks",
-      "1month": "Due in 1 month",
+      thisWeek: "This week",
+      "1week": "In 1 week",
+      "2weeks": "In 2 weeks",
+      "1month": "In 1 month",
       overdue: "Overdue",
       nodate: "No due date",
       custom:
         filters.customDateFrom && filters.customDateTo
           ? `${filters.customDateFrom} → ${filters.customDateTo}`
+          : filters.customDateFrom
+          ? `From ${filters.customDateFrom}`
+          : filters.customDateTo
+          ? `Until ${filters.customDateTo}`
           : "Custom range",
     };
-    chips.push({
-      label: "Due Date",
-      value: DUE_LABELS[filters.due[0]] || filters.due[0],
-    });
+    const values = filters.due.map((d) => DUE_LABELS[d] || d);
+    chips.push({ label: "Due Date", value: values.join(", ") });
   }
   if (filters.labels?.length) {
-    chips.push({ label: "Label", value: `${filters.labels.length} label(s)` });
+    const names = filters.labels.map((id) => {
+      const lbl = boardLabels.find((l) => l.id === id);
+      return lbl ? lbl.name || lbl.color : id;
+    });
+    chips.push({ label: "Label", value: names.join(", ") });
   }
   if (filters.lists?.length) {
-    chips.push({ label: "List", value: `${filters.lists.length} list(s)` });
+    const names = filters.lists.map(
+      (id) => boardLists.find((l) => l.id === id)?.name || id
+    );
+    chips.push({ label: "List", value: names.join(", ") });
   }
   if (filters.status?.length) {
     const STATUS_LABELS = {
@@ -703,25 +713,31 @@ function parseCardFilterSummary(desc) {
       incomplete: "Incomplete",
       overdue: "Overdue",
     };
-    chips.push({
-      label: "Status",
-      value: STATUS_LABELS[filters.status[0]] || filters.status[0],
-    });
+    const values = filters.status.map((s) => STATUS_LABELS[s] || s);
+    chips.push({ label: "Status", value: values.join(", ") });
   }
   if (filters.activity?.length) {
-    chips.push({ label: "Activity", value: filters.activity[0] });
-  }
-  if (filters.createdDate?.length) {
-    const CREATED_LABELS = {
-      today: "Today",
-      yesterday: "Yesterday",
-      "7days": "Last 7 days",
-      "30days": "Last 30 days",
+    const ACTIVITY_LABELS = {
+      "1day":   "Active in last 1 day",
+      "3days":  "Active in last 3 days",
+      "7days":  "Active in last 7 days",
+      "14days": "Active in last 14 days",
+      "30days": "Active in last 30 days",
+      stale14:  "Stale 14+ days",
+      stale30:  "Stale 30+ days",
     };
-    chips.push({
-      label: "Created",
-      value: CREATED_LABELS[filters.createdDate[0]] || filters.createdDate[0],
-    });
+    const values = filters.activity.map((a) => ACTIVITY_LABELS[a] || a);
+    chips.push({ label: "Activity", value: values.join(", ") });
+  }
+ if (filters.createdDate?.length) {
+    const CREATED_LABELS = {
+      today:     "Today",
+      yesterday: "Yesterday",
+      "7days":   "Last 7 days",
+      "30days":  "Last 30 days",
+    };
+    const values = filters.createdDate.map((d) => CREATED_LABELS[d] || d);
+    chips.push({ label: "Created", value: values.join(", ") });
   }
 
   return chips;
@@ -731,6 +747,9 @@ function parseCardFilterSummary(desc) {
 function CardBackView() {
   const [isTracker, setIsTracker] = useState(false);
   const [cardDesc, setCardDesc] = useState("");
+  const [boardMembers, setBoardMembers] = useState([]);
+  const [boardLabels, setBoardLabels] = useState([]);
+  const [boardLists, setBoardLists] = useState([]);
 
   useEffect(() => {
     if (!trelloT) return;
@@ -753,9 +772,19 @@ function CardBackView() {
               .filter((l) => l.name.toLowerCase() === "cardlytics")
               .map((l) => l.id);
             setIsTracker(cardlyticsListIds.includes(card.idList));
+            Promise.all([
+              fetch(`${TRELLO_BASE}/boards/${board.id}/members?key=${key}&token=${token}&fields=id,fullName`).then((r) => r.json()),
+              fetch(`${TRELLO_BASE}/boards/${board.id}/labels?key=${key}&token=${token}&fields=id,name,color&limit=200`).then((r) => r.json()),
+              fetch(`${TRELLO_BASE}/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`).then((r) => r.json()),
+            ])
+              .then(([members, labels, lists]) => {
+                setBoardMembers(members || []);
+                setBoardLabels(labels || []);
+                setBoardLists(lists || []);
+              })
+              .catch(() => {});
           })
           .catch(() => setIsTracker(false));
-      });
     });
   }, []);
 
@@ -831,7 +860,7 @@ function CardBackView() {
     });
   }
 
-  const filterChips = isTracker ? parseCardFilterSummary(cardDesc) : [];
+  const filterChips = isTracker ? parseCardFilterSummary(cardDesc, boardMembers, boardLabels, boardLists) : [];
 
   return (
     <div
