@@ -129,6 +129,7 @@ const STAT_LABELS = {
   stale: "Stale Cards",
   createdToday: "Created Today",
   cardsInList: "Cards in List",
+  custom: "Custom Card",
   all: "All Cards",
 };
 
@@ -144,6 +145,7 @@ const DEFAULT_STAT_CONFIG = {
   stale: { name: "💤", label: "💤 Stale Cards", cover: "black" },
   createdToday: { name: "✨", label: "✨ Created Today", cover: "green" },
   cardsInList: { name: "📋", label: "📋 Cards in List", cover: "sky" },
+  custom: { name: "🛠️", label: "🛠️ Custom Card", cover: "blue" },
 };
 
 const STAT_EMOJIS = {
@@ -155,6 +157,7 @@ const STAT_EMOJIS = {
   stale: "💤",
   createdToday: "✨",
   cardsInList: "📋",
+  custom: "🛠️",
 };
 
 const COVER_BG_COLORS = {
@@ -178,6 +181,7 @@ const STAT_COVER_COLOR_MAP = {
   stale: "black",
   createdToday: "green",
   cardsInList: "sky",
+  custom: "blue",
 };
 
 // ── Generate cover image canvas ───────────────────────────────────────────────
