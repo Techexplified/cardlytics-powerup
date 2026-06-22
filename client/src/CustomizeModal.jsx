@@ -1430,37 +1430,23 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
               onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
             >Cancel</button>
 
-            {activeTab === "filters" ? (
-              <button onClick={() => setActiveTab("style")} style={{
-                background:T.accent, border:"none", borderRadius:7,
-                padding:"8px 22px", color:"#fff", fontSize:13, fontWeight:600,
-                fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", gap:6,
-                transition:"background 0.15s",
-              }}
-                onMouseEnter={e => e.currentTarget.style.background = T.accentHover}
-                onMouseLeave={e => e.currentTarget.style.background = T.accent}
-              >
-                Next: Style <span style={{ fontSize:14 }}>→</span>
-              </button>
-            ) : (
-              <button onClick={handleSave} style={{
-                background:T.accent, border:"none", borderRadius:7,
-                padding:"8px 22px", color:"#fff", fontSize:13, fontWeight:600,
-                fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", gap:8,
-                transition:"background 0.15s",
-              }}
-                onMouseEnter={e => e.currentTarget.style.background = T.accentHover}
-                onMouseLeave={e => e.currentTarget.style.background = T.accent}
-              >
-                Create Card
-                <span style={{
-                  width:18, height:18, borderRadius:4,
-                  border:"1.5px solid rgba(255,255,255,0.5)",
-                  display:"flex", alignItems:"center", justifyContent:"center",
-                  fontSize:11,
-                }}>✦</span>
-              </button>
-            )}
+            <button onClick={handleSave} style={{
+  background:T.accent, border:"none", borderRadius:7,
+  padding:"8px 22px", color:"#fff", fontSize:13, fontWeight:600,
+  fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", gap:8,
+  transition:"background 0.15s",
+}}
+  onMouseEnter={e => e.currentTarget.style.background = T.accentHover}
+  onMouseLeave={e => e.currentTarget.style.background = T.accent}
+>
+  Create Card
+  <span style={{
+    width:18, height:18, borderRadius:4,
+    border:"1.5px solid rgba(255,255,255,0.5)",
+    display:"flex", alignItems:"center", justifyContent:"center",
+    fontSize:11,
+  }}>✦</span>
+</button>
           </div>
         </div>
       </div>
