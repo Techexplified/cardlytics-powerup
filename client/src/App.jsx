@@ -878,6 +878,8 @@ function CardBackView() {
   }
 
   const filterChips = isTracker ? parseCardFilterSummary(cardDesc, boardMembers, boardLabels, boardLists) : [];
+  console.log("🔍 cardDesc:", cardDesc);
+  console.log("🔍 filterChips:", filterChips);
 
   return (
     <div
