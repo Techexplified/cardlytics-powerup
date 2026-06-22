@@ -2680,7 +2680,8 @@ function CardConfigModal({
                   <Divider />
 
                   {/* Section 4: Add More Filters (full width — fits in 4 columns, no inner scroll) */}
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+                  <div style={{ padding: "14px 16px" }}>
+                   <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
     <SectionNumber n="4" />
     <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>Add More Filters</span>
