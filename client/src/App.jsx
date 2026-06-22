@@ -750,6 +750,7 @@ function CardBackView() {
   const [boardMembers, setBoardMembers] = useState([]);
   const [boardLabels, setBoardLabels] = useState([]);
   const [boardLists, setBoardLists] = useState([]);
+  const [boardDataLoaded, setBoardDataLoaded] = useState(false);
 
   useEffect(() => {
     if (!trelloT) return;
@@ -770,6 +771,7 @@ function CardBackView() {
               setBoardMembers(members || []);
               setBoardLabels(labels || []);
               setBoardLists(lists || []);
+              setBoardDataLoaded(true);
             })
             .catch(() => {});
         });
@@ -877,9 +879,7 @@ function CardBackView() {
     });
   }
 
-  const filterChips = isTracker ? parseCardFilterSummary(cardDesc, boardMembers, boardLabels, boardLists) : [];
-  console.log("🔍 cardDesc:", cardDesc);
-  console.log("🔍 filterChips:", filterChips);
+  const filterChips = isTracker && boardDataLoaded ? parseCardFilterSummary(cardDesc, boardMembers, boardLabels, boardLists) : [];
 
   return (
     <div
