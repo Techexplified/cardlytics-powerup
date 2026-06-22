@@ -922,9 +922,9 @@ function CardBackView() {
       </div>
 
       {filterChips.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {filterChips.map((chip, i) => (
-            <span
+            <div
               key={i}
               style={{
                 fontSize: 11,
@@ -933,6 +933,8 @@ function CardBackView() {
                 border: "1px solid #30363d",
                 borderRadius: 6,
                 padding: "3px 8px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
               }}
             >
@@ -940,7 +942,7 @@ function CardBackView() {
                 {chip.label}:
               </span>{" "}
               {chip.value}
-            </span>
+            </div>
           ))}
         </div>
       )}
