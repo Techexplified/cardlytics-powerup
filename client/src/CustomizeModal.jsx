@@ -27,6 +27,52 @@ const T = {
   sectionNum:  "#79c0ff",
 };
 
+// ── SVG icon set for filter grid (clean line icons) ──────────────────────────
+const FilterIcons = {
+  assignedTo: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  dueDate: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  ),
+  label: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.59 13.41 11.18 22.83a2 2 0 0 1-2.83 0L2.17 16.65a2 2 0 0 1 0-2.83L11.59 4.4a2 2 0 0 1 1.41-.59H19a2 2 0 0 1 2 2v6.18a2 2 0 0 1-.41 1.23z" />
+      <circle cx="13.5" cy="9.5" r="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  list: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 6h13M8 12h13M8 18h13" />
+      <path d="M3 6h.01M3 12h.01M3 18h.01" />
+    </svg>
+  ),
+  status: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M8 12l3 3 5-6" />
+    </svg>
+  ),
+  cardActivity: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 3" />
+    </svg>
+  ),
+  createdDate: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v8M8 12h8" />
+    </svg>
+  ),
+};
+
 // ── Cover palette ─────────────────────────────────────────────────────────────
 const COVER_COLORS = [
   { id: "blue",   hex: "#0052cc", label: "Blue"   },
@@ -135,13 +181,13 @@ const CARD_ACTIVITY_OPTIONS = [
 ];
 
 const FILTER_GRID_ITEMS = [
-  { key:"assignedTo",    icon:"👤", label:"Assigned To",    sub:"Filter by card assignee",      color:"#7e57c2" },
-  { key:"dueDate",       icon:"📅", label:"Due Date",       sub:"Filter by due dates",           color:"#1565c0" },
-  { key:"label",         icon:"🏷", label:"Label",          sub:"Filter by labels",              color:"#e6a817" },
-  { key:"list",          icon:"☰",  label:"List",           sub:"Filter by lists",               color:"#4c8fff" },
-  { key:"status",        icon:"✅", label:"Status",         sub:"Filter by card status",         color:"#3fb950" },
-  { key:"cardActivity",  icon:"🕐", label:"Card Activity",  sub:"Filter by activity dates",      color:"#8b949e" },
-  { key:"createdDate",   icon:"✨", label:"Created Date",   sub:"Filter by card creation date",  color:"#2ec4b6" },
+  { key:"assignedTo",   iconKey:"assignedTo",  label:"Assigned To",   sub:"Filter by card assignee",     color:"#7e57c2" },
+  { key:"dueDate",      iconKey:"dueDate",      label:"Due Date",      sub:"Filter by due dates",          color:"#1565c0" },
+  { key:"label",        iconKey:"label",        label:"Label",         sub:"Filter by labels",             color:"#e6a817" },
+  { key:"list",         iconKey:"list",         label:"List",          sub:"Filter by lists",              color:"#4c8fff" },
+  { key:"status",       iconKey:"status",       label:"Status",        sub:"Filter by card status",        color:"#3fb950" },
+  { key:"cardActivity", iconKey:"cardActivity", label:"Card Activity", sub:"Filter by activity dates",     color:"#8b949e" },
+  { key:"createdDate",  iconKey:"createdDate",  label:"Created Date",  sub:"Filter by card creation date", color:"#2ec4b6" },
 ];
 
 const FILTER_DEFS = {
@@ -598,11 +644,14 @@ function FilterGridItem({ item, active, onClick }) {
       }}
     >
       <div style={{
-        width:28, height:28, borderRadius:6, flexShrink:0,
+        width:30, height:30, borderRadius:7, flexShrink:0,
         background: item.color + "22",
         display:"flex", alignItems:"center", justifyContent:"center",
-        fontSize:14,
-      }}>{item.icon}</div>
+      }}>
+        <span style={{ width:16, height:16, color: item.color, display:"flex" }}>
+          {FilterIcons[item.iconKey]}
+        </span>
+      </div>
       <div style={{ minWidth:0 }}>
         <div style={{ fontSize:12, fontWeight:600, color: active ? T.accent : T.textSub, lineHeight:1.3 }}>{item.label}</div>
         <div style={{ fontSize:10, color:T.textMuted, marginTop:1, lineHeight:1.3 }}>{item.sub}</div>
