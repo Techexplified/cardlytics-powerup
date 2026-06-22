@@ -757,6 +757,22 @@ function CardBackView() {
       setCardDesc(card.desc || "");
       if (isTrackerCard(card)) {
         setIsTracker(true);
+        // still need to fetch members/labels/lists for chip resolution
+        trelloT.board("id").then((board) => {
+          const key = TRELLO_API_KEY;
+          const token = getStoredToken();
+          Promise.all([
+            fetch(`${TRELLO_BASE}/boards/${board.id}/members?key=${key}&token=${token}&fields=id,fullName`).then((r) => r.json()),
+            fetch(`${TRELLO_BASE}/boards/${board.id}/labels?key=${key}&token=${token}&fields=id,name,color&limit=200`).then((r) => r.json()),
+            fetch(`${TRELLO_BASE}/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`).then((r) => r.json()),
+          ])
+            .then(([members, labels, lists]) => {
+              setBoardMembers(members || []);
+              setBoardLabels(labels || []);
+              setBoardLists(lists || []);
+            })
+            .catch(() => {});
+        });
         return;
       }
 
