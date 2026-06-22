@@ -85,7 +85,7 @@ const TRELLO_LABEL_COLORS = {
   lime:"#51e898", black:"#374151", null:"#888888",
 };
 
-const STAT_EMOJIS    = { assigned:"📌", dueThisWeek:"📅", overdue:"⚠️", unassigned:"👤", withLabel:"🏷️", stale:"💤", createdToday:"✨" };
+const STAT_EMOJIS    = { assigned:"📌", dueThisWeek:"📅", overdue:"⚠️", unassigned:"👤", withLabel:"🏷️", stale:"💤", createdToday:"✨", custom:"🛠️" };
 const DEFAULT_COVER  = { assigned:"blue", dueThisWeek:"yellow", overdue:"red", unassigned:"purple", withLabel:"orange", stale:"black", createdToday:"green" };
 const DEFAULT_NAMES  = {
   assigned:    "Assigned to Me",
@@ -95,6 +95,7 @@ const DEFAULT_NAMES  = {
   withLabel:   "Cards With Label",
   stale:       "Stale Cards",
   createdToday:"Created Today",
+  custom:      "Custom Card",
 };
 
 const STAT_LIST = [
@@ -921,7 +922,7 @@ function StatPicker({ onSelect, onClose }) {
           <span style={{ fontSize:14, fontWeight:600, color:T.text }}>Create Stat Card</span>
           <button onClick={onClose} style={{ background:"none", border:"none", color:T.textMuted, fontSize:18, cursor:"pointer" }}>✕</button>
         </div>
-        <div style={{ padding:"8px 0 12px" }}>
+         <div style={{ padding:"8px 0 12px" }}>
           {STAT_LIST.map(({ type, label, emoji }) => (
             <div key={type} onClick={() => onSelect(type)}
               style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 18px", cursor:"pointer", transition:"background 0.1s" }}
@@ -933,6 +934,18 @@ function StatPicker({ onSelect, onClose }) {
               <span style={{ marginLeft:"auto", color:T.textMuted, fontSize:14 }}>›</span>
             </div>
           ))}
+
+          <div style={{ borderTop:`1px solid ${T.border}`, margin:"6px 0" }} />
+
+          <div onClick={() => onSelect("custom")}
+            style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 18px", cursor:"pointer", transition:"background 0.1s" }}
+            onMouseEnter={e => e.currentTarget.style.background = T.bgItem}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+          >
+            <span style={{ fontSize:18 }}>🛠️</span>
+            <span style={{ fontSize:13, color:T.textSub, fontWeight:600 }}>Create Custom Card</span>
+            <span style={{ marginLeft:"auto", color:T.textMuted, fontSize:14 }}>›</span>
+          </div>
         </div>
       </div>
     </div>
@@ -980,7 +993,7 @@ function CardConfigModal({
   const [liveResultsOpen, setLiveResultsOpen] = useState(true); 
 
   const [activeFilters, setActiveFilters] = useState(() => {
-    if (blankStart) return [];
+    if (blankStart || statType === "custom") return [];
     const preset = DEFAULT_FILTERS_BY_STAT[statType];
     return preset && preset.active.length ? preset.active : ["assignedTo"];
   });
@@ -988,7 +1001,7 @@ function CardConfigModal({
     const base = {
       assignedTo: [], dueDate: [], label: [], list: [], status: [], cardActivity: [], createdDate: [],
     };
-    if (blankStart) return base;
+    if (blankStart || statType === "custom") return base;
     const preset = DEFAULT_FILTERS_BY_STAT[statType];
     return { ...base, ...(preset ? preset.values(currentUserId) : {}) };
   });
