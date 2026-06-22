@@ -187,7 +187,8 @@ const STAT_COVER_COLOR_MAP = {
 // ── Generate cover image canvas ───────────────────────────────────────────────
 function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarInitials = null, avatarColor = "#4ea1ff") {
   return new Promise((resolve) => {
-    const W = 800, H = 320;
+    const W = 800,
+      H = 320;
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
@@ -195,27 +196,25 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarI
 
     function drawAvatar() {
       if (!avatarInitials) return;
-      const r = 34, cx = W - 56, cy = 56; // top-right corner, like Trello's native badge
+      const r = 38, cx = W - 60, cy = 60; // top-right, matching Trello's badge position
       ctx.shadowBlur = 0;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fillStyle = avatarColor;
       ctx.fill();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "rgba(255,255,255,0.95)";
       ctx.stroke();
-      ctx.font = `700 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      ctx.font = `800 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
       ctx.fillStyle = "#fff";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(avatarInitials, cx, cy + 1);
     }
 
-    function drawNumber(withDarkOverlay) {
-      if (withDarkOverlay) {
-        ctx.fillStyle = "rgba(0,0,0,0.40)";
-        ctx.fillRect(0, 0, W, H);
-      }
+    function drawNumber() {
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.fillRect(0, 0, W, H);
       const numStr = String(count);
       const fontSize = numStr.length > 3 ? 90 : numStr.length > 2 ? 110 : 130;
       ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
