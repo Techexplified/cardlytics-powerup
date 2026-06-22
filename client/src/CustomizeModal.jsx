@@ -1258,7 +1258,7 @@ useEffect(() => { setScopedLabels(boardLabels || []); }, [boardLabels]);
 
                   {/* Section 3: Active Filters (full width) */}
                   <div style={{ padding:"14px 16px" }}>
-                    <SectionHeader number="3" title="Active Filters" />
+                    <SectionHeader number={activeFilters.length} title="Active Filters" />
                     <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
                       {activeFilters.map(key => (
                         <ActiveFilterRow
