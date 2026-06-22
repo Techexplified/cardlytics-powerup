@@ -1238,32 +1238,41 @@ function FilterGridItem({ item, active, onClick }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display:"flex", alignItems:"center", gap:10,
-        padding:"10px 12px", borderRadius:8, cursor:"pointer",
-        background: active ? T.accentDim : hover ? T.bgItem : "transparent",
-        border:`1px solid ${active ? T.accent : hover ? T.border : "transparent"}`,
-        transition:"all 0.15s",
+        display:"flex", alignItems:"flex-start", gap:11,
+        padding:"13px 14px", borderRadius:10, cursor:"pointer",
+        background: active ? "rgba(76,143,255,0.08)" : hover ? T.bgItem : T.bgDeep,
+        border: `1px solid ${active ? T.accent : hover ? T.borderLight : T.border}`,
+        boxShadow: active ? `0 0 0 1px ${T.accent}33` : "none",
+        transition:"background 0.15s, border-color 0.15s, box-shadow 0.15s",
       }}
     >
       <div style={{
-        width:30, height:30, borderRadius:7, flexShrink:0,
-        background: item.color + "22",
+        width:32, height:32, borderRadius:8, flexShrink:0,
+        background: active ? item.color + "26" : item.color + "1a",
         display:"flex", alignItems:"center", justifyContent:"center",
+        transition:"background 0.15s",
       }}>
         <span style={{ width:16, height:16, color: item.color, display:"flex" }}>
           {FilterIcons[item.iconKey]}
         </span>
       </div>
-      <div style={{ minWidth:0, flex:1, overflow:"hidden" }}>
+      <div style={{ minWidth:0, flex:1, overflow:"hidden", paddingTop:1 }}>
         <div style={{
-          fontSize:12, fontWeight:600, color: active ? T.accent : T.textSub,
-          lineHeight:1.3, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
+          fontSize:12.5, fontWeight:600, color: active ? T.accent : T.text,
+          lineHeight:1.35, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
         }}>{item.label}</div>
         <div style={{
-          fontSize:10, color:T.textMuted, marginTop:1, lineHeight:1.3,
+          fontSize:11, color:T.textMuted, marginTop:2, lineHeight:1.35,
           whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
         }}>{item.sub}</div>
       </div>
+      {active && (
+        <span style={{
+          width:16, height:16, borderRadius:"50%", flexShrink:0, marginTop:2,
+          background:T.accent, display:"flex", alignItems:"center", justifyContent:"center",
+          fontSize:9, color:"#fff", fontWeight:700,
+        }}>✓</span>
+      )}
     </div>
   );
 }
@@ -2671,91 +2680,38 @@ function CardConfigModal({
                   <Divider />
 
                   {/* Section 4: Add More Filters (full width — fits in 4 columns, no inner scroll) */}
-                  <div style={{ padding: "14px 16px" }}>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+    <SectionNumber n="4" />
+    <span style={{ fontSize:11, fontWeight:700, color:T.textMuted, letterSpacing:"0.09em", textTransform:"uppercase" }}>Add More Filters</span>
+  </div>
+  <div style={{ position:"relative" }}>
+    <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:T.textMuted, fontSize:13, lineHeight:1, pointerEvents:"none" }}>⌕</span>
+    <input
+      type="text" value={filterSearch}
+      onChange={e => setFilterSearch(e.target.value)}
+      placeholder="Search filters"
+      style={{
+        background:T.bgDeep, border:`1px solid ${T.border}`,
+        borderRadius:7, padding:"7px 12px 7px 30px",
+        color:T.text, fontSize:12, fontFamily:"inherit",
+        outline:"none", width:200, transition:"border-color 0.15s",
+      }}
+      onFocus={e => e.target.style.borderColor = T.accent}
+      onBlur={e  => e.target.style.borderColor = T.border}
+    />
+  </div>
+</div>
+<p style={{ fontSize:11.5, color:T.textMuted, margin:"0 0 14px", lineHeight:1.55 }}>
+  Choose from the available filters to refine your results.
+</p>
                     <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        <SectionNumber n="4" />
-                        <span
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: T.textMuted,
-                            letterSpacing: "0.09em",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Add More Filters
-                        </span>
-                      </div>
-                      <div style={{ position: "relative" }}>
-                        <input
-                          type="text"
-                          value={filterSearch}
-                          onChange={(e) => setFilterSearch(e.target.value)}
-                          placeholder="Search filters..."
-                          style={{
-                            background: T.bgDeep,
-                            border: `1px solid ${T.border}`,
-                            borderRadius: 6,
-                            padding: "5px 28px 5px 10px",
-                            color: T.text,
-                            fontSize: 11,
-                            fontFamily: "inherit",
-                            outline: "none",
-                            width: 180,
-                            transition: "border-color 0.15s",
-                          }}
-                          onFocus={(e) =>
-                            (e.target.style.borderColor = T.accent)
-                          }
-                          onBlur={(e) =>
-                            (e.target.style.borderColor = T.border)
-                          }
-                        />
-                        <span
-                          style={{
-                            position: "absolute",
-                            right: 8,
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            color: T.textMuted,
-                            fontSize: 12,
-                          }}
-                        >
-                          🔍
-                        </span>
-                      </div>
-                    </div>
-                    <p
-                      style={{
-                        fontSize: 11,
-                        color: T.textMuted,
-                        margin: "0 0 12px",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      Choose from the available filters to refine your results.
-                    </p>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(2, 1fr)",
-                        gap: 8,
-                      }}
-                    >
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(2, 1fr)",
+    gap: 10,
+  }}
+>
                       {filteredGridItems.map((item) => (
                         <FilterGridItem
                           key={item.key}
