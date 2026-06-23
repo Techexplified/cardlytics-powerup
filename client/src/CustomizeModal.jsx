@@ -1252,6 +1252,10 @@ function FilterGridItem({ item, active, onClick }) {
         border: `1px solid ${active ? T.accent : hover ? T.borderLight : T.border}`,
         boxShadow: active ? `0 0 0 1px ${T.accent}33` : "none",
         transition: "background 0.15s, border-color 0.15s, box-shadow 0.15s",
+        minWidth: 0,
+        width: "100%",
+        boxSizing: "border-box",
+        overflow: "hidden",
       }}
     >
       <div
@@ -2813,6 +2817,7 @@ function CardConfigModal({
                         display: "grid",
                         gridTemplateColumns: "repeat(3, 1fr)",
                         gap: 10,
+                        width: "100%",
                       }}
                     >
                       {filteredGridItems.map((item) => (
