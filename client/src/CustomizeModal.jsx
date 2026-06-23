@@ -188,13 +188,13 @@ const STAT_EMOJIS = {
   custom: "🛠️",
 };
 const DEFAULT_COVER = {
-  assigned: "blue",
-  dueThisWeek: "yellow",
-  overdue: "red",
-  unassigned: "purple",
-  withLabel: "orange",
-  stale: "black",
-  createdToday: "green",
+  assigned: "grad-blue-sky",
+  dueThisWeek: "grad-yellow-orange",
+  overdue: "grad-red-purple",
+  unassigned: "grad-purple-pink",
+  withLabel: "grad-orange-pink",
+  stale: "grad-slate-blue",
+  createdToday: "grad-green-sky",
 };
 const DEFAULT_NAMES = {
   assigned: "Assigned to Me",
@@ -2150,8 +2150,8 @@ function CardConfigModal({
   const [filterSearch, setFilterSearch] = useState("");
 
   const [coverColor, setCoverColor] = useState(
-    DEFAULT_COVER[statType] || "blue",
-  );
+  DEFAULT_COVER[statType] || "grad-multi",
+);
   const [coverImage, setCoverImage] = useState(null);
   const [styleSubtitle, setStyleSubtitle] = useState("");
   const [textColor, setTextColor] = useState("white");
@@ -2791,7 +2791,7 @@ function CardConfigModal({
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(4, 1fr)",
+                        gridTemplateColumns: "repeat(3, 1fr)",
                         gap: 10,
                         width: "100%",
                       }}
