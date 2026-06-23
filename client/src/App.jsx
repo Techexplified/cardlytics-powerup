@@ -391,8 +391,7 @@ async function generateStyledCoverImage({
     const overlap = 50; // was 44 — slightly tighter overlap to suit the bigger size
     const edgeOffset = 28; // was 24 — a touch more breathing room from the edge
 
-    visible.forEach((member, i) => {
-      visible.forEach((member, i) => {
+   visible.forEach((member, i) => {
     const avatarEl = document.createElement("div");
     Object.assign(avatarEl.style, {
       position: "absolute",
