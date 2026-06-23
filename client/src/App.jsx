@@ -283,6 +283,12 @@ async function generateStyledCoverImage({
     "grad-red-purple": "linear-gradient(135deg,#c0392b,#7e57c2)",
     "grad-slate-blue": "linear-gradient(135deg,#374151,#0052cc)",
     "grad-multi": "linear-gradient(135deg,#0052cc,#7e57c2,#e91e8c)",
+    "grad-violet": "linear-gradient(135deg,#a78bfa,#6d28d9)",
+    "grad-indigo": "linear-gradient(135deg,#6366f1,#3730a3)",
+    "grad-crimson": "linear-gradient(135deg,#ef4444,#7f1d1d)",
+    "grad-amethyst": "linear-gradient(135deg,#a78bfa,#5b21b6)",
+    "grad-deep-purple": "linear-gradient(135deg,#7c3aed,#4338ca)",
+    "grad-navy": "linear-gradient(135deg,#4f63d2,#1e3a8a)",
   };
   const TEXT_COLORS_MAP = {
     white: "#FFFFFF",

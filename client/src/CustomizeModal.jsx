@@ -3078,6 +3078,7 @@ export function CustomizeFlow({
     );
   return (
     <CardConfigModal
+      key={customizeStat}
       statType={customizeStat}
       statValue={stats?.[customizeStat] ?? 0}
       lists={lists}
