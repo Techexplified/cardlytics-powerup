@@ -374,76 +374,76 @@ async function generateStyledCoverImage({
   wrapper.appendChild(content);
 
   if (avatarMembers && avatarMembers.length > 0) {
-    const maxVisible = 3;
-    const visible = avatarMembers.slice(0, maxVisible);
-    const overflow = avatarMembers.length - visible.length;
+  const maxVisible = 3;
+  const visible = avatarMembers.slice(0, maxVisible);
+  const overflow = avatarMembers.length - visible.length;
 
-    visible.forEach((member, i) => {
-      const avatarEl = document.createElement("div");
-      Object.assign(avatarEl.style, {
-        position: "absolute",
-        top: "24px",
-        right: `${24 + i * 44}px`,
-        width: "56px",
-        height: "56px",
-        borderRadius: "50%",
-        background: member.color || "#4ea1ff",
-        border: "3px solid rgba(255,255,255,0.9)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#fff",
-        fontWeight: "700",
-        fontSize: "22px",
-        fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
-        zIndex: String(2 + (visible.length - i)),
-        boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
-      });
-      avatarEl.textContent = member.initials;
-      wrapper.appendChild(avatarEl);
+  visible.forEach((member, i) => {
+    const avatarEl = document.createElement("div");
+    Object.assign(avatarEl.style, {
+      position: "absolute",
+      top: "24px",
+      right: `${24 + i * 36}px`,   // spacing adjusted for 32px icons
+      width: "32px",
+      height: "32px",
+      borderRadius: "50%",
+      background: member.color || "#4ea1ff",
+      border: "2px solid rgba(255,255,255,0.9)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#fff",
+      fontWeight: "600",
+      fontSize: "14px",            // initials scale proportionally
+      fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+      zIndex: String(2 + (visible.length - i)),
+      boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
     });
+    avatarEl.textContent = member.initials;
+    wrapper.appendChild(avatarEl);
+  });
 
-    if (overflow > 0) {
-      const moreEl = document.createElement("div");
-      Object.assign(moreEl.style, {
-        position: "absolute",
-        top: "24px",
-        right: `${24 + visible.length * 44}px`,
-        width: "56px",
-        height: "56px",
-        borderRadius: "50%",
-        background: "rgba(0,0,0,0.55)",
-        border: "3px solid rgba(255,255,255,0.9)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#fff",
-        fontWeight: "700",
-        fontSize: "18px",
-        fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
-        zIndex: "2",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
-      });
-      moreEl.textContent = `+${overflow}`;
-      wrapper.appendChild(moreEl);
-    }
-  }
-
-  document.body.appendChild(wrapper);
-  try {
-    const canvas = await html2canvas(wrapper, {
-      backgroundColor: null,
-      scale: 1,
-      useCORS: true,
-      width: 800,
-      height: 320,
-      logging: false,
+  if (overflow > 0) {
+    const moreEl = document.createElement("div");
+    Object.assign(moreEl.style, {
+      position: "absolute",
+      top: "24px",
+      right: `${24 + visible.length * 36}px`,
+      width: "32px",
+      height: "32px",
+      borderRadius: "50%",
+      background: "rgba(0,0,0,0.55)",
+      border: "2px solid rgba(255,255,255,0.9)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#fff",
+      fontWeight: "600",
+      fontSize: "12px",            // smaller text for overflow count
+      fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+      zIndex: "2",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
     });
-    return canvas.toDataURL("image/jpeg", 0.92);
-  } finally {
-    document.body.removeChild(wrapper);
+    moreEl.textContent = `+${overflow}`;
+    wrapper.appendChild(moreEl);
   }
 }
+
+document.body.appendChild(wrapper);
+try {
+  const canvas = await html2canvas(wrapper, {
+    backgroundColor: null,
+    scale: 1,
+    useCORS: true,
+    width: 800,
+    height: 320,
+    logging: false,
+  });
+  return canvas.toDataURL("image/jpeg", 0.92);
+} finally {
+  document.body.removeChild(wrapper);
+}
+
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function Toast({ toast }) {

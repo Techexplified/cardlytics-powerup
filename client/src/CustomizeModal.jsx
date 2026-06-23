@@ -2202,19 +2202,22 @@ function CardConfigModal({
       .finally(() => setBoardsLoading(false));
   }, [fetchWorkspaceBoards]);
 
-  const liveCount = computeFilteredCount
-    ? computeFilteredCount(statType, {
-        members: filterValues.assignedTo || [],
-        due: filterValues.dueDate || [],
-        labels: filterValues.label || [],
-        lists: filterValues.list || [],
-        status: filterValues.status || [],
-        activity: filterValues.cardActivity || [],
-        createdDate: filterValues.createdDate || [],
-        customDateFrom: customDateFrom,
-        customDateTo: customDateTo,
-      })
-    : (statValue ?? 24);
+  const liveCount =
+    statType === "custom" && activeFilters.length === 0
+      ? 0
+      : computeFilteredCount
+        ? computeFilteredCount(statType, {
+            members: filterValues.assignedTo || [],
+            due: filterValues.dueDate || [],
+            labels: filterValues.label || [],
+            lists: filterValues.list || [],
+            status: filterValues.status || [],
+            activity: filterValues.cardActivity || [],
+            createdDate: filterValues.createdDate || [],
+            customDateFrom: customDateFrom,
+            customDateTo: customDateTo,
+          })
+        : (statValue ?? 24);
 
   const previewName = cardName.trim()
     ? cardName
