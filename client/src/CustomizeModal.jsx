@@ -1041,11 +1041,12 @@ function ActiveFilterRow({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 14,
           flexShrink: 0,
         }}
       >
-        {def.icon}
+        <span style={{ width: 16, height: 16, color: iconBg, display: "flex" }}>
+          {FilterIcons[filterKey]}
+        </span>
       </div>
 
       <div

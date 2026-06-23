@@ -260,8 +260,7 @@ async function generateStyledCoverImage({
   title,
   subtitle,
   coverImage,
-  avatarInitials,
-  avatarColor,
+  avatarMembers,
 }) {
   const COVER_COLORS_MAP = {
     blue: "#0052cc",
@@ -374,28 +373,60 @@ async function generateStyledCoverImage({
   content.innerHTML = innerHtml;
   wrapper.appendChild(content);
 
-  if (avatarInitials) {
-    const avatarEl = document.createElement("div");
-    Object.assign(avatarEl.style, {
-      position: "absolute",
-      bottom: "24px",
-      right: "24px",
-      width: "56px",
-      height: "56px",
-      borderRadius: "50%",
-      background: avatarColor || "#4ea1ff",
-      border: "3px solid rgba(255,255,255,0.9)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "#fff",
-      fontWeight: "700",
-      fontSize: "22px",
-      fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
-      zIndex: "2",
+  if (avatarMembers && avatarMembers.length > 0) {
+    const maxVisible = 3;
+    const visible = avatarMembers.slice(0, maxVisible);
+    const overflow = avatarMembers.length - visible.length;
+
+    visible.forEach((member, i) => {
+      const avatarEl = document.createElement("div");
+      Object.assign(avatarEl.style, {
+        position: "absolute",
+        top: "24px",
+        right: `${24 + i * 44}px`,
+        width: "56px",
+        height: "56px",
+        borderRadius: "50%",
+        background: member.color || "#4ea1ff",
+        border: "3px solid rgba(255,255,255,0.9)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: "22px",
+        fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+        zIndex: String(2 + (visible.length - i)),
+        boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+      });
+      avatarEl.textContent = member.initials;
+      wrapper.appendChild(avatarEl);
     });
-    avatarEl.textContent = avatarInitials;
-    wrapper.appendChild(avatarEl);
+
+    if (overflow > 0) {
+      const moreEl = document.createElement("div");
+      Object.assign(moreEl.style, {
+        position: "absolute",
+        top: "24px",
+        right: `${24 + visible.length * 44}px`,
+        width: "56px",
+        height: "56px",
+        borderRadius: "50%",
+        background: "rgba(0,0,0,0.55)",
+        border: "3px solid rgba(255,255,255,0.9)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: "18px",
+        fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+        zIndex: "2",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+      });
+      moreEl.textContent = `+${overflow}`;
+      wrapper.appendChild(moreEl);
+    }
   }
 
   document.body.appendChild(wrapper);
@@ -2392,11 +2423,15 @@ export default function App() {
             return currentMemberId ? [currentMemberId] : [];
           })();
 
-          const avatarMemberId = cardMemberIds[0] || null;
-          const avatarInitials = avatarMemberId
-            ? boardMembers.find((m) => m.id === avatarMemberId)?.initials || null
-            : null;
-          const avatarColor = avatarMemberId ? memberColor(avatarMemberId) : null;
+          const avatarMembers = cardMemberIds
+            .map((id) => {
+              const m = boardMembers.find((bm) => bm.id === id);
+              return m ? { initials: m.initials, color: memberColor(id) } : null;
+            })
+            .filter(Boolean);
+          // Keep singular fields for backward-compat with generateStatCoverImage
+          const avatarInitials = avatarMembers[0]?.initials || null;
+          const avatarColor = avatarMembers[0]?.color || null;
 
           const count = (() => {
             const hasExplicitFilters =
@@ -2469,8 +2504,7 @@ export default function App() {
                 title: coverTitle,
                 subtitle: saved?.subtitle || "",
                 coverImage: saved?.coverImage || null,
-                avatarInitials,
-                avatarColor,
+                avatarMembers,
               })
             : // Plain (non-customized) cards: just the number on a plain color
               // background — no title/subtitle baked in, since the card keeps
