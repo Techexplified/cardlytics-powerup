@@ -245,9 +245,9 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarI
     } else {
       ctx.fillStyle = COVER_BG_COLORS[colorName] || "#1565c0";
       ctx.fillRect(0, 0, W, H);
-      const grad = ctx.createLinearGradient(0, 0, W, H);
-      grad.addColorStop(0, "rgba(255,255,255,0.12)");
-      grad.addColorStop(1, "rgba(0,0,0,0.22)");
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, "rgba(255,255,255,0.05)");
+      grad.addColorStop(1, "rgba(0,0,0,0.10)");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
       drawNumber(false); // plain color cards: no blanket black layer, just the natural shade
