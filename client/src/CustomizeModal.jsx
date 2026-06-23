@@ -89,46 +89,20 @@ const COVER_COLORS = [
 ];
 
 const COVER_GRADIENTS = [
-  {
-    id: "grad-blue-sky",
-    css: "linear-gradient(135deg,#0052cc,#29b6f6)",
-    label: "Blue → Sky",
-  },
-  {
-    id: "grad-green-sky",
-    css: "linear-gradient(135deg,#1a7a4a,#29b6f6)",
-    label: "Green → Sky",
-  },
-  {
-    id: "grad-orange-pink",
-    css: "linear-gradient(135deg,#e67e22,#e91e8c)",
-    label: "Orange → Pink",
-  },
-  {
-    id: "grad-purple-pink",
-    css: "linear-gradient(135deg,#7e57c2,#e91e8c)",
-    label: "Purple → Pink",
-  },
-  {
-    id: "grad-yellow-orange",
-    css: "linear-gradient(135deg,#e6a817,#e67e22)",
-    label: "Yellow → Orange",
-  },
-  {
-    id: "grad-red-purple",
-    css: "linear-gradient(135deg,#c0392b,#7e57c2)",
-    label: "Red → Purple",
-  },
-  {
-    id: "grad-slate-blue",
-    css: "linear-gradient(135deg,#374151,#0052cc)",
-    label: "Slate → Blue",
-  },
-  {
-    id: "grad-multi",
-    css: "linear-gradient(135deg,#0052cc,#7e57c2,#e91e8c)",
-    label: "Blue → Purple → Pink",
-  },
+  { id: "grad-blue-sky", css: "linear-gradient(135deg,#0052cc,#29b6f6)", label: "Blue → Sky" },
+  { id: "grad-green-sky", css: "linear-gradient(135deg,#1a7a4a,#29b6f6)", label: "Green → Sky" },
+  { id: "grad-orange-pink", css: "linear-gradient(135deg,#e67e22,#e91e8c)", label: "Orange → Pink" },
+  { id: "grad-purple-pink", css: "linear-gradient(135deg,#7e57c2,#e91e8c)", label: "Purple → Pink" },
+  { id: "grad-yellow-orange", css: "linear-gradient(135deg,#e6a817,#e67e22)", label: "Yellow → Orange" },
+  { id: "grad-red-purple", css: "linear-gradient(135deg,#c0392b,#7e57c2)", label: "Red → Purple" },
+  { id: "grad-slate-blue", css: "linear-gradient(135deg,#374151,#0052cc)", label: "Slate → Blue" },
+  { id: "grad-multi", css: "linear-gradient(135deg,#0052cc,#7e57c2,#e91e8c)", label: "Blue → Purple → Pink" },
+  { id: "grad-violet", css: "linear-gradient(135deg,#a78bfa,#6d28d9)", label: "Violet" },
+  { id: "grad-indigo", css: "linear-gradient(135deg,#6366f1,#3730a3)", label: "Indigo" },
+  { id: "grad-crimson", css: "linear-gradient(135deg,#ef4444,#7f1d1d)", label: "Crimson" },
+  { id: "grad-amethyst", css: "linear-gradient(135deg,#a78bfa,#5b21b6)", label: "Amethyst" },
+  { id: "grad-deep-purple", css: "linear-gradient(135deg,#7c3aed,#4338ca)", label: "Deep Purple" },
+  { id: "grad-navy", css: "linear-gradient(135deg,#4f63d2,#1e3a8a)", label: "Navy" },
 ];
 
 function resolveCoverBackground(id, customHex) {
@@ -188,13 +162,13 @@ const STAT_EMOJIS = {
   custom: "🛠️",
 };
 const DEFAULT_COVER = {
-  assigned: "grad-blue-sky",
-  dueThisWeek: "grad-yellow-orange",
-  overdue: "grad-red-purple",
-  unassigned: "grad-purple-pink",
-  withLabel: "grad-orange-pink",
-  stale: "grad-slate-blue",
-  createdToday: "grad-green-sky",
+  assigned: "blue",
+  unassigned: "grad-violet",
+  createdToday: "grad-indigo",
+  overdue: "grad-crimson",
+  stale: "grad-amethyst",
+  dueThisWeek: "grad-deep-purple",
+  withLabel: "grad-navy",
 };
 const DEFAULT_NAMES = {
   assigned: "Assigned to Me",
