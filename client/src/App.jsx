@@ -13,7 +13,7 @@ import {
   createList,
   applyFilters,
   getWeekBounds,
-  getWorkspaceBoards, // ← new
+  getWorkspaceBoards,
   getBoardScopedData,
 } from "./trello";
 import { CustomizeFlow } from "./CustomizeModal";
@@ -185,7 +185,13 @@ const STAT_COVER_COLOR_MAP = {
 };
 
 // ── Generate cover image canvas ───────────────────────────────────────────────
-function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarInitials = null, avatarColor = "#4ea1ff") {
+function generateStatCoverImage(
+  count,
+  colorName,
+  bgImageDataUrl = null,
+  avatarInitials = null,
+  avatarColor = "#4ea1ff",
+) {
   return new Promise((resolve) => {
     const W = 800,
       H = 320;
@@ -196,7 +202,9 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarI
 
     function drawAvatar() {
       if (!avatarInitials) return;
-      const r = 38, cx = W - 60, cy = 60; // top-right, matching Trello's badge position
+      const r = 38,
+        cx = W - 60,
+        cy = 60; // top-right, matching Trello's badge position
       ctx.shadowBlur = 0;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -232,7 +240,8 @@ function generateStatCoverImage(count, colorName, bgImageDataUrl = null, avatarI
       const img = new Image();
       img.onload = () => {
         const scale = Math.max(W / img.width, H / img.height);
-        const sw = img.width * scale, sh = img.height * scale;
+        const sw = img.width * scale,
+          sh = img.height * scale;
         ctx.drawImage(img, (W - sw) / 2, (H - sh) / 2, sw, sh);
         drawNumber(true); // dark overlay only needed for legibility over a busy photo
       };
@@ -374,64 +383,64 @@ async function generateStyledCoverImage({
   wrapper.appendChild(content);
 
   if (avatarMembers && avatarMembers.length > 0) {
-  const maxVisible = 3;
-  const visible = avatarMembers.slice(0, maxVisible);
-  const overflow = avatarMembers.length - visible.length;
+    const maxVisible = 3;
+    const visible = avatarMembers.slice(0, maxVisible);
+    const overflow = avatarMembers.length - visible.length;
 
-  const avatarSize = 72;      // was 56 — bigger, more proportional to an 800x320 cover
-  const overlap = 50;         // was 44 — slightly tighter overlap to suit the bigger size
-  const edgeOffset = 28;      // was 24 — a touch more breathing room from the edge
+    const avatarSize = 72; // was 56 — bigger, more proportional to an 800x320 cover
+    const overlap = 50; // was 44 — slightly tighter overlap to suit the bigger size
+    const edgeOffset = 28; // was 24 — a touch more breathing room from the edge
 
-  visible.forEach((member, i) => {
-    const avatarEl = document.createElement("div");
-    Object.assign(avatarEl.style, {
-      position: "absolute",
-      top: "24px",
-      right: `${edgeOffset + i * overlap}px`,
-      width: `${avatarSize}px`,
-      height: `${avatarSize}px`,
-      borderRadius: "50%",
-      background: member.color || "#4ea1ff",
-      border: "3px solid rgba(255,255,255,0.9)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "#fff",
-      fontWeight: "700",
-      fontSize: "26px",        // scaled up with the avatar
-      fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
-      zIndex: String(2 + (visible.length - i)),
-      boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+    visible.forEach((member, i) => {
+      const avatarEl = document.createElement("div");
+      Object.assign(avatarEl.style, {
+        position: "absolute",
+        top: "24px",
+        right: `${edgeOffset + i * overlap}px`,
+        width: `${avatarSize}px`,
+        height: `${avatarSize}px`,
+        borderRadius: "50%",
+        background: member.color || "#4ea1ff",
+        border: "3px solid rgba(255,255,255,0.9)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: "26px", // scaled up with the avatar
+        fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+        zIndex: String(2 + (visible.length - i)),
+        boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+      });
+      avatarEl.textContent = member.initials;
+      wrapper.appendChild(avatarEl);
     });
-    avatarEl.textContent = member.initials;
-    wrapper.appendChild(avatarEl);
-  });
 
-  if (overflow > 0) {
-    const moreEl = document.createElement("div");
-    Object.assign(moreEl.style, {
-      position: "absolute",
-      top: "24px",
-      right: `${edgeOffset + visible.length * overlap}px`,
-      width: `${avatarSize}px`,
-      height: `${avatarSize}px`,
-      borderRadius: "50%",
-      background: "rgba(0,0,0,0.55)",
-      border: "3px solid rgba(255,255,255,0.9)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "#fff",
-      fontWeight: "700",
-      fontSize: "20px",
-      fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
-      zIndex: "2",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
-    });
-    moreEl.textContent = `+${overflow}`;
-    wrapper.appendChild(moreEl);
+    if (overflow > 0) {
+      const moreEl = document.createElement("div");
+      Object.assign(moreEl.style, {
+        position: "absolute",
+        top: "24px",
+        right: `${edgeOffset + visible.length * overlap}px`,
+        width: `${avatarSize}px`,
+        height: `${avatarSize}px`,
+        borderRadius: "50%",
+        background: "rgba(0,0,0,0.55)",
+        border: "3px solid rgba(255,255,255,0.9)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: "20px",
+        fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+        zIndex: "2",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+      });
+      moreEl.textContent = `+${overflow}`;
+      wrapper.appendChild(moreEl);
+    }
   }
-}
 
   document.body.appendChild(wrapper);
   try {
@@ -745,7 +754,12 @@ async function runTrackerRefresh(key, tkn, trelloContext) {
 // ── Build a short, human-readable summary of a tracker card's active filters ─
 // Mirrors the same meta-tag regex used elsewhere (runTrackerRefresh, handleOpenDetails),
 // so the card-back view stays in sync with however the card was actually created.
-function parseCardFilterSummary(desc, boardMembers = [], boardLabels = [], boardLists = []) {
+function parseCardFilterSummary(
+  desc,
+  boardMembers = [],
+  boardLabels = [],
+  boardLists = [],
+) {
   if (!desc) return [];
   const statMatch = desc.match(
     /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
@@ -766,7 +780,7 @@ function parseCardFilterSummary(desc, boardMembers = [], boardLabels = [], board
     const wantsUnassigned = filters.members.includes("unassigned");
     const namedIds = filters.members.filter((id) => id !== "unassigned");
     const names = namedIds.map(
-      (id) => boardMembers.find((m) => m.id === id)?.fullName || id
+      (id) => boardMembers.find((m) => m.id === id)?.fullName || id,
     );
     const parts = [...(wantsUnassigned ? ["Unassigned"] : []), ...names];
     chips.push({ label: "Assigned To", value: parts.join(", ") });
@@ -783,10 +797,10 @@ function parseCardFilterSummary(desc, boardMembers = [], boardLabels = [], board
         filters.customDateFrom && filters.customDateTo
           ? `${filters.customDateFrom} → ${filters.customDateTo}`
           : filters.customDateFrom
-          ? `From ${filters.customDateFrom}`
-          : filters.customDateTo
-          ? `Until ${filters.customDateTo}`
-          : "Custom range",
+            ? `From ${filters.customDateFrom}`
+            : filters.customDateTo
+              ? `Until ${filters.customDateTo}`
+              : "Custom range",
     };
     const values = filters.due.map((d) => DUE_LABELS[d] || d);
     chips.push({ label: "Due Date", value: values.join(", ") });
@@ -800,7 +814,7 @@ function parseCardFilterSummary(desc, boardMembers = [], boardLabels = [], board
   }
   if (filters.lists?.length) {
     const names = filters.lists.map(
-      (id) => boardLists.find((l) => l.id === id)?.name || id
+      (id) => boardLists.find((l) => l.id === id)?.name || id,
     );
     chips.push({ label: "List", value: names.join(", ") });
   }
@@ -815,23 +829,23 @@ function parseCardFilterSummary(desc, boardMembers = [], boardLabels = [], board
   }
   if (filters.activity?.length) {
     const ACTIVITY_LABELS = {
-      "1day":   "Active in last 1 day",
-      "3days":  "Active in last 3 days",
-      "7days":  "Active in last 7 days",
+      "1day": "Active in last 1 day",
+      "3days": "Active in last 3 days",
+      "7days": "Active in last 7 days",
       "14days": "Active in last 14 days",
       "30days": "Active in last 30 days",
-      stale14:  "Stale 14+ days",
-      stale30:  "Stale 30+ days",
+      stale14: "Stale 14+ days",
+      stale30: "Stale 30+ days",
     };
     const values = filters.activity.map((a) => ACTIVITY_LABELS[a] || a);
     chips.push({ label: "Activity", value: values.join(", ") });
   }
- if (filters.createdDate?.length) {
+  if (filters.createdDate?.length) {
     const CREATED_LABELS = {
-      today:     "Today",
+      today: "Today",
       yesterday: "Yesterday",
-      "7days":   "Last 7 days",
-      "30days":  "Last 30 days",
+      "7days": "Last 7 days",
+      "30days": "Last 30 days",
     };
     const values = filters.createdDate.map((d) => CREATED_LABELS[d] || d);
     chips.push({ label: "Created", value: values.join(", ") });
@@ -860,9 +874,15 @@ function CardBackView() {
           const key = TRELLO_API_KEY;
           const token = getStoredToken();
           Promise.all([
-            fetch(`${TRELLO_BASE}/boards/${board.id}/members?key=${key}&token=${token}&fields=id,fullName`).then((r) => r.json()),
-            fetch(`${TRELLO_BASE}/boards/${board.id}/labels?key=${key}&token=${token}&fields=id,name,color&limit=200`).then((r) => r.json()),
-            fetch(`${TRELLO_BASE}/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`).then((r) => r.json()),
+            fetch(
+              `${TRELLO_BASE}/boards/${board.id}/members?key=${key}&token=${token}&fields=id,fullName`,
+            ).then((r) => r.json()),
+            fetch(
+              `${TRELLO_BASE}/boards/${board.id}/labels?key=${key}&token=${token}&fields=id,name,color&limit=200`,
+            ).then((r) => r.json()),
+            fetch(
+              `${TRELLO_BASE}/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
+            ).then((r) => r.json()),
           ])
             .then(([members, labels, lists]) => {
               setBoardMembers(members || []);
@@ -888,9 +908,15 @@ function CardBackView() {
               .map((l) => l.id);
             setIsTracker(cardlyticsListIds.includes(card.idList));
             Promise.all([
-              fetch(`${TRELLO_BASE}/boards/${board.id}/members?key=${key}&token=${token}&fields=id,fullName`).then((r) => r.json()),
-              fetch(`${TRELLO_BASE}/boards/${board.id}/labels?key=${key}&token=${token}&fields=id,name,color&limit=200`).then((r) => r.json()),
-              fetch(`${TRELLO_BASE}/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`).then((r) => r.json()),
+              fetch(
+                `${TRELLO_BASE}/boards/${board.id}/members?key=${key}&token=${token}&fields=id,fullName`,
+              ).then((r) => r.json()),
+              fetch(
+                `${TRELLO_BASE}/boards/${board.id}/labels?key=${key}&token=${token}&fields=id,name,color&limit=200`,
+              ).then((r) => r.json()),
+              fetch(
+                `${TRELLO_BASE}/boards/${board.id}/lists?key=${key}&token=${token}&fields=id,name`,
+              ).then((r) => r.json()),
             ])
               .then(([members, labels, lists]) => {
                 setBoardMembers(members || []);
@@ -925,7 +951,14 @@ function CardBackView() {
       trelloT.sizeTo("body").catch(() => {});
     });
     return () => cancelAnimationFrame(id);
-  }, [cardDesc, isTracker, boardDataLoaded, boardMembers, boardLabels, boardLists]);
+  }, [
+    cardDesc,
+    isTracker,
+    boardDataLoaded,
+    boardMembers,
+    boardLabels,
+    boardLists,
+  ]);
 
   function handleOpenDetails() {
     if (!trelloT) return;
@@ -988,7 +1021,10 @@ function CardBackView() {
     });
   }
 
-  const filterChips = isTracker && boardDataLoaded ? parseCardFilterSummary(cardDesc, boardMembers, boardLabels, boardLists) : [];
+  const filterChips =
+    isTracker && boardDataLoaded
+      ? parseCardFilterSummary(cardDesc, boardMembers, boardLabels, boardLists)
+      : [];
 
   return (
     <div
@@ -2416,21 +2452,20 @@ export default function App() {
               }
             : null;
 
-          // Resolve which members should be assigned to the tracker card itself.
-          // If the user filtered by specific people, mirror that on the card.
-          // Otherwise default to the current member (so "my" trackers show your avatar).
           const cardMemberIds = (() => {
+            if (!saved) return []; 
             const filterMembers = (filterConfig?.members || []).filter(
               (id) => id !== "unassigned",
             );
-            if (filterMembers.length > 0) return filterMembers;
-            return currentMemberId ? [currentMemberId] : [];
+            return filterMembers; 
           })();
 
           const avatarMembers = cardMemberIds
             .map((id) => {
               const m = boardMembers.find((bm) => bm.id === id);
-              return m ? { initials: m.initials, color: memberColor(id) } : null;
+              return m
+                ? { initials: m.initials, color: memberColor(id) }
+                : null;
             })
             .filter(Boolean);
           // Keep singular fields for backward-compat with generateStatCoverImage
@@ -2513,7 +2548,13 @@ export default function App() {
             : // Plain (non-customized) cards: just the number on a plain color
               // background — no title/subtitle baked in, since the card keeps
               // its native Trello name for that.
-              await generateStatCoverImage(count, cover, null, avatarInitials, avatarColor);
+              await generateStatCoverImage(
+                count,
+                cover,
+                null,
+                avatarInitials,
+                avatarColor,
+              );
 
           const newCard = await createCard(
             key,
