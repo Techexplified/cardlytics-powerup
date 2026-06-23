@@ -432,6 +432,23 @@ async function generateStyledCoverImage({
     wrapper.appendChild(moreEl);
   }
 }
+
+  document.body.appendChild(wrapper);
+  try {
+    const canvas = await html2canvas(wrapper, {
+      backgroundColor: null,
+      scale: 1,
+      useCORS: true,
+      width: 800,
+      height: 320,
+      logging: false,
+    });
+    return canvas.toDataURL("image/jpeg", 0.92);
+  } finally {
+    document.body.removeChild(wrapper);
+  }
+}
+
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function Toast({ toast }) {
   if (!toast) return null;
