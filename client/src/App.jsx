@@ -2625,39 +2625,42 @@ export default function App() {
         `${statsToTrack.length} card(s) added to "${trackingListName}" ✅`,
       );
 
-      const boardPersonalized = JSON.parse(
-        localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
-      );
-      const newViews = statsToTrack.map((stat) => {
-        const saved = configToUse[stat];
-        const defaults = DEFAULT_STAT_CONFIG[stat];
-        return {
-          id: `${stat}-${Date.now()}`,
-          cardId: createdCards.find((c) => c.stat === stat)?.cardId || null,
-          statType: stat,
-          cardName: saved?.cardName || defaults.label,
-          cover: saved?.cover || defaults.cover,
-          filters: {
-            due: saved?.due || [],
-            members: saved?.members || [],
-            labels: saved?.labels || [],
-            lists: saved?.lists || [],
-            status: saved?.status || [],
-            activity: saved?.activity || [],
-            createdDate: saved?.createdDate || [],
-            customDateFrom: saved?.customDateFrom || "",
-            customDateTo: saved?.customDateTo || "",
-          },
-          createdAt: new Date().toISOString(),
-          boardId,
-          mode: mode === "list" && listId ? "list" : "board",
-          listId: mode === "list" ? listId : null,
-        };
-      });
-      localStorage.setItem(
-        `cardlytics:personalized:${boardId}`,
-        JSON.stringify([...boardPersonalized, ...newViews]),
-      );
+      const customizedStats = statsToTrack.filter((stat) => configToUse[stat]);
+if (customizedStats.length > 0) {
+  const boardPersonalized = JSON.parse(
+    localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
+  );
+  const newViews = customizedStats.map((stat) => {
+    const saved = configToUse[stat];
+    const defaults = DEFAULT_STAT_CONFIG[stat];
+    return {
+      id: `${stat}-${Date.now()}`,
+      cardId: createdCards.find((c) => c.stat === stat)?.cardId || null,
+      statType: stat,
+      cardName: saved?.cardName || defaults.label,
+      cover: saved?.cover || defaults.cover,
+      filters: {
+        due: saved?.due || [],
+        members: saved?.members || [],
+        labels: saved?.labels || [],
+        lists: saved?.lists || [],
+        status: saved?.status || [],
+        activity: saved?.activity || [],
+        createdDate: saved?.createdDate || [],
+        customDateFrom: saved?.customDateFrom || "",
+        customDateTo: saved?.customDateTo || "",
+      },
+      createdAt: new Date().toISOString(),
+      boardId,
+      mode: mode === "list" && listId ? "list" : "board",
+      listId: mode === "list" ? listId : null,
+    };
+  });
+  localStorage.setItem(
+    `cardlytics:personalized:${boardId}`,
+    JSON.stringify([...boardPersonalized, ...newViews]),
+  );
+}
 
       setSelectedStats([]);
       await new Promise((resolve) => setTimeout(resolve, 1500));

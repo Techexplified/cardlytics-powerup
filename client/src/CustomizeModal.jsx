@@ -2120,7 +2120,9 @@ function CardConfigModal({
   blankStart,
 }) {
   const [activeTab, setActiveTab] = useState("filters");
-  const [cardName, setCardName] = useState("");
+  const [cardName, setCardName] = useState(
+  blankStart ? "" : DEFAULT_NAMES[statType] || ""
+);
   const [boardScope, setBoardScope] = useState("this");
   const [filterSearch, setFilterSearch] = useState("");
 
