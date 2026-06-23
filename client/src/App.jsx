@@ -1127,9 +1127,10 @@ function CardDetailsView() {
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState("name");
   const [sortAsc, setSortAsc] = useState(true);
-  const [leftTab, setLeftTab] = useState(() =>
-    params.current.get("cardName") ? "personalized" : "general",
-  );
+  const [leftTab, setLeftTab] = useState(() => {
+  const filtersParam = params.current.get("filters");
+  return filtersParam ? "personalized" : "general";
+});
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [personalizedViews, setPersonalizedViews] = useState(() => {
     // Pre-populate from localStorage so sidebar isn't blank on first render,
