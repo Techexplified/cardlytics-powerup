@@ -30,93 +30,46 @@ const T = {
 // ── SVG icon set for filter grid (clean line icons) ──────────────────────────
 const FilterIcons = {
   assignedTo: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4v-1z" />
     </svg>
   ),
   dueDate: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 4h-1V3a1 1 0 1 0-2 0v1H8V3a1 1 0 1 0-2 0v1H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM5 10h14v9H5v-9z" />
     </svg>
   ),
   label: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20.59 13.41 11.18 22.83a2 2 0 0 1-2.83 0L2.17 16.65a2 2 0 0 1 0-2.83L11.59 4.4a2 2 0 0 1 1.41-.59H19a2 2 0 0 1 2 2v6.18a2 2 0 0 1-.41 1.23z" />
-      <circle cx="13.5" cy="9.5" r="1.5" fill="currentColor" stroke="none" />
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M21.41 11.58l-9-9A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7c0 .53.21 1.04.59 1.41l9 9c.78.78 2.05.78 2.83 0l7-7c.78-.79.78-2.05-.01-2.83zM6.5 8A1.5 1.5 0 1 1 6.5 5a1.5 1.5 0 0 1 0 3z" />
     </svg>
   ),
   list: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M8 6h13M8 12h13M8 18h13" />
-      <path d="M3 6h.01M3 12h.01M3 18h.01" />
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <rect x="3" y="5" width="3" height="3" rx="0.5" />
+      <rect x="3" y="10.5" width="3" height="3" rx="0.5" />
+      <rect x="3" y="16" width="3" height="3" rx="0.5" />
+      <rect x="9" y="5.5" width="12" height="2" rx="1" />
+      <rect x="9" y="11" width="12" height="2" rx="1" />
+      <rect x="9" y="16.5" width="12" height="2" rx="1" />
     </svg>
   ),
   status: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="3" y="3" width="18" height="18" rx="3" />
-      <path d="M8 12l3 3 5-6" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+      <path d="M8 12.5l2.8 2.8L16.5 9" />
     </svg>
   ),
   cardActivity: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 3" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3.2 2" />
     </svg>
   ),
   createdDate: (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="9" />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.5" />
       <path d="M12 8v8M8 12h8" />
     </svg>
   ),
@@ -1175,21 +1128,44 @@ function ActiveFilterRow({
 
       <button
         onClick={onRemove}
+        title="Remove filter"
         style={{
-          background: "none",
+          background: "transparent",
           border: "none",
           cursor: "pointer",
           color: T.textMuted,
-          fontSize: 16,
-          padding: "0 4px",
-          lineHeight: 1,
+          width: 26,
+          height: 26,
+          borderRadius: 6,
+          padding: 0,
           display: "flex",
           alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          transition: "background 0.15s ease, color 0.15s ease",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = T.danger)}
-        onMouseLeave={(e) => (e.currentTarget.style.color = T.textMuted)}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(248,81,73,0.12)";
+          e.currentTarget.style.color = T.danger;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = T.textMuted;
+        }}
       >
-        ✕
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M18 6 6 18" />
+          <path d="M6 6l12 12" />
+        </svg>
       </button>
 
       <PortalDropdown anchorRef={triggerRef} open={open} portalRef={portalRef}>
@@ -1260,8 +1236,8 @@ function FilterGridItem({ item, active, onClick }) {
     >
       <div
         style={{
-          width: 32,
-          height: 32,
+          width: 36,
+          height: 36,
           borderRadius: 8,
           flexShrink: 0,
           background: active ? item.color + "26" : item.color + "1a",
@@ -1272,7 +1248,7 @@ function FilterGridItem({ item, active, onClick }) {
         }}
       >
         <span
-          style={{ width: 16, height: 16, color: item.color, display: "flex" }}
+          style={{ width: 18, height: 18, color: item.color, display: "flex" }}
         >
           {FilterIcons[item.iconKey]}
         </span>
@@ -2815,7 +2791,7 @@ function CardConfigModal({
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(3, 1fr)",
+                        gridTemplateColumns: "repeat(4, 1fr)",
                         gap: 10,
                         width: "100%",
                       }}
