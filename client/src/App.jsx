@@ -387,31 +387,31 @@ async function generateStyledCoverImage({
     const visible = avatarMembers.slice(0, maxVisible);
     const overflow = avatarMembers.length - visible.length;
 
-    const avatarSize = 72; // was 56 — bigger, more proportional to an 800x320 cover
-    const overlap = 50; // was 44 — slightly tighter overlap to suit the bigger size
-    const edgeOffset = 28; // was 24 — a touch more breathing room from the edge
+    const avatarSize = 36;
+const overlap = 26;
+const edgeOffset = 14;
 
    visible.forEach((member, i) => {
     const avatarEl = document.createElement("div");
     Object.assign(avatarEl.style, {
       position: "absolute",
-      top: "20px",
+      top: "10px",
       right: `${edgeOffset + i * overlap}px`,
       width: `${avatarSize}px`,
       height: `${avatarSize}px`,
       borderRadius: "50%",
-      background: `linear-gradient(135deg, ${member.color || "#4ea1ff"}, ${member.color || "#4ea1ff"}cc)`,
-      border: "2.5px solid rgba(255,255,255,0.95)",
+      background: member.color || "#4ea1ff",
+      border: "2px solid rgba(255,255,255,0.85)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       color: "#fff",
-      fontWeight: "600",
-      fontSize: "22px",
+      fontWeight: "700",
+      fontSize: "13px",
       letterSpacing: "0.5px",
       fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
       zIndex: String(2 + (visible.length - i)),
-      boxShadow: "0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
+      boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
     });
     avatarEl.textContent = member.initials;
     wrapper.appendChild(avatarEl);
