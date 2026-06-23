@@ -874,6 +874,18 @@ function CardBackView() {
     );
   }, []);
 
+  // The card-back iframe starts locked at a fixed 70px height (see
+  // connector.html). Trello never grows it automatically — without this,
+  // any chips beyond what fits in 70px are silently clipped, regardless of
+  // how many filters are actually saved on the card.
+  useEffect(() => {
+    if (!trelloT) return;
+    const id = requestAnimationFrame(() => {
+      trelloT.sizeTo("body").catch(() => {});
+    });
+    return () => cancelAnimationFrame(id);
+  }, [cardDesc, isTracker, boardDataLoaded, boardMembers, boardLabels, boardLists]);
+
   function handleOpenDetails() {
     if (!trelloT) return;
     trelloT.card("id", "idList", "name", "desc").then((card) => {
