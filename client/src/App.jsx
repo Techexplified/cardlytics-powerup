@@ -444,6 +444,7 @@ try {
   document.body.removeChild(wrapper);
 }
 
+}
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function Toast({ toast }) {
