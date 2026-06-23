@@ -392,29 +392,31 @@ async function generateStyledCoverImage({
     const edgeOffset = 28; // was 24 — a touch more breathing room from the edge
 
     visible.forEach((member, i) => {
-      const avatarEl = document.createElement("div");
-      Object.assign(avatarEl.style, {
-        position: "absolute",
-        top: "24px",
-        right: `${edgeOffset + i * overlap}px`,
-        width: `${avatarSize}px`,
-        height: `${avatarSize}px`,
-        borderRadius: "50%",
-        background: member.color || "#4ea1ff",
-        border: "3px solid rgba(255,255,255,0.9)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#fff",
-        fontWeight: "700",
-        fontSize: "26px", // scaled up with the avatar
-        fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
-        zIndex: String(2 + (visible.length - i)),
-        boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
-      });
-      avatarEl.textContent = member.initials;
-      wrapper.appendChild(avatarEl);
+      visible.forEach((member, i) => {
+    const avatarEl = document.createElement("div");
+    Object.assign(avatarEl.style, {
+      position: "absolute",
+      top: "20px",
+      right: `${edgeOffset + i * overlap}px`,
+      width: `${avatarSize}px`,
+      height: `${avatarSize}px`,
+      borderRadius: "50%",
+      background: `linear-gradient(135deg, ${member.color || "#4ea1ff"}, ${member.color || "#4ea1ff"}cc)`,
+      border: "2.5px solid rgba(255,255,255,0.95)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#fff",
+      fontWeight: "600",
+      fontSize: "22px",
+      letterSpacing: "0.5px",
+      fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+      zIndex: String(2 + (visible.length - i)),
+      boxShadow: "0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
     });
+    avatarEl.textContent = member.initials;
+    wrapper.appendChild(avatarEl);
+  });
 
     if (overflow > 0) {
       const moreEl = document.createElement("div");
