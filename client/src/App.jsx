@@ -2933,6 +2933,7 @@ export default function App() {
             className="add-filter-card"
             onClick={() => {
               setCustomizeBlankStart(true);
+              setCustomizeStat("custom");
               setShowCustomize(true);
             }}
           >
