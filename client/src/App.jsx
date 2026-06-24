@@ -1027,10 +1027,7 @@ function CardBackView() {
       : [];
 
   return (
-    <div
-      className="cb-root"
-      style={{ flexDirection: "column", gap: 8, alignItems: "stretch" }}
-    >
+<div className="cb-root">
       <div
         style={{
           display: "flex",
