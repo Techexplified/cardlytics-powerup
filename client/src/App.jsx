@@ -1580,6 +1580,19 @@ function CardDetailsView() {
     }
   }
 
+  function handleOpenCreateView() {
+    if (!trelloT) return;
+    trelloT.board("id").then((board) => {
+      trelloT.modal({
+        title: "Cardlytics",
+        url: `./index.html?boardId=${board.id}&autoCustomize=true`,
+        fullscreen: false,
+        height: 860,
+      });
+    });
+  }
+
+
   function SortArrow({ col }) {
     if (sortCol !== col)
       return <span style={{ color: "#444", marginLeft: 3 }}>↕</span>;
@@ -1749,8 +1762,14 @@ function CardDetailsView() {
                 <div className="cd-personalized-icon">👤</div>
                 <div className="cd-personalized-title">Your custom views</div>
                 <div className="cd-personalized-desc">
-                  Customize a stat card to save views here.
+                  Save filtered views here for quick access.
                 </div>
+                <button
+                  className="cd-personalized-create-btn"
+                  onClick={handleOpenCreateView}
+                >
+                  + Create view
+                </button>
               </div>
             ) : (
               personalizedViews.map((view) => (
@@ -2168,6 +2187,7 @@ export default function App() {
   const mode = params.get("mode");
   const view = params.get("view");
   const listId = params.get("listId");
+  const autoCustomize = params.get("autoCustomize") === "true";
 
   const [token, setToken] = useState(() => getStoredToken());
   const [stats, setStats] = useState({
@@ -2373,6 +2393,15 @@ export default function App() {
       clearInterval(intervalId);
     };
   }, [token]);
+
+  useEffect(() => {
+    if (autoCustomize && token) {
+      setCustomizeBlankStart(true);
+      setCustomizeStat("custom");
+      setShowCustomize(true);
+    }
+  }, [autoCustomize, token]);
+
   if (!token)
     return (
       <LoginScreen
