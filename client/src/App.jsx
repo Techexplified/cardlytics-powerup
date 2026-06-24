@@ -383,65 +383,64 @@ async function generateStyledCoverImage({
   wrapper.appendChild(content);
 
   if (avatarMembers && avatarMembers.length > 0) {
-    const maxVisible = 3;
-    const visible = avatarMembers.slice(0, maxVisible);
-    const overflow = avatarMembers.length - visible.length;
+  const maxVisible = 3;
+  const visible = avatarMembers.slice(0, maxVisible);
+  const overflow = avatarMembers.length - visible.length;
 
-    const avatarSize = 40;
-const overlap = 30;
-const edgeOffset = 14;
+  const avatarSize = 72;      // was 56 — bigger, more proportional to an 800x320 cover
+  const overlap = 50;         // was 44 — slightly tighter overlap to suit the bigger size
+  const edgeOffset = 28;      // was 24 — a touch more breathing room from the edge
 
-   visible.forEach((member, i) => {
+  visible.forEach((member, i) => {
     const avatarEl = document.createElement("div");
     Object.assign(avatarEl.style, {
       position: "absolute",
-      top: "10px",
+      top: "24px",
       right: `${edgeOffset + i * overlap}px`,
       width: `${avatarSize}px`,
       height: `${avatarSize}px`,
       borderRadius: "50%",
       background: member.color || "#4ea1ff",
-      border: "2px solid rgba(255,255,255,0.85)",
+      border: "3px solid rgba(255,255,255,0.9)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       color: "#fff",
       fontWeight: "700",
-      fontSize: "16px",
-      letterSpacing: "0.5px",
+      fontSize: "26px",        // scaled up with the avatar
       fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
       zIndex: String(2 + (visible.length - i)),
-      boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
     });
     avatarEl.textContent = member.initials;
     wrapper.appendChild(avatarEl);
   });
 
-    if (overflow > 0) {
-      const moreEl = document.createElement("div");
-      Object.assign(moreEl.style, {
-        position: "absolute",
-        top: "24px",
-        right: `${edgeOffset + visible.length * overlap}px`,
-        width: `${avatarSize}px`,
-        height: `${avatarSize}px`,
-        borderRadius: "50%",
-        background: "rgba(0,0,0,0.55)",
-        border: "3px solid rgba(255,255,255,0.9)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#fff",
-        fontWeight: "700",
-        fontSize: "16px",
-        fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
-        zIndex: "2",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-      });
-      moreEl.textContent = `+${overflow}`;
-      wrapper.appendChild(moreEl);
-    }
+  if (overflow > 0) {
+    const moreEl = document.createElement("div");
+    Object.assign(moreEl.style, {
+      position: "absolute",
+      top: "24px",
+      right: `${edgeOffset + visible.length * overlap}px`,
+      width: `${avatarSize}px`,
+      height: `${avatarSize}px`,
+      borderRadius: "50%",
+      background: "rgba(0,0,0,0.55)",
+      border: "3px solid rgba(255,255,255,0.9)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#fff",
+      fontWeight: "700",
+      fontSize: "20px",
+      fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+      zIndex: "2",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+    });
+    moreEl.textContent = `+${overflow}`;
+    wrapper.appendChild(moreEl);
   }
+}
 
   document.body.appendChild(wrapper);
   try {
