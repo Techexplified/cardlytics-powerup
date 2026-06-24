@@ -913,6 +913,75 @@ function FilterValuePicker({
   return null;
 }
 
+
+function AssignedToPillContent({ values, members }) {
+  if (!values || !values.length) {
+    return <span style={{ color: T.textMuted }}>Any</span>;
+  }
+  const maxVisible = 3;
+  const visible = values.slice(0, maxVisible);
+  const overflow = values.length - visible.length;
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+      {visible.map((id) => {
+        if (id === "unassigned") {
+          return (
+            <div
+              key={id}
+              title="Unassigned"
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: T.bgItem,
+                border: `1px solid ${T.border}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 10,
+                flexShrink: 0,
+              }}
+            >
+              👤
+            </div>
+          );
+        }
+        const m = (members || []).find((x) => x.id === id);
+        const initials = m
+          ? m.fullName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+          : "?";
+        return (
+          <div
+            key={id}
+            title={m?.fullName || id}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: "50%",
+              background: m?.avatarColor || "#0052cc",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 9,
+              fontWeight: 700,
+              color: "#fff",
+              flexShrink: 0,
+            }}
+          >
+            {initials}
+          </div>
+        );
+      })}
+      {overflow > 0 && (
+        <span style={{ fontSize: 11, color: T.textMuted, marginLeft: 2 }}>
+          +{overflow}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ── Active filter row ─────────────────────────────────────────────────────────
 function ActiveFilterRow({
   filterKey,
@@ -1079,16 +1148,20 @@ function ActiveFilterRow({
           userSelect: "none",
         }}
       >
-        <span
-          style={{
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            color: val ? T.text : T.textMuted,
-          }}
-        >
-          {val || "Any"}
-        </span>
+        {filterKey === "assignedTo" ? (
+          <AssignedToPillContent values={values} members={members} />
+        ) : (
+          <span
+            style={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              color: val ? T.text : T.textMuted,
+            }}
+          >
+            {val || "Any"}
+          </span>
+        )}
         <span
           style={{
             fontSize: 9,
@@ -2051,7 +2124,7 @@ function StatPicker({ onSelect, onClose }) {
           >
             <span style={{ fontSize: 18 }}>🛠️</span>
             <span style={{ fontSize: 13, color: T.textSub, fontWeight: 600 }}>
-              Create Custom Card
+              Create a new Filter
             </span>
             <span
               style={{ marginLeft: "auto", color: T.textMuted, fontSize: 14 }}
