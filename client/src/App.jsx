@@ -387,9 +387,9 @@ async function generateStyledCoverImage({
     const visible = avatarMembers.slice(0, maxVisible);
     const overflow = avatarMembers.length - visible.length;
 
-    const avatarSize = 72;
-const overlap = 50;
-const edgeOffset = 28;
+    const avatarSize = 40;
+const overlap = 30;
+const edgeOffset = 14;
 
    visible.forEach((member, i) => {
     const avatarEl = document.createElement("div");
@@ -407,7 +407,7 @@ const edgeOffset = 28;
       justifyContent: "center",
       color: "#fff",
       fontWeight: "700",
-      fontSize: "13px",
+      fontSize: "16px",
       letterSpacing: "0.5px",
       fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
       zIndex: String(2 + (visible.length - i)),
@@ -433,10 +433,10 @@ const edgeOffset = 28;
         justifyContent: "center",
         color: "#fff",
         fontWeight: "700",
-        fontSize: "20px",
+        fontSize: "16px",
         fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
         zIndex: "2",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
       });
       moreEl.textContent = `+${overflow}`;
       wrapper.appendChild(moreEl);
