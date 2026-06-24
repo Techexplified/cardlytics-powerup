@@ -1583,7 +1583,8 @@ function CardDetailsView() {
       trelloT.modal({
         title: "Cardlytics",
         url: `./index.html?boardId=${board.id}&autoCustomize=true`,
-        fullscreen: true,
+        fullscreen: false,
+        height: 860,
       });
     });
   }
