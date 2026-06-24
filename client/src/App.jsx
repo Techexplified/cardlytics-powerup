@@ -1762,7 +1762,7 @@ function CardDetailsView() {
                   Save filtered views here for quick access.
                 </div>
                 <button
-                  className="cd-personalized-create-btn"
+                  className="cd-personalized-cta"
                   onClick={handleOpenCreateView}
                 >
                   + Create view
