@@ -387,9 +387,9 @@ async function generateStyledCoverImage({
     const visible = avatarMembers.slice(0, maxVisible);
     const overflow = avatarMembers.length - visible.length;
 
-    const avatarSize = 36;
-const overlap = 26;
-const edgeOffset = 14;
+    const avatarSize = 72;
+const overlap = 50;
+const edgeOffset = 28;
 
    visible.forEach((member, i) => {
     const avatarEl = document.createElement("div");
