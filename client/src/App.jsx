@@ -383,64 +383,64 @@ async function generateStyledCoverImage({
   wrapper.appendChild(content);
 
   if (avatarMembers && avatarMembers.length > 0) {
-  const maxVisible = 3;
-  const visible = avatarMembers.slice(0, maxVisible);
-  const overflow = avatarMembers.length - visible.length;
+    const maxVisible = 3;
+    const visible = avatarMembers.slice(0, maxVisible);
+    const overflow = avatarMembers.length - visible.length;
 
-  const avatarSize = 72;      // was 56 — bigger, more proportional to an 800x320 cover
-  const overlap = 50;         // was 44 — slightly tighter overlap to suit the bigger size
-  const edgeOffset = 28;      // was 24 — a touch more breathing room from the edge
+    const avatarSize = 72; // was 56 — bigger, more proportional to an 800x320 cover
+    const overlap = 50; // was 44 — slightly tighter overlap to suit the bigger size
+    const edgeOffset = 28; // was 24 — a touch more breathing room from the edge
 
-  visible.forEach((member, i) => {
-    const avatarEl = document.createElement("div");
-    Object.assign(avatarEl.style, {
-      position: "absolute",
-      top: "24px",
-      right: `${edgeOffset + i * overlap}px`,
-      width: `${avatarSize}px`,
-      height: `${avatarSize}px`,
-      borderRadius: "50%",
-      background: member.color || "#4ea1ff",
-      border: "3px solid rgba(255,255,255,0.9)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "#fff",
-      fontWeight: "700",
-      fontSize: "26px",        // scaled up with the avatar
-      fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
-      zIndex: String(2 + (visible.length - i)),
-      boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+    visible.forEach((member, i) => {
+      const avatarEl = document.createElement("div");
+      Object.assign(avatarEl.style, {
+        position: "absolute",
+        top: "24px",
+        right: `${edgeOffset + i * overlap}px`,
+        width: `${avatarSize}px`,
+        height: `${avatarSize}px`,
+        borderRadius: "50%",
+        background: member.color || "#4ea1ff",
+        border: "3px solid rgba(255,255,255,0.9)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: "26px", // scaled up with the avatar
+        fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+        zIndex: String(2 + (visible.length - i)),
+        boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+      });
+      avatarEl.textContent = member.initials;
+      wrapper.appendChild(avatarEl);
     });
-    avatarEl.textContent = member.initials;
-    wrapper.appendChild(avatarEl);
-  });
 
-  if (overflow > 0) {
-    const moreEl = document.createElement("div");
-    Object.assign(moreEl.style, {
-      position: "absolute",
-      top: "24px",
-      right: `${edgeOffset + visible.length * overlap}px`,
-      width: `${avatarSize}px`,
-      height: `${avatarSize}px`,
-      borderRadius: "50%",
-      background: "rgba(0,0,0,0.55)",
-      border: "3px solid rgba(255,255,255,0.9)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      color: "#fff",
-      fontWeight: "700",
-      fontSize: "20px",
-      fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
-      zIndex: "2",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
-    });
-    moreEl.textContent = `+${overflow}`;
-    wrapper.appendChild(moreEl);
+    if (overflow > 0) {
+      const moreEl = document.createElement("div");
+      Object.assign(moreEl.style, {
+        position: "absolute",
+        top: "24px",
+        right: `${edgeOffset + visible.length * overlap}px`,
+        width: `${avatarSize}px`,
+        height: `${avatarSize}px`,
+        borderRadius: "50%",
+        background: "rgba(0,0,0,0.55)",
+        border: "3px solid rgba(255,255,255,0.9)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: "20px",
+        fontFamily: "-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif",
+        zIndex: "2",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.35)",
+      });
+      moreEl.textContent = `+${overflow}`;
+      wrapper.appendChild(moreEl);
+    }
   }
-}
 
   document.body.appendChild(wrapper);
   try {
@@ -457,7 +457,6 @@ async function generateStyledCoverImage({
     document.body.removeChild(wrapper);
   }
 }
-
 
 // ─── TOAST ───────────────────────────────────────────────────────────────────
 function Toast({ toast }) {
@@ -1040,9 +1039,16 @@ function CardBackView() {
           gap: 10,
         }}
       >
-        <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>
-          Cardlytics
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <img
+            src="./logo.png"
+            alt=""
+            style={{ width: 18, height: 18, objectFit: "contain" }}
+          />
+          <span style={{ fontWeight: 600, fontSize: 13, color: "#e0e0e0" }}>
+            Cardlytics
+          </span>
+        </div>
         {isTracker ? (
           <button
             className="cb-btn-primary"
@@ -1129,9 +1135,9 @@ function CardDetailsView() {
   const [sortCol, setSortCol] = useState("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [leftTab, setLeftTab] = useState(() => {
-  const filtersParam = params.current.get("filters");
-  return filtersParam ? "personalized" : "general";
-});
+    const filtersParam = params.current.get("filters");
+    return filtersParam ? "personalized" : "general";
+  });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [personalizedViews, setPersonalizedViews] = useState(() => {
     // Pre-populate from localStorage so sidebar isn't blank on first render,
@@ -2455,11 +2461,11 @@ export default function App() {
             : null;
 
           const cardMemberIds = (() => {
-            if (!saved) return []; 
+            if (!saved) return [];
             const filterMembers = (filterConfig?.members || []).filter(
               (id) => id !== "unassigned",
             );
-            return filterMembers; 
+            return filterMembers;
           })();
 
           const avatarMembers = cardMemberIds
@@ -2628,41 +2634,41 @@ export default function App() {
       );
 
       const customizedStats = statsToTrack.filter((stat) => configToUse[stat]);
-if (customizedStats.length > 0) {
-  const boardPersonalized = JSON.parse(
-    localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
-  );
-  const newViews = customizedStats.map((stat) => {
-    const saved = configToUse[stat];
-    const defaults = DEFAULT_STAT_CONFIG[stat];
-    return {
-      id: `${stat}-${Date.now()}`,
-      cardId: createdCards.find((c) => c.stat === stat)?.cardId || null,
-      statType: stat,
-      cardName: saved?.cardName || defaults.label,
-      cover: saved?.cover || defaults.cover,
-      filters: {
-        due: saved?.due || [],
-        members: saved?.members || [],
-        labels: saved?.labels || [],
-        lists: saved?.lists || [],
-        status: saved?.status || [],
-        activity: saved?.activity || [],
-        createdDate: saved?.createdDate || [],
-        customDateFrom: saved?.customDateFrom || "",
-        customDateTo: saved?.customDateTo || "",
-      },
-      createdAt: new Date().toISOString(),
-      boardId,
-      mode: mode === "list" && listId ? "list" : "board",
-      listId: mode === "list" ? listId : null,
-    };
-  });
-  localStorage.setItem(
-    `cardlytics:personalized:${boardId}`,
-    JSON.stringify([...boardPersonalized, ...newViews]),
-  );
-}
+      if (customizedStats.length > 0) {
+        const boardPersonalized = JSON.parse(
+          localStorage.getItem(`cardlytics:personalized:${boardId}`) || "[]",
+        );
+        const newViews = customizedStats.map((stat) => {
+          const saved = configToUse[stat];
+          const defaults = DEFAULT_STAT_CONFIG[stat];
+          return {
+            id: `${stat}-${Date.now()}`,
+            cardId: createdCards.find((c) => c.stat === stat)?.cardId || null,
+            statType: stat,
+            cardName: saved?.cardName || defaults.label,
+            cover: saved?.cover || defaults.cover,
+            filters: {
+              due: saved?.due || [],
+              members: saved?.members || [],
+              labels: saved?.labels || [],
+              lists: saved?.lists || [],
+              status: saved?.status || [],
+              activity: saved?.activity || [],
+              createdDate: saved?.createdDate || [],
+              customDateFrom: saved?.customDateFrom || "",
+              customDateTo: saved?.customDateTo || "",
+            },
+            createdAt: new Date().toISOString(),
+            boardId,
+            mode: mode === "list" && listId ? "list" : "board",
+            listId: mode === "list" ? listId : null,
+          };
+        });
+        localStorage.setItem(
+          `cardlytics:personalized:${boardId}`,
+          JSON.stringify([...boardPersonalized, ...newViews]),
+        );
+      }
 
       setSelectedStats([]);
       await new Promise((resolve) => setTimeout(resolve, 1500));
