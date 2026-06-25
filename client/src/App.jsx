@@ -2238,6 +2238,7 @@ export default function App() {
   const [currentBoardName, setCurrentBoardName] = useState("");
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState(null);
   const [currentWorkspaceName, setCurrentWorkspaceName] = useState("");
+  const [trackTab, setTrackTab] = useState("general");
 
   const scopeListIdRef = useRef(
     (() => {
@@ -2892,7 +2893,22 @@ export default function App() {
         </div>
       </div>
 
-      <div className="body">
+      <div className="cd-left-tabs" style={{ padding: "0 12px", borderBottom: "1px solid #333", marginBottom: 0 }}>
+        <button
+          className={`cd-left-tab ${trackTab === "general" ? "active" : ""}`}
+          onClick={() => setTrackTab("general")}
+        >
+          General
+        </button>
+        <button
+          className={`cd-left-tab ${trackTab === "personalized" ? "active" : ""}`}
+          onClick={() => setTrackTab("personalized")}
+        >
+          Personalized
+        </button>
+      </div>
+
+      <div className="body" style={{ display: trackTab === "general" ? undefined : "none" }}>
         {mode === "list" && trackingListName && (
           <div className="list-context-badge">
             <span className="badge-scope">Scope</span>
@@ -2982,6 +2998,17 @@ export default function App() {
           </div>
         </Section>
       </div>
+
+       
+      {trackTab === "personalized" && (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "32px 16px", color: "#666", fontSize: 13 }}>
+          <div style={{ fontSize: 28 }}>👤</div>
+          <div style={{ color: "#aaa", fontWeight: 600 }}>Your custom views</div>
+          <div style={{ color: "#666", fontSize: 12, textAlign: "center", lineHeight: 1.5 }}>
+            Saved filtered views appear here.<br />Open "All Cards" to manage them.
+          </div>
+        </div>
+      )}
 
       <div
         style={{
