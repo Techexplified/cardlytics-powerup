@@ -2763,31 +2763,33 @@ export default function App() {
           setCustomizeBlankStart(false);
         }}
         computeFilteredCount={(statType, filters) => {
-          const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
+  const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
 
-          const hasExplicitFilters =
-            filters.due?.length > 0 ||
-            filters.members?.length > 0 ||
-            filters.labels?.length > 0 ||
-            filters.lists?.length > 0 ||
-            filters.status?.length > 0 ||
-            filters.activity?.length > 0 ||
-            filters.createdDate?.length > 0 ||
-            !!filters.customDateFrom ||
-            !!filters.customDateTo;
+  // Guard — if memberId hasn't loaded yet, return 0 rather than
+  // passing null to applyFilters which silently breaks member matching
+  if (!currentMemberId) return 0;
 
-          if (hasExplicitFilters) {
-            // User has configured filters — apply ONLY those, ignore stat's own filter
-            return applyFilters(cards, filters, currentMemberId).length;
-          }
+  const hasExplicitFilters =
+    filters.due?.length > 0 ||
+    filters.members?.length > 0 ||
+    filters.labels?.length > 0 ||
+    filters.lists?.length > 0 ||
+    filters.status?.length > 0 ||
+    filters.activity?.length > 0 ||
+    filters.createdDate?.length > 0 ||
+    !!filters.customDateFrom ||
+    !!filters.customDateTo;
 
-          // No filters set — apply the stat's own base filter (default behavior)
-          const statFn = buildStatFilterMap(currentMemberId, null)[statType];
-          if (!statFn || statType === "cardsInList" || statType === "all") {
-            return cards.length;
-          }
-          return cards.filter(statFn).length;
-        }}
+  if (hasExplicitFilters) {
+    return applyFilters(cards, filters, currentMemberId).length;
+  }
+
+  const statFn = buildStatFilterMap(currentMemberId, null)[statType];
+  if (!statFn || statType === "cardsInList" || statType === "all") {
+    return cards.length;
+  }
+  return cards.filter(statFn).length;
+}}
         boardId={currentBoardId}
         boardName={currentBoardName}
         workspaceId={currentWorkspaceId}
