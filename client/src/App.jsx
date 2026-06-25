@@ -2893,20 +2893,43 @@ export default function App() {
         </div>
       </div>
 
-      <div className="cd-left-tabs" style={{ padding: "0 12px", borderBottom: "1px solid #333", marginBottom: 0 }}>
-        <button
-          className={`cd-left-tab ${trackTab === "general" ? "active" : ""}`}
-          onClick={() => setTrackTab("general")}
-        >
-          General
-        </button>
-        <button
-          className={`cd-left-tab ${trackTab === "personalized" ? "active" : ""}`}
-          onClick={() => setTrackTab("personalized")}
-        >
-          Personalized
-        </button>
-      </div>
+      <div
+  style={{
+    display: "flex",
+    gap: 4,
+    padding: "10px 12px",
+    background: "#1a1a1a",
+    borderBottom: "1px solid #2a2a2a",
+  }}
+>
+  {["general", "personalized"].map((tab) => (
+    <button
+      key={tab}
+      onClick={() => setTrackTab(tab)}
+      style={{
+        flex: 1,
+        padding: "7px 0",
+        fontSize: 12.5,
+        fontWeight: 600,
+        borderRadius: 7,
+        border: "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        transition: "background 0.15s ease, color 0.15s ease",
+        background: trackTab === tab ? "#2563eb" : "transparent",
+        color: trackTab === tab ? "#fff" : "#8b949e",
+      }}
+      onMouseEnter={(e) => {
+        if (trackTab !== tab) e.currentTarget.style.background = "#22272e";
+      }}
+      onMouseLeave={(e) => {
+        if (trackTab !== tab) e.currentTarget.style.background = "transparent";
+      }}
+    >
+      {tab === "general" ? "General" : "Personalized"}
+    </button>
+  ))}
+</div>
 
       <div className="body" style={{ display: trackTab === "general" ? undefined : "none" }}>
         {mode === "list" && trackingListName && (
