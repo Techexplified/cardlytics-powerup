@@ -27,6 +27,7 @@ const TRELLO_BASE = "https://api.trello.com/1";
 
 let _workspaceBoardsCache = null;
 let _workspacesCache = null;
+let _refreshInProgress = false;
 
 // ── Initialize Trello iframe context ONCE at module level ─────────────────────
 const trelloT = (() => {
@@ -603,151 +604,163 @@ function buildStatFilterMap(memberId, resolvedListId) {
 // ── Shared tracker-card refresh logic ────────────────────────────────────────
 // Used by both CardBackView and the main App refreshTrackerCards function
 async function runTrackerRefresh(key, tkn, trelloContext) {
-  const board = await trelloContext.board("id");
-  const boardId = board.id;
+  if (_refreshInProgress) return; // drop concurrent calls
+  _refreshInProgress = true;
 
-  const allLists = await getBoardLists(key, tkn, boardId);
-  const cardlyticsList = allLists.find(
-    (l) => l.name.toLowerCase() === "cardlytics",
-  );
-  if (!cardlyticsList) return;
+  try {
+    const board = await trelloContext.board("id");
+    const boardId = board.id;
 
-  const trackerCards = await getListCards(key, tkn, cardlyticsList.id);
-  const allBoardCards = await getBoardCards(key, tkn, boardId);
-  const memberId = await getMemberId(key, tkn);
-
-  const filteredCards = allBoardCards.filter(
-    (c) => !isTrackerCard(c) && c.idList !== cardlyticsList.id,
-  );
-
-  for (const card of trackerCards) {
-    const statMatch = card.desc?.match(
-      /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
+    const allLists = await getBoardLists(key, tkn, boardId);
+    const cardlyticsList = allLists.find(
+      (l) => l.name.toLowerCase() === "cardlytics",
     );
-    if (!statMatch) continue;
+    if (!cardlyticsList) return;
 
-    const resolvedListId = statMatch[2] || null;
-    const statType = statMatch[3];
-    const filtersRaw = statMatch[4];
+    const trackerCards = await getListCards(key, tkn, cardlyticsList.id);
+    const allBoardCards = await getBoardCards(key, tkn, boardId);
+    const memberId = await getMemberId(key, tkn);
 
-    let cardFilters = null;
-    if (filtersRaw) {
-      try {
-        cardFilters = JSON.parse(decodeURIComponent(filtersRaw));
-      } catch (_) {}
-    }
+    const filteredCards = allBoardCards.filter(
+      (c) => !isTrackerCard(c) && c.idList !== cardlyticsList.id,
+    );
 
-    let newCount;
-    if (cardFilters) {
-      newCount = applyFilters(filteredCards, cardFilters, memberId).length;
-    } else {
-      const statFilterMap = buildStatFilterMap(memberId, resolvedListId);
-      const statFn = statFilterMap[statType];
-      newCount =
-        statFn && statType !== "cardsInList" && statType !== "all"
-          ? filteredCards.filter(statFn).length
-          : filteredCards.length;
-    }
+    for (const card of trackerCards) {
+      const statMatch = card.desc?.match(
+        /\[_\]: cardlytics:mode:(board|list)(?::listId:([a-f0-9]+))?:statType:(\w+)(?::filters:([^\s]+))?/,
+      );
+      if (!statMatch) continue;
 
-    const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
-    const oldCount = oldCountMatch ? parseInt(oldCountMatch[1]) : null;
-    if (oldCount === newCount) continue;
+      const resolvedListId = statMatch[2] || null;
+      const statType = statMatch[3];
+      const filtersRaw = statMatch[4];
 
-    const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
+      let cardFilters = null;
+      if (filtersRaw) {
+        try {
+          cardFilters = JSON.parse(decodeURIComponent(filtersRaw));
+        } catch (_) {}
+      }
 
-    // Load saved style (written at card-creation time)
-    let savedStyle = null;
-    try {
-      const raw = localStorage.getItem(`cardlytics:style:${card.id}`);
-      if (raw) savedStyle = JSON.parse(raw);
-    } catch (_) {}
-
-    let existingBgDataUrl = null;
-    try {
-      const local = localStorage.getItem(`cardlytics:customBg:${card.id}`);
-      if (local) {
-        existingBgDataUrl = local;
+      // ── Compute new count FIRST (no API calls needed) ──────────────────
+      let newCount;
+      if (cardFilters) {
+        newCount = applyFilters(filteredCards, cardFilters, memberId).length;
       } else {
-        existingBgDataUrl = await trelloContext.get(
-          "board",
-          "shared",
-          `customBg:${card.id}`,
-        );
+        const statFilterMap = buildStatFilterMap(memberId, resolvedListId);
+        const statFn = statFilterMap[statType];
+        newCount =
+          statFn && statType !== "cardsInList" && statType !== "all"
+            ? filteredCards.filter(statFn).length
+            : filteredCards.length;
       }
-    } catch (_) {}
 
-    let avatarInfo = null;
-    try {
-      const raw = localStorage.getItem(`cardlytics:avatar:${card.id}`);
-      if (raw) avatarInfo = JSON.parse(raw);
-    } catch (_) {}
+      // ── EARLY EXIT before touching the API ─────────────────────────────
+      const oldCountMatch = card.desc?.match(/(\d+) card\(s\) tracked/);
+      const oldCount = oldCountMatch ? parseInt(oldCountMatch[1]) : null;
+      if (oldCount === newCount) continue; // nothing changed — skip entirely
 
-    // Delete old attachments
-    const attachRes = await fetch(
-      `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
-    );
-    if (attachRes.ok) {
-      const attachments = await attachRes.json();
-      for (const att of attachments) {
-        await fetch(
-          `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${tkn}`,
-          { method: "DELETE" },
-        );
+      // ── Only reaches here if count actually changed ─────────────────────
+      const coverColor = STAT_COVER_COLOR_MAP[statType] || "blue";
+
+      let savedStyle = null;
+      try {
+        const raw = localStorage.getItem(`cardlytics:style:${card.id}`);
+        if (raw) savedStyle = JSON.parse(raw);
+      } catch (_) {}
+
+      let existingBgDataUrl = null;
+      try {
+        const local = localStorage.getItem(`cardlytics:customBg:${card.id}`);
+        if (local) {
+          existingBgDataUrl = local;
+        } else {
+          existingBgDataUrl = await trelloContext.get(
+            "board",
+            "shared",
+            `customBg:${card.id}`,
+          );
+        }
+      } catch (_) {}
+
+      let avatarInfo = null;
+      try {
+        const raw = localStorage.getItem(`cardlytics:avatar:${card.id}`);
+        if (raw) avatarInfo = JSON.parse(raw);
+      } catch (_) {}
+
+      // Delete old attachments
+      const attachRes = await fetch(
+        `${TRELLO_BASE}/cards/${card.id}/attachments?key=${key}&token=${tkn}`,
+      );
+      if (attachRes.ok) {
+        const attachments = await attachRes.json();
+        for (const att of attachments) {
+          await fetch(
+            `${TRELLO_BASE}/cards/${card.id}/attachments/${att.id}?key=${key}&token=${tkn}`,
+            { method: "DELETE" },
+          );
+        }
       }
+
+      const newCoverDataUrl = savedStyle
+        ? await generateStyledCoverImage({
+            count: newCount,
+            cover: savedStyle.cover || coverColor,
+            customHex: savedStyle.customHex || null,
+            textColor: savedStyle.textColor || "white",
+            customTextHex: savedStyle.customTextHex || null,
+            layout: savedStyle.layout || "center",
+            title: savedStyle.title || card.name,
+            subtitle: savedStyle.subtitle || "",
+            coverImage: existingBgDataUrl,
+            avatarInitials: avatarInfo?.avatarInitials || null,
+            avatarColor: avatarInfo?.avatarColor || null,
+          })
+        : await generateStatCoverImage(
+            newCount,
+            coverColor,
+            existingBgDataUrl,
+            avatarInfo?.avatarInitials || null,
+            avatarInfo?.avatarColor || null,
+          );
+
+      const blob = dataUrlToBlob(newCoverDataUrl);
+      const formData = new FormData();
+      formData.append("key", key);
+      formData.append("token", tkn);
+      formData.append("file", blob, "cover.jpg");
+      formData.append("setCover", "false");
+
+      const uploadRes = await fetch(
+        `${TRELLO_BASE}/cards/${card.id}/attachments`,
+        { method: "POST", body: formData },
+      );
+      if (!uploadRes.ok) continue;
+      const newAttachment = await uploadRes.json();
+
+      const newDesc = card.desc.replace(
+        /\d+ card\(s\) tracked/,
+        `${newCount} card(s) tracked`,
+      );
+      await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          desc: newDesc,
+          cover: {
+            idAttachment: newAttachment.id,
+            brightness: "dark",
+            size: "full",
+          },
+        }),
+      });
+
+      // ── Throttle between cards to avoid bursting ────────────────────────
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
-
-    const newCoverDataUrl = savedStyle
-      ? await generateStyledCoverImage({
-          count: newCount,
-          cover: savedStyle.cover || coverColor,
-          customHex: savedStyle.customHex || null,
-          textColor: savedStyle.textColor || "white",
-          customTextHex: savedStyle.customTextHex || null,
-          layout: savedStyle.layout || "center",
-          title: savedStyle.title || card.name,
-          subtitle: savedStyle.subtitle || "",
-          coverImage: existingBgDataUrl,
-          avatarInitials: avatarInfo?.avatarInitials || null,
-          avatarColor: avatarInfo?.avatarColor || null,
-        })
-      : await generateStatCoverImage(
-          newCount,
-          coverColor,
-          existingBgDataUrl,
-          avatarInfo?.avatarInitials || null,
-          avatarInfo?.avatarColor || null,
-        );
-
-    const blob = dataUrlToBlob(newCoverDataUrl);
-    const formData = new FormData();
-    formData.append("key", key);
-    formData.append("token", tkn);
-    formData.append("file", blob, "cover.jpg");
-    formData.append("setCover", "false");
-
-    const uploadRes = await fetch(
-      `${TRELLO_BASE}/cards/${card.id}/attachments`,
-      { method: "POST", body: formData },
-    );
-    if (!uploadRes.ok) continue;
-    const newAttachment = await uploadRes.json();
-
-    const newDesc = card.desc.replace(
-      /\d+ card\(s\) tracked/,
-      `${newCount} card(s) tracked`,
-    );
-    await fetch(`${TRELLO_BASE}/cards/${card.id}?key=${key}&token=${tkn}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        desc: newDesc,
-        cover: {
-          idAttachment: newAttachment.id,
-          brightness: "dark",
-          size: "full",
-        },
-      }),
-    });
+  } finally {
+    _refreshInProgress = false; // always release, even on error
   }
 }
 
@@ -1525,14 +1538,14 @@ function CardDetailsView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dueComplete: newValue }),
       });
-      if (trelloT) {
-        runTrackerRefresh(key, tkn, trelloT).catch((err) =>
-          console.error(
-            "Immediate tracker refresh after toggleDone failed:",
-            err,
-          ),
-        );
-      }
+      clearTimeout(window._toggleRefreshTimer);
+window._toggleRefreshTimer = setTimeout(() => {
+  if (trelloT) {
+    runTrackerRefresh(key, tkn, trelloT).catch((err) =>
+      console.error("Tracker refresh after toggleDone failed:", err),
+    );
+  }
+}, 2000);
     } catch (err) {
       setCards((prev) =>
         prev.map((c) =>
@@ -2383,8 +2396,8 @@ export default function App() {
     fetchData();
 
     const intervalId = setInterval(() => {
-      fetchData();
-    }, 5000);
+  fetchData();
+}, 60_000);
 
     return () => {
       clearInterval(intervalId);
