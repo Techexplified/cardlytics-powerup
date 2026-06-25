@@ -1046,3 +1046,30 @@ body {
   border-color: #4ea1ff;
 }
 
+/* ─── TRACK VIEW TABS (underline style) ─── */
+.track-tabs {
+  display: flex;
+  gap: 20px;
+  padding: 0 12px;
+  border-bottom: 1px solid #2a2a2a;
+  margin-bottom: 0;
+}
+.track-tab {
+  background: none;
+  border: none;
+  padding: 10px 0 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  color: #8b949e;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.track-tab:hover:not(.active) {
+  color: #c9d1d9;
+}
+.track-tab.active {
+  color: #4ea1ff;
+  border-bottom-color: #4ea1ff;
+}
