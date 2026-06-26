@@ -17,6 +17,8 @@ import {
   getStoredToken,
   storeToken,
 } from "./utils/auth";
+import SubscriptionModal from "./components/SubscriptionModal";
+import { fetchSubscriptionStatus } from "./utils/api";
 import "./index.css";
 
 const TRELLO_BASE = "https://api.trello.com/1";
@@ -833,6 +835,10 @@ export default function App() {
   const mode = params.get("mode");
   const view = params.get("view");
   const listId = params.get("listId");
+  const [showSubscription, setShowSubscription] = useState(false);
+   const [knownPlan, setKnownPlan] = useState(null);
+
+   
 
   const [token, setToken] = useState(() => getStoredToken());
 
@@ -864,6 +870,10 @@ export default function App() {
   useEffect(() => {
     if (token) fetchData();
   }, [token]);
+
+  useEffect(() => {
+  if (token) fetchSubscriptionStatus(token).then(setKnownPlan).catch(() => {});
+}, [token]);
 
   if (!token)
     return (
@@ -1067,6 +1077,12 @@ export default function App() {
           setCustomizeStat(null);
         }}
       />
+      <SubscriptionModal
+  show={showSubscription}
+  token={token}
+  onClose={() => setShowSubscription(false)}
+  onStatusKnown={setKnownPlan}
+/>
 
       <div className="header">
         <div className="header-left">
@@ -1074,6 +1090,20 @@ export default function App() {
           <h3>Cardlytics — Track</h3>
         </div>
         <div className="header-actions">
+          <button
+  className="btn-customize"
+  onClick={() => setShowSubscription(true)}
+  style={{
+    background: knownPlan?.isActive
+      ? "linear-gradient(135deg, #e8b339, #c9962a)"
+      : "transparent",
+    border: knownPlan?.isActive ? "none" : "1px solid #e8b339",
+    color: knownPlan?.isActive ? "#1a1a1a" : "#e8b339",
+    fontWeight: 700,
+  }}
+>
+  {knownPlan?.isActive ? "👑 Pro" : "⚡ Buy Pro"}
+</button>
           <button
             className="btn-customize"
             onClick={() => {
