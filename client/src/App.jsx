@@ -2243,6 +2243,8 @@ const [knownPlan, setKnownPlan] = useState(null);
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState(null);
   const [currentWorkspaceName, setCurrentWorkspaceName] = useState("");
   const [trackTab, setTrackTab] = useState("general");
+const [personalizedViews, setPersonalizedViews] = useState([]);
+const [deleteTarget, setDeleteTarget] = useState(null);
 
   const scopeListIdRef = useRef(
     (() => {
@@ -2267,6 +2269,91 @@ const [knownPlan, setKnownPlan] = useState(null);
       console.error("refreshTrackerCards error:", err);
     }
   }
+
+  // ── Load + compute live counts for popup's Personalized tab ───────────────
+async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg) {
+  if (!boardIdArg) {
+    setPersonalizedViews([]);
+    return;
+  }
+  try {
+    const key = TRELLO_API_KEY;
+    const tkn = getStoredToken();
+
+    const savedViews = JSON.parse(
+      localStorage.getItem(`cardlytics:personalized:${boardIdArg}`) || "[]",
+    );
+    if (savedViews.length === 0) {
+      setPersonalizedViews([]);
+      return;
+    }
+
+    // Prune views whose tracker card no longer exists in the Cardlytics list
+    const allLists = await getBoardLists(key, tkn, boardIdArg);
+    const cardlyticsLists = allLists.filter(
+      (l) => l.name.toLowerCase() === "cardlytics",
+    );
+    const cardlyticsCardArrays = await Promise.all(
+      cardlyticsLists.map((l) => getListCards(key, tkn, l.id)),
+    );
+    const liveTrackerCardIds = new Set(
+      cardlyticsCardArrays.flat().map((c) => c.id),
+    );
+
+    const stillValidViews = savedViews.filter(
+      (view) => !view.cardId || liveTrackerCardIds.has(view.cardId),
+    );
+
+    if (stillValidViews.length !== savedViews.length) {
+      localStorage.setItem(
+        `cardlytics:personalized:${boardIdArg}`,
+        JSON.stringify(stillValidViews),
+      );
+    }
+
+    const cardlyticsListIds = cardlyticsLists.map((l) => l.id);
+    const boardWideCards = (fullBoardCardsArg || []).filter(
+      (c) => !isTrackerCard(c) && !cardlyticsListIds.includes(c.idList),
+    );
+
+    const viewsWithCounts = stillValidViews.map((view) => {
+      const scopedCards =
+        view.mode === "list" && view.listId
+          ? boardWideCards.filter((c) => c.idList === view.listId)
+          : boardWideCards;
+
+      const f = view.filters || {};
+      const hasFilters =
+        f.due?.length > 0 ||
+        f.members?.length > 0 ||
+        f.labels?.length > 0 ||
+        f.lists?.length > 0 ||
+        f.status?.length > 0 ||
+        f.activity?.length > 0 ||
+        f.createdDate?.length > 0 ||
+        !!f.customDateFrom ||
+        !!f.customDateTo;
+
+      let count;
+      if (hasFilters) {
+        count = applyFilters(scopedCards, f, memberIdArg).length;
+      } else {
+        const statFilterMap = buildStatFilterMap(memberIdArg, view.listId || null);
+        const statFn = statFilterMap[view.statType];
+        count =
+          statFn && view.statType !== "cardsInList" && view.statType !== "all"
+            ? scopedCards.filter(statFn).length
+            : scopedCards.length;
+      }
+
+      return { ...view, count };
+    });
+
+    setPersonalizedViews(viewsWithCounts);
+  } catch (err) {
+    console.error("loadPersonalizedViews error:", err);
+  }
+}
 
   async function fetchAllWorkspaces() {
     if (_workspacesCache) return _workspacesCache;
@@ -2323,6 +2410,7 @@ const [knownPlan, setKnownPlan] = useState(null);
         (c) => !isTrackerCard(c) && !cardlyticsListIds.includes(c.idList),
       );
       setAllBoardCards(fullFiltered);
+      loadPersonalizedViews(boardId, fullFiltered, memberId);
 
       if (trelloT) {
         trelloT
@@ -2716,6 +2804,8 @@ const [knownPlan, setKnownPlan] = useState(null);
           `cardlytics:personalized:${boardId}`,
           JSON.stringify([...boardPersonalized, ...newViews]),
         );
+
+        loadPersonalizedViews(boardId, allBoardCards, currentMemberId);
       }
 
       setSelectedStats([]);
@@ -2826,6 +2916,43 @@ const [knownPlan, setKnownPlan] = useState(null);
         }}
         trelloT={trelloT}
       />
+
+      {deleteTarget && (
+  <ConfirmDialog
+    title="Remove this view?"
+    message={
+      deleteTarget.cardId
+        ? `Remove "${deleteTarget.cardName}"? This will also delete its tracker card from the board.`
+        : `Remove "${deleteTarget.cardName}" from your personalized views?`
+    }
+    onConfirm={async () => {
+      const view = deleteTarget;
+      setDeleteTarget(null);
+      if (view.cardId) {
+        try {
+          await fetch(
+            `${TRELLO_BASE}/cards/${view.cardId}?key=${TRELLO_API_KEY}&token=${getStoredToken()}`,
+            { method: "DELETE" },
+          );
+        } catch (err) {
+          console.error("Failed to delete tracker card:", err);
+        }
+      }
+      setPersonalizedViews((prev) => prev.filter((v) => v.id !== view.id));
+      if (currentBoardId) {
+        const saved = JSON.parse(
+          localStorage.getItem(`cardlytics:personalized:${currentBoardId}`) || "[]",
+        );
+        localStorage.setItem(
+          `cardlytics:personalized:${currentBoardId}`,
+          JSON.stringify(saved.filter((v) => v.id !== view.id)),
+        );
+      }
+    }}
+    onCancel={() => setDeleteTarget(null)}
+  />
+)}
+
       <div
         className="header"
         style={{
@@ -3040,14 +3167,69 @@ const [knownPlan, setKnownPlan] = useState(null);
 
        
       {trackTab === "personalized" && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "32px 16px", color: "#666", fontSize: 13 }}>
-          <div style={{ fontSize: 28 }}>👤</div>
-          <div style={{ color: "#aaa", fontWeight: 600 }}>Your custom views</div>
-          <div style={{ color: "#666", fontSize: 12, textAlign: "center", lineHeight: 1.5 }}>
-            Saved filtered views appear here.<br />Open "All Cards" to manage them.
-          </div>
+  <div className="body">
+    {personalizedViews.length === 0 ? (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "32px 16px", color: "#666", fontSize: 13 }}>
+        <div style={{ fontSize: 28 }}>👤</div>
+        <div style={{ color: "#aaa", fontWeight: 600 }}>Your custom views</div>
+        <div style={{ color: "#666", fontSize: 12, textAlign: "center", lineHeight: 1.5 }}>
+          Save a card with Customize to see it here.
         </div>
-      )}
+      </div>
+    ) : (
+      <Section title="PERSONALIZED">
+        {personalizedViews.map((view) => (
+          <div
+            key={view.id}
+            className="card"
+            style={{ position: "relative", borderLeft: `3px solid ${COVER_BG_COLORS[view.cover] || "#4ea1ff"}` }}
+            onClick={() => {
+              if (!trelloT) return;
+              trelloT.board("id").then((board) => {
+                const filtersStr = encodeURIComponent(JSON.stringify(view.filters));
+                trelloT.modal({
+                  title: `Cardlytics — ${view.cardName}`,
+                  url: `./index.html?view=card-details&boardId=${board.id}&statType=${view.statType}&mode=${view.mode}${view.listId ? `&listId=${view.listId}` : ""}&filters=${filtersStr}&cardName=${encodeURIComponent(view.cardName)}`,
+                  fullscreen: true,
+                });
+              });
+            }}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget(view);
+              }}
+              title="Remove this view"
+              style={{
+                position: "absolute", top: 6, right: 6, background: "transparent",
+                border: "none", color: "#666", cursor: "pointer", padding: 5,
+                borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,82,82,0.12)"; e.currentTarget.style.color = "#ff5252"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#666"; }}
+            >
+              <TrashIcon size={13} />
+            </button>
+            <div className="card-value">{view.count ?? 0}</div>
+            <div className="card-label">{view.cardName}</div>
+          </div>
+        ))}
+
+        <div
+          className="add-filter-card"
+          onClick={() => {
+            setCustomizeBlankStart(true);
+            setCustomizeStat("custom");
+            setShowCustomize(true);
+          }}
+        >
+          + Add filter
+        </div>
+      </Section>
+    )}
+  </div>
+)}
 
       <div
         style={{
