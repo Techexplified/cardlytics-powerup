@@ -19,6 +19,8 @@ import {
 import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
 import { TRELLO_API_KEY, getStoredToken, storeToken } from "./utils/auth";
+import SubscriptionModal from "./components/SubscriptionModal";
+import { fetchSubscriptionStatus } from "./utils/api";
 import "./index.css";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -2200,6 +2202,8 @@ export default function App() {
   const autoCustomize = params.get("autoCustomize") === "true";
 
   const [token, setToken] = useState(() => getStoredToken());
+  const [showSubscription, setShowSubscription] = useState(false);
+const [knownPlan, setKnownPlan] = useState(null);
   const [stats, setStats] = useState({
     assigned: 0,
     dueThisWeek: 0,
@@ -2404,6 +2408,10 @@ export default function App() {
       clearInterval(intervalId);
     };
   }, [token]);
+
+  useEffect(() => {
+  if (token) fetchSubscriptionStatus(token).then(setKnownPlan).catch(() => {});
+}, [token]);
 
   useEffect(() => {
     if (autoCustomize && token) {
@@ -2730,6 +2738,13 @@ export default function App() {
     <div className="popup">
       <Toast toast={toast} />
 
+      <SubscriptionModal
+  show={showSubscription}
+  token={token}
+  onClose={() => setShowSubscription(false)}
+  onStatusKnown={setKnownPlan}
+/>
+
       <CustomizeFlow
         show={showCustomize}
         lists={lists}
@@ -2834,6 +2849,20 @@ export default function App() {
             <h3 style={{ whiteSpace: "nowrap" }}>Cardlytics — Track</h3>
           </div>
           <div className="header-actions">
+            <button
+              className="btn-customize"
+              onClick={() => setShowSubscription(true)}
+              style={{
+                background: knownPlan?.isActive
+                  ? "linear-gradient(135deg, #e8b339, #c9962a)"
+                  : "transparent",
+                border: knownPlan?.isActive ? "none" : "1px solid #e8b339",
+                color: knownPlan?.isActive ? "#1a1a1a" : "#e8b339",
+                fontWeight: 700,
+              }}
+            >
+              {knownPlan?.isActive ? "👑 Pro" : "⚡ Buy Pro"}
+            </button>
             <button
               className="btn-customize"
               onClick={() => {
