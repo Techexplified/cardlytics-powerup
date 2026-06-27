@@ -2989,7 +2989,6 @@ async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg)
               }}
             >
               {knownPlan?.isActive ? "👑 Pro" : "⚡ Buy Pro"}
-              
             </button>
             <button
               className="btn-customize"
