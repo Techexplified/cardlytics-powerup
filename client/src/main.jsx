@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import CheckoutPage from "./pages/CheckoutPage";
+import CheckoutPage from "./pages/checkoutPage";
 
 const params = new URLSearchParams(window.location.search);
 
