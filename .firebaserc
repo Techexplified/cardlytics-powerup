@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "default": "explified-app",
+    "dev": "explified-app",
+    "stag": "explified-app"
+  },
+  "targets": {},
+  "etags": {}
+}
