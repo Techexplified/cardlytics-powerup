@@ -75,7 +75,7 @@ export default function CheckoutPage() {
 
       const paddle = await initializePaddle({
         environment: "sandbox",
-        token: import.meta.env.VITE_PADDLE_CLIENT_TOKEN,
+        token:"test_01ad9a049acb85e557cb772d215",
         eventCallback: (event) => {
           if (cancelled) return;
 
@@ -84,6 +84,7 @@ export default function CheckoutPage() {
           if (event.name === "checkout.completed") {
             handleSuccess();
           }
+
 
           if (event.name === "checkout.closed" && status === "loading") {
             // User closed the checkout modal without finishing.
@@ -101,12 +102,16 @@ export default function CheckoutPage() {
         },
       });
 
+      console.log("Opening checkout:", transactionId);
+
       // Backend confirmation poll — this is our source of truth for whether
       // the subscription is actually marked active in our system, since
       // Paddle's client event only tells us the *checkout* succeeded, not
       // that our webhook has processed it yet.
       pollForProStatus();
     }
+
+    console.log("Paddle instance:", paddle);
 
     function handleSuccess() {
       if (firedConfettiRef.current) return; // avoid double-fire
