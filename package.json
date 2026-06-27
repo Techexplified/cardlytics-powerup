@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "@napi-rs/canvas": "^1.0.0",
+    "@paddle/paddle-js": "^1.6.4",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1"
   }
