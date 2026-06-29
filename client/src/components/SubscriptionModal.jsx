@@ -318,8 +318,8 @@ async function pollAfterCheckout() {
                     </div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 4 }}>
                       <span style={{ fontSize: 14, fontWeight: 500, color: GOLD }}>$</span>
-<span style={{ fontSize: 22, fontWeight: 700, color: GOLD, lineHeight: 1 }}>0</span>
-<span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 2 }}>for 14 days</span>
+                      <span style={{ fontSize: 36, fontWeight: 700, color: GOLD, lineHeight: 1 }}>0</span>
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 2 }}>for 14 days</span>
                     </div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Then $19/mo · cancel before trial ends</div>
                   </div>
@@ -375,11 +375,11 @@ async function pollAfterCheckout() {
               {selectedTab === "pro" && (
                 <>
                   <div style={{
-                    borderRadius: 12, padding: "18px 20px", marginBottom: 18, minHeight: 110,
-                    position: "relative", overflow: "hidden",
-                    background: "linear-gradient(135deg, #130e00 0%, #241800 60%, #1a1a2e 100%)",
-                    border: "0.5px solid rgba(212,160,23,0.5)",
-                  }}>
+  borderRadius: 12, padding: "12px 16px", marginBottom: 18, minHeight: 80,
+  position: "relative", overflow: "hidden",
+  background: "linear-gradient(135deg, #1a1200 0%, #2a1f00 60%, #1a1a2e 100%)",
+  border: "0.5px solid rgba(212,160,23,0.3)",
+}}>
                     <div style={{
                       position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%",
                       background: "radial-gradient(circle, rgba(212,160,23,0.18) 0%, transparent 70%)", pointerEvents: "none",
