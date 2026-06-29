@@ -318,8 +318,8 @@ async function pollAfterCheckout() {
                     </div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 4 }}>
                       <span style={{ fontSize: 14, fontWeight: 500, color: GOLD }}>$</span>
-                      <span style={{ fontSize: 36, fontWeight: 700, color: GOLD, lineHeight: 1 }}>0</span>
-                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 2 }}>for 14 days</span>
+<span style={{ fontSize: 22, fontWeight: 700, color: GOLD, lineHeight: 1 }}>0</span>
+<span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 2 }}>for 14 days</span>
                     </div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Then $19/mo · cancel before trial ends</div>
                   </div>
