@@ -3074,13 +3074,14 @@ function CardConfigModal({
             </button>
 
             <button
-              onClick={handleSave}
+  <button
+              onClick={isPremium ? handleSave : onUpgradeClick}
               style={{
-                background: T.accent,
-                border: "none",
+                background: isPremium ? T.accent : "#1e1e1e",
+                border: isPremium ? "none" : `1px solid #444`,
                 borderRadius: 7,
                 padding: "8px 22px",
-                color: "#fff",
+                color: isPremium ? "#fff" : "#888",
                 fontSize: 13,
                 fontWeight: 600,
                 fontFamily: "inherit",
@@ -3090,28 +3091,40 @@ function CardConfigModal({
                 gap: 8,
                 transition: "background 0.15s",
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = T.accentHover)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = T.accent)
-              }
+              onMouseEnter={(e) => {
+                if (isPremium) e.currentTarget.style.background = T.accentHover;
+                else e.currentTarget.style.borderColor = "#e8b339";
+              }}
+              onMouseLeave={(e) => {
+                if (isPremium) e.currentTarget.style.background = T.accent;
+                else e.currentTarget.style.borderColor = "#444";
+              }}
+              title={isPremium ? "" : "Start a free trial or upgrade to create cards"}
             >
-              Create Card
-              <span
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 4,
-                  border: "1.5px solid rgba(255,255,255,0.5)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 11,
-                }}
-              >
-                ✦
-              </span>
+              {isPremium ? (
+                <>
+                  Create Card
+                  <span style={{
+                    width: 18, height: 18, borderRadius: 4,
+                    border: "1.5px solid rgba(255,255,255,0.5)",
+                    display: "flex", alignItems: "center",
+                    justifyContent: "center", fontSize: 11,
+                  }}>✦</span>
+                </>
+              ) : (
+                <>
+                  🔒 Create Card
+                  <span style={{
+                    fontSize: 10, fontWeight: 700,
+                    background: "rgba(232,179,57,0.12)",
+                    color: "#e8b339",
+                    border: "1px solid rgba(232,179,57,0.25)",
+                    borderRadius: 4,
+                    padding: "1px 6px",
+                    letterSpacing: "0.03em",
+                  }}>PRO</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -3167,7 +3180,7 @@ export function CustomizeFlow({
       isPremium={isPremium}
       computeFilteredCount={computeFilteredCount}
       onSave={onSave}
-      onBack={() => setCustomizeStat(null)}
+      onBack={blankStart ? onClose : () => setCustomizeStat(null)}
       onClose={onClose}
       onUpgradeClick={onUpgradeClick}
       boardName={boardName}

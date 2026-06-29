@@ -2914,6 +2914,8 @@ async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg)
           const tkn = getStoredToken();
           return getBoardScopedData(key, tkn, targetBoardId, boards);
         }}
+        isPremium={knownPlan?.isActive ?? false}
+        onUpgradeClick={() => setShowSubscription(true)}
         trelloT={trelloT}
       />
 
