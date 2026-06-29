@@ -3074,7 +3074,7 @@ function CardConfigModal({
             </button>
 
             <button
-  <button
+
               onClick={isPremium ? handleSave : onUpgradeClick}
               style={{
                 background: isPremium ? T.accent : "#1e1e1e",
