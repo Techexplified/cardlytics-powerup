@@ -264,7 +264,7 @@ async function pollAfterCheckout() {
                     </div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 4 }}>
                       <span style={{ fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.6)" }}>$</span>
-                      <span style={{ fontSize: 36, fontWeight: 700, color: "#ffffff", lineHeight: 1 }}>0</span>
+                      <span style={{ fontSize: 24, fontWeight: 700, color: "#ffffff", lineHeight: 1 }}>0</span>
                       <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 2 }}>/mo</span>
                     </div>
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Basic access · no card needed</div>
@@ -318,7 +318,7 @@ async function pollAfterCheckout() {
                     </div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 4 }}>
                       <span style={{ fontSize: 14, fontWeight: 500, color: GOLD }}>$</span>
-                     <span style={{ fontSize: 22, fontWeight: 700, color: GOLD, lineHeight: 1 }}>0</span>
+                     <span style={{ fontSize: 24, fontWeight: 700, color: GOLD, lineHeight: 1 }}>0</span>
 
                       <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 2 }}>for 14 days</span>
                     </div>
