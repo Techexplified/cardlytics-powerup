@@ -251,9 +251,9 @@ async function pollAfterCheckout() {
               {selectedTab === "free" && (
                 <>
                   <div style={{
-                    borderRadius: 12, padding: "18px 20px", marginBottom: 18, minHeight: 110,
-                    background: "#1a1a2e", border: "0.5px solid rgba(255,255,255,0.08)",
-                  }}>
+  borderRadius: 12, padding: "12px 16px", marginBottom: 18, minHeight: 80,
+  background: "#1a1a2e", border: "0.5px solid rgba(255,255,255,0.08)",
+}}>
                     <div style={{
                       display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 500,
                       padding: "3px 10px", borderRadius: 20, marginBottom: 12,
@@ -299,11 +299,11 @@ async function pollAfterCheckout() {
                     ⚡ No credit card required · cancel anytime
                   </div>
                   <div style={{
-                    borderRadius: 12, padding: "18px 20px", marginBottom: 18, minHeight: 110,
-                    position: "relative", overflow: "hidden",
-                    background: "linear-gradient(135deg, #1a1200 0%, #2a1f00 60%, #1a1a2e 100%)",
-                    border: "0.5px solid rgba(212,160,23,0.3)",
-                  }}>
+  borderRadius: 12, padding: "12px 16px", marginBottom: 18, minHeight: 80,
+  position: "relative", overflow: "hidden",
+  background: "linear-gradient(135deg, #1a1200 0%, #2a1f00 60%, #1a1a2e 100%)",
+  border: "0.5px solid rgba(212,160,23,0.3)",
+}}>
                     <div style={{
                       position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%",
                       background: "radial-gradient(circle, rgba(212,160,23,0.18) 0%, transparent 70%)", pointerEvents: "none",
@@ -374,11 +374,11 @@ async function pollAfterCheckout() {
               {/* PRO TAB */}
               {selectedTab === "pro" && (
                 <>
-                  <div style={{
+                 <div style={{
   borderRadius: 12, padding: "12px 16px", marginBottom: 18, minHeight: 80,
   position: "relative", overflow: "hidden",
-  background: "linear-gradient(135deg, #1a1200 0%, #2a1f00 60%, #1a1a2e 100%)",
-  border: "0.5px solid rgba(212,160,23,0.3)",
+  background: "linear-gradient(135deg, #130e00 0%, #241800 60%, #1a1a2e 100%)",
+  border: "0.5px solid rgba(212,160,23,0.5)",
 }}>
                     <div style={{
                       position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%",
