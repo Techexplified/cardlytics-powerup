@@ -145,7 +145,7 @@ async function pollAfterCheckout() {
 
   return (
     <div style={{
-      position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)",
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
       display: "flex", alignItems: "center", justifyContent: "center",
       zIndex: 1000, fontFamily: "'DM Sans', sans-serif",
     }} onClick={(e) => e.target === e.currentTarget && phase !== "checkout-wait" && onClose()}>
