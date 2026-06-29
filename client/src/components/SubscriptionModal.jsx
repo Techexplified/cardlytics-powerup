@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { fetchSubscriptionStatus, initCheckout } from "../utils/api";
 
-const GOLD = "#e8b339";
-const GOLD_DARK = "#c9962a";
+const GOLD = "#f5c842";
+const GOLD_DARK = "#d4a017";
 
 function formatDate(d) {
   if (!d) return "—";
@@ -18,10 +18,10 @@ function VerifyRing({ resolved, isPro }) {
   return (
     <div style={{ position: "relative", width: 72, height: 72 }}>
       <svg width="72" height="72" viewBox="0 0 72 72">
-        <circle cx="36" cy="36" r="30" fill="none" stroke="#333" strokeWidth="4" />
+        <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
         <circle
           cx="36" cy="36" r="30" fill="none"
-          stroke={resolved ? (isPro ? GOLD : "#0065ff") : "#0065ff"}
+          stroke={resolved ? (isPro ? GOLD : "#f5c842") : "#f5c842"}
           strokeWidth="4" strokeLinecap="round"
           strokeDasharray="188.5"
           strokeDashoffset={resolved ? 0 : 47}
@@ -35,7 +35,7 @@ function VerifyRing({ resolved, isPro }) {
       <div style={{
         position: "absolute", inset: 0, display: "flex",
         alignItems: "center", justifyContent: "center",
-        fontSize: resolved ? 26 : 13, color: resolved ? (isPro ? GOLD : "#4ea1ff") : "#666",
+        fontSize: resolved ? 26 : 13, color: resolved ? GOLD : "rgba(255,255,255,0.4)",
         transition: "opacity 0.3s ease", opacity: 1,
       }}>
         {resolved ? (isPro ? "👑" : "✓") : "···"}
@@ -48,17 +48,17 @@ function Row({ label, value, state }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: "10px 0", borderBottom: "1px solid #2c2c2c", fontSize: 13,
+      padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.08)", fontSize: 13,
     }}>
-      <span style={{ color: "#888" }}>{label}</span>
+      <span style={{ color: "rgba(255,255,255,0.45)" }}>{label}</span>
       {state === "pending" ? (
         <span style={{
-          width: 12, height: 12, border: "2px solid #444",
-          borderTopColor: "#4ea1ff", borderRadius: "50%",
+          width: 12, height: 12, border: "2px solid rgba(255,255,255,0.15)",
+          borderTopColor: GOLD, borderRadius: "50%",
           animation: "spin 0.7s linear infinite", display: "inline-block",
         }} />
       ) : (
-        <span style={{ color: state === "good" ? "#4caf50" : "#e0e0e0", fontWeight: 600 }}>
+        <span style={{ color: state === "good" ? "#4caf50" : "#ffffff", fontWeight: 600 }}>
           {value}
         </span>
       )}
@@ -70,6 +70,7 @@ export default function SubscriptionModal({ show, token, onClose, onStatusKnown 
   const [phase, setPhase] = useState("verifying"); // verifying | pro | free | checkout-wait | error
   const [status, setStatus] = useState(null);
   const [checkoutError, setCheckoutError] = useState(null);
+  const [selectedTab, setSelectedTab] = useState("trial"); // UI-only: free | trial | pro — does not affect phase logic
   const pollRef = useRef(null);
   const popupRef = useRef(null);
 
@@ -145,44 +146,45 @@ async function pollAfterCheckout() {
 
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)",
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
       display: "flex", alignItems: "center", justifyContent: "center",
       zIndex: 1000, fontFamily: "'DM Sans', sans-serif",
     }} onClick={(e) => e.target === e.currentTarget && phase !== "checkout-wait" && onClose()}>
       <div style={{
-        background: "#1f1f1f", border: "1px solid #333", borderRadius: 16,
+        background: "#13131f", border: "0.5px solid rgba(255,255,255,0.1)", borderRadius: 16,
         width: 380, maxWidth: "92vw", boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
         overflow: "hidden", animation: "modalIn 0.25s ease",
       }}>
         {/* header */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "16px 18px", borderBottom: "1px solid #2c2c2c",
+          padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.08)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
-              width: 24, height: 24, borderRadius: 6, background: "#0052cc",
+              width: 32, height: 32, borderRadius: 8,
+              background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`,
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 12, fontWeight: 700, color: "#fff",
+              fontSize: 13, fontWeight: 700, color: "#1a1000",
             }}>C</div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#e0e0e0" }}>Cardlytics</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: "#ffffff" }}>Cardlytics</span>
           </div>
           {phase !== "checkout-wait" && (
             <button onClick={onClose} style={{
-              background: "none", border: "none", color: "#666",
-              fontSize: 16, cursor: "pointer", lineHeight: 1,
+              background: "none", border: "none", color: "rgba(255,255,255,0.4)",
+              fontSize: 18, cursor: "pointer", lineHeight: 1, padding: "2px 4px", borderRadius: 4,
             }}>✕</button>
           )}
         </div>
 
-        <div style={{ padding: "28px 24px 24px" }}>
+        <div style={{ padding: "20px" }}>
           {phase === "verifying" && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
               <VerifyRing resolved={false} />
-              <h2 style={{ color: "#e0e0e0", fontSize: 16, fontWeight: 700, margin: "18px 0 6px" }}>
+              <h2 style={{ color: "#ffffff", fontSize: 16, fontWeight: 700, margin: "18px 0 6px" }}>
                 Verifying your subscription
               </h2>
-              <p style={{ color: "#777", fontSize: 12.5, margin: "0 0 20px" }}>
+              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 12.5, margin: "0 0 20px" }}>
                 Confirming your plan with Cardlytics — this only takes a second.
               </p>
               <div style={{ width: "100%" }}>
@@ -195,71 +197,253 @@ async function pollAfterCheckout() {
           {phase === "pro" && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
               <VerifyRing resolved isPro />
-              <h2 style={{ color: "#e0e0e0", fontSize: 17, fontWeight: 700, margin: "18px 0 4px" }}>
+              <h2 style={{ color: "#ffffff", fontSize: 17, fontWeight: 700, margin: "18px 0 4px" }}>
                 You're on Cardlytics Pro
               </h2>
-              <p style={{ color: "#777", fontSize: 12.5, margin: "0 0 20px" }}>
+              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 12.5, margin: "0 0 20px" }}>
                 {status?.expiresAt
                   ? `Renews on ${formatDate(status.expiresAt)}`
                   : "Your plan is active"}
               </p>
-              <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8, marginBottom: 22 }}>
+              <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
                 {["AI insights on every board", "Unlimited tracked cards", "Team-wide analytics"].map((p, i) => (
-                  <div key={i} style={{ display: "flex", gap: 8, fontSize: 12.5, color: "#bbb" }}>
-                    <span style={{ color: GOLD }}>✓</span>{p}
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
+                    <span style={{
+                      width: 18, height: 18, borderRadius: "50%",
+                      background: "rgba(212,160,23,0.18)", border: "0.5px solid rgba(212,160,23,0.4)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 10, color: GOLD, flexShrink: 0,
+                    }}>✓</span>{p}
                   </div>
                 ))}
               </div>
-              <button onClick={onClose} style={btnPrimary(false)}>Got it</button>
+              <button onClick={onClose} style={btnPrimary(true)}>Got it</button>
             </div>
           )}
 
           {(phase === "free" || phase === "checkout-wait") && (
             <div>
-              <div style={{ textAlign: "center", marginBottom: 18 }}>
-                <h2 style={{ color: "#e0e0e0", fontSize: 17, fontWeight: 700, margin: "0 0 4px" }}>
-                  Unlock Cardlytics Pro
-                </h2>
-                <p style={{ color: "#777", fontSize: 12.5, margin: 0 }}>
-                  AI insights, unlimited reports, and team analytics.
-                </p>
+              {/* Plan tabs — UI only, selectedTab does not affect phase/logic */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+                {[
+                  { key: "free", label: "Free" },
+                  { key: "trial", label: "14-day trial" },
+                  { key: "pro", label: "Pro" },
+                ].map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={() => phase !== "checkout-wait" && setSelectedTab(t.key)}
+                    style={{
+                      flex: 1, padding: "7px 0", fontSize: 12, fontWeight: 500,
+                      fontFamily: "'DM Sans', sans-serif", borderRadius: 8,
+                      border: selectedTab === t.key ? `0.5px solid ${GOLD_DARK}` : "0.5px solid rgba(255,255,255,0.1)",
+                      background: selectedTab === t.key ? "rgba(212,160,23,0.15)" : "transparent",
+                      color: selectedTab === t.key ? GOLD : "rgba(255,255,255,0.45)",
+                      cursor: phase === "checkout-wait" ? "default" : "pointer",
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
 
-              <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
-                <PlanCard title="Free" active price="$0" features={["Basic analytics", "Limited reports", "Single workspace"]} />
-                <PlanCard title="Pro" highlight price="$19" features={["AI insights", "Unlimited reports", "Team analytics", "Priority support"]} />
-              </div>
-
-              {checkoutError && (
-                <div style={{
-                  background: "rgba(220,53,69,0.12)", border: "1px solid rgba(220,53,69,0.35)",
-                  borderRadius: 8, padding: "9px 12px", color: "#ff8fa3",
-                  fontSize: 12, marginBottom: 14, textAlign: "center",
-                }}>{checkoutError}</div>
+              {/* FREE TAB */}
+              {selectedTab === "free" && (
+                <>
+                  <div style={{
+                    borderRadius: 12, padding: "18px 20px", marginBottom: 18, minHeight: 110,
+                    background: "#1a1a2e", border: "0.5px solid rgba(255,255,255,0.08)",
+                  }}>
+                    <div style={{
+                      display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 500,
+                      padding: "3px 10px", borderRadius: 20, marginBottom: 12,
+                      background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.5)",
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor" }} />
+                      Free plan
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 4 }}>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: "rgba(255,255,255,0.6)" }}>$</span>
+                      <span style={{ fontSize: 36, fontWeight: 700, color: "#ffffff", lineHeight: 1 }}>0</span>
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 2 }}>/mo</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Basic access · no card needed</div>
+                  </div>
+                  <ul style={{ listStyle: "none", margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 10, padding: 0 }}>
+                    {["Basic analytics", "Limited reports (5/mo)", "Single workspace"].map((f, i) => (
+                      <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
+                        <span style={{
+                          width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
+                          background: "rgba(255,255,255,0.06)", border: "0.5px solid rgba(255,255,255,0.12)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 10, color: "rgba(255,255,255,0.35)",
+                        }}>✓</span>{f}
+                      </li>
+                    ))}
+                  </ul>
+                  <button style={btnGhost(true)}>Current plan</button>
+                  <p style={{ textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "10px 0 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                    🔒 Secure checkout via Paddle
+                  </p>
+                </>
               )}
 
-              {phase === "checkout-wait" ? (
-                <div style={{ textAlign: "center" }}>
-                  <div style={{
-                    width: 16, height: 16, border: "2px solid #444",
-                    borderTopColor: GOLD, borderRadius: "50%",
-                    animation: "spin 0.7s linear infinite", margin: "0 auto 10px",
-                  }} />
-                  <p style={{ color: "#999", fontSize: 12.5, margin: "0 0 14px" }}>
-                    Complete your payment in the new window — we'll detect it automatically.
-                  </p>
-                  <button onClick={() => { popupRef.current?.close(); setPhase("free"); }} style={btnGhost()}>
-                    Cancel
-                  </button>
-                </div>
-              ) : (
+              {/* TRIAL TAB */}
+              {selectedTab === "trial" && (
                 <>
-                  <button onClick={handleUpgrade} style={btnPrimary(true)}>
-                    ⚡ Upgrade to Pro
-                  </button>
-                  <p style={{ textAlign: "center", fontSize: 10.5, color: "#555", margin: "12px 0 0" }}>
-                    Payments securely processed by Paddle.
-                  </p>
+                  <div style={{
+                    background: "rgba(212,160,23,0.1)", border: "0.5px solid rgba(212,160,23,0.25)",
+                    borderRadius: 8, padding: "9px 12px", marginBottom: 14, fontSize: 11.5,
+                    color: "#e8b830", display: "flex", alignItems: "center", gap: 7,
+                  }}>
+                    ⚡ No credit card required · cancel anytime
+                  </div>
+                  <div style={{
+                    borderRadius: 12, padding: "18px 20px", marginBottom: 18, minHeight: 110,
+                    position: "relative", overflow: "hidden",
+                    background: "linear-gradient(135deg, #1a1200 0%, #2a1f00 60%, #1a1a2e 100%)",
+                    border: "0.5px solid rgba(212,160,23,0.3)",
+                  }}>
+                    <div style={{
+                      position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%",
+                      background: "radial-gradient(circle, rgba(212,160,23,0.18) 0%, transparent 70%)", pointerEvents: "none",
+                    }} />
+                    <div style={{
+                      display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 500,
+                      padding: "3px 10px", borderRadius: 20, marginBottom: 12,
+                      background: "rgba(212,160,23,0.18)", color: GOLD,
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor" }} />
+                      14-day free trial
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 4 }}>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: GOLD }}>$</span>
+                      <span style={{ fontSize: 36, fontWeight: 700, color: GOLD, lineHeight: 1 }}>0</span>
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 2 }}>for 14 days</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Then $19/mo · cancel before trial ends</div>
+                  </div>
+                  <ul style={{ listStyle: "none", margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 10, padding: 0 }}>
+                    {["AI insights on every board", "Unlimited tracked cards & reports", "CSV, JSON & PDF export", "Team-wide analytics", "Priority support"].map((f, i) => (
+                      <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
+                        <span style={{
+                          width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
+                          background: "rgba(212,160,23,0.18)", border: "0.5px solid rgba(212,160,23,0.4)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 10, color: GOLD,
+                        }}>✓</span>{f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {checkoutError && (
+                    <div style={{
+                      background: "rgba(220,53,69,0.12)", border: "1px solid rgba(220,53,69,0.35)",
+                      borderRadius: 8, padding: "9px 12px", color: "#ff8fa3",
+                      fontSize: 12, marginBottom: 14, textAlign: "center",
+                    }}>{checkoutError}</div>
+                  )}
+
+                  {phase === "checkout-wait" ? (
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{
+                        width: 16, height: 16, border: "2px solid rgba(255,255,255,0.15)",
+                        borderTopColor: GOLD, borderRadius: "50%",
+                        animation: "spin 0.7s linear infinite", margin: "0 auto 10px",
+                      }} />
+                      <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12.5, margin: "0 0 14px" }}>
+                        Complete your payment in the new window — we'll detect it automatically.
+                      </p>
+                      <button onClick={() => { popupRef.current?.close(); setPhase("free"); }} style={btnGhost()}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button onClick={handleUpgrade} style={btnPrimary(true)}>
+                        ⚡ Start free trial
+                      </button>
+                      <p style={{ textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "10px 0 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                        🔒 Secure checkout via Paddle
+                      </p>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* PRO TAB */}
+              {selectedTab === "pro" && (
+                <>
+                  <div style={{
+                    borderRadius: 12, padding: "18px 20px", marginBottom: 18, minHeight: 110,
+                    position: "relative", overflow: "hidden",
+                    background: "linear-gradient(135deg, #130e00 0%, #241800 60%, #1a1a2e 100%)",
+                    border: "0.5px solid rgba(212,160,23,0.5)",
+                  }}>
+                    <div style={{
+                      position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%",
+                      background: "radial-gradient(circle, rgba(212,160,23,0.18) 0%, transparent 70%)", pointerEvents: "none",
+                    }} />
+                    <div style={{
+                      display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 500,
+                      padding: "3px 10px", borderRadius: 20, marginBottom: 12,
+                      background: "rgba(212,160,23,0.22)", color: GOLD,
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor" }} />
+                      Pro plan
+                    </div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 4 }}>
+                      <span style={{ fontSize: 14, fontWeight: 500, color: GOLD }}>$</span>
+                      <span style={{ fontSize: 36, fontWeight: 700, color: GOLD, lineHeight: 1 }}>19</span>
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginLeft: 2 }}>/mo</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Billed monthly · cancel anytime</div>
+                  </div>
+                  <ul style={{ listStyle: "none", margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 10, padding: 0 }}>
+                    {["AI insights on every board", "Unlimited tracked cards & reports", "CSV, JSON & PDF export", "Team-wide analytics", "Priority support"].map((f, i) => (
+                      <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
+                        <span style={{
+                          width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
+                          background: "rgba(212,160,23,0.18)", border: "0.5px solid rgba(212,160,23,0.4)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 10, color: GOLD,
+                        }}>✓</span>{f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {checkoutError && (
+                    <div style={{
+                      background: "rgba(220,53,69,0.12)", border: "1px solid rgba(220,53,69,0.35)",
+                      borderRadius: 8, padding: "9px 12px", color: "#ff8fa3",
+                      fontSize: 12, marginBottom: 14, textAlign: "center",
+                    }}>{checkoutError}</div>
+                  )}
+
+                  {phase === "checkout-wait" ? (
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{
+                        width: 16, height: 16, border: "2px solid rgba(255,255,255,0.15)",
+                        borderTopColor: GOLD, borderRadius: "50%",
+                        animation: "spin 0.7s linear infinite", margin: "0 auto 10px",
+                      }} />
+                      <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 12.5, margin: "0 0 14px" }}>
+                        Complete your payment in the new window — we'll detect it automatically.
+                      </p>
+                      <button onClick={() => { popupRef.current?.close(); setPhase("free"); }} style={btnGhost()}>
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button onClick={handleUpgrade} style={btnPrimary(true)}>
+                        ⚡ Upgrade to Pro
+                      </button>
+                      <p style={{ textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "10px 0 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                        🔒 Secure checkout via Paddle
+                      </p>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -268,13 +452,13 @@ async function pollAfterCheckout() {
           {phase === "error" && (
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 28, marginBottom: 10 }}>⚠️</div>
-              <h2 style={{ color: "#e0e0e0", fontSize: 15, fontWeight: 700, margin: "0 0 6px" }}>
+              <h2 style={{ color: "#ffffff", fontSize: 15, fontWeight: 700, margin: "0 0 6px" }}>
                 Couldn't verify your plan
               </h2>
-              <p style={{ color: "#777", fontSize: 12.5, margin: "0 0 18px" }}>
+              <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 12.5, margin: "0 0 18px" }}>
                 Check your connection and try again.
               </p>
-              <button onClick={verify} style={btnPrimary(false)}>Retry</button>
+              <button onClick={verify} style={btnPrimary(true)}>Retry</button>
             </div>
           )}
         </div>
@@ -291,27 +475,51 @@ async function pollAfterCheckout() {
 function PlanCard({ title, price, features, highlight, active }) {
   return (
     <div style={{
-      flex: 1, borderRadius: 10, padding: "14px 12px",
-      background: highlight ? "rgba(232,179,57,0.08)" : "#252525",
-      border: highlight ? `1.5px solid ${GOLD}` : "1px solid #333",
+      flex: 1, borderRadius: 12, padding: "14px 12px",
+      background: highlight
+        ? "linear-gradient(135deg, #130e00 0%, #241800 60%, #1a1a2e 100%)"
+        : "#1a1a2e",
+      border: highlight ? "0.5px solid rgba(212,160,23,0.5)" : "0.5px solid rgba(255,255,255,0.08)",
       position: "relative",
+      overflow: "hidden",
     }}>
       {highlight && (
         <div style={{
-          position: "absolute", top: -9, right: 10, background: GOLD,
-          color: "#1a1a1a", fontSize: 9.5, fontWeight: 700, padding: "2px 7px",
+          position: "absolute", top: -30, right: -30, width: 100, height: 100,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(212,160,23,0.18) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }} />
+      )}
+      {highlight && (
+        <div style={{
+          position: "absolute", top: -9, right: 10,
+          background: `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})`,
+          color: "#1a0e00", fontSize: 9.5, fontWeight: 700, padding: "2px 7px",
           borderRadius: 5, letterSpacing: 0.3,
         }}>POPULAR</div>
       )}
-      <div style={{ fontSize: 12, fontWeight: 700, color: highlight ? GOLD : "#aaa", marginBottom: 2 }}>
-        {title}{active && <span style={{ color: "#4caf50", fontWeight: 500 }}> · current</span>}
+      <div style={{
+        fontSize: 11, fontWeight: 500, marginBottom: 10, display: "inline-flex",
+        alignItems: "center", gap: 5, padding: "3px 10px", borderRadius: 20,
+        background: highlight ? "rgba(212,160,23,0.22)" : "rgba(255,255,255,0.08)",
+        color: highlight ? GOLD : "rgba(255,255,255,0.5)",
+      }}>
+        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "currentColor" }} />
+        {title}{active && <span style={{ color: "#4caf50" }}> · current</span>}
       </div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: "#e0e0e0", marginBottom: 8 }}>
-        {price}<span style={{ fontSize: 10, color: "#666", fontWeight: 500 }}>/mo</span>
+      <div style={{ fontSize: 22, fontWeight: 700, color: highlight ? GOLD : "#ffffff", marginBottom: 10, lineHeight: 1 }}>
+        {price}<span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>/mo</span>
       </div>
       {features.map((f, i) => (
-        <div key={i} style={{ display: "flex", gap: 5, fontSize: 11, color: "#999", marginBottom: 4 }}>
-          <span style={{ color: highlight ? GOLD : "#555" }}>✓</span>{f}
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "rgba(255,255,255,0.7)", marginBottom: 6 }}>
+          <span style={{
+            width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
+            background: highlight ? "rgba(212,160,23,0.18)" : "rgba(255,255,255,0.06)",
+            border: highlight ? "0.5px solid rgba(212,160,23,0.4)" : "0.5px solid rgba(255,255,255,0.12)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 8, color: highlight ? GOLD : "rgba(255,255,255,0.35)",
+          }}>✓</span>{f}
         </div>
       ))}
     </div>
@@ -320,16 +528,19 @@ function PlanCard({ title, price, features, highlight, active }) {
 
 function btnPrimary(gold) {
   return {
-    width: "100%", padding: "12px 0", borderRadius: 10, border: "none",
-    fontSize: 13.5, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-    background: gold ? `linear-gradient(135deg, ${GOLD}, ${GOLD_DARK})` : "#0052cc",
-    color: gold ? "#1a1a1a" : "#fff",
+    width: "100%", padding: "13px 0", borderRadius: 10, border: "none",
+    fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+    background: gold ? `linear-gradient(135deg, ${GOLD_DARK}, ${GOLD})` : "#0052cc",
+    color: gold ? "#1a0e00" : "#fff",
   };
 }
-function btnGhost() {
+function btnGhost(muted) {
   return {
-    background: "none", border: "1px solid #444", color: "#999",
-    borderRadius: 8, padding: "8px 18px", fontSize: 12.5, cursor: "pointer",
+    background: "transparent", border: "0.5px solid rgba(255,255,255,0.12)",
+    color: "rgba(255,255,255,0.5)",
+    borderRadius: 10, padding: muted ? "13px 0" : "8px 18px", width: muted ? "100%" : undefined,
+    fontSize: muted ? 14 : 12.5, fontWeight: muted ? 600 : 400,
+    cursor: muted ? "default" : "pointer",
     fontFamily: "'DM Sans', sans-serif",
   };
 }
