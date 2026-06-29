@@ -3077,11 +3077,11 @@ function CardConfigModal({
 
               onClick={isPremium ? handleSave : onUpgradeClick}
               style={{
-                background: isPremium ? T.accent : "#1e1e1e",
-                border: isPremium ? "none" : `1px solid #444`,
+                background: isPremium ? T.accent : "rgba(232,179,57,0.06)",
+                border: isPremium ? "none" : `1px solid rgba(232,179,57,0.4)`,
                 borderRadius: 7,
                 padding: "8px 22px",
-                color: isPremium ? "#fff" : "#888",
+                color: isPremium ? "#fff" : "#e8b339",
                 fontSize: 13,
                 fontWeight: 600,
                 fontFamily: "inherit",
