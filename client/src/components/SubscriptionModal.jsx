@@ -206,7 +206,7 @@ async function pollAfterCheckout() {
                   : "Your plan is active"}
               </p>
               <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
-                {["AI insights on every board", "Unlimited tracked cards", "Team-wide analytics"].map((p, i) => (
+                {["Unlimited tracked cards", "Team-wide analytics"].map((p, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
                     <span style={{
                       width: 18, height: 18, borderRadius: "50%",
@@ -324,7 +324,7 @@ async function pollAfterCheckout() {
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Then $19/mo · cancel before trial ends</div>
                   </div>
                   <ul style={{ listStyle: "none", margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 10, padding: 0 }}>
-                    {["AI insights on every board", "Unlimited tracked cards & reports", "CSV, JSON & PDF export", "Team-wide analytics", "Priority support"].map((f, i) => (
+                    {["Unlimited tracked cards & reports", "CSV, JSON & PDF export", "Team-wide analytics", "Priority support"].map((f, i) => (
                       <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
                         <span style={{
                           width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
@@ -400,7 +400,7 @@ async function pollAfterCheckout() {
                     <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Billed monthly · cancel anytime</div>
                   </div>
                   <ul style={{ listStyle: "none", margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 10, padding: 0 }}>
-                    {["AI insights on every board", "Unlimited tracked cards & reports", "CSV, JSON & PDF export", "Team-wide analytics", "Priority support"].map((f, i) => (
+                    {["Unlimited tracked cards & reports", "CSV, JSON & PDF export", "Team-wide analytics", "Priority support"].map((f, i) => (
                       <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
                         <span style={{
                           width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
