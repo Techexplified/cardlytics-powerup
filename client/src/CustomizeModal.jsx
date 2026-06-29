@@ -3073,68 +3073,58 @@ function CardConfigModal({
               Cancel
             </button>
 
-           <button
-  onClick={isPremium ? handleSave : onUpgradeClick}
-  style={{
-    background: isPremium ? T.accent : "rgba(232,179,57,0.06)",
-    border: isPremium ? "none" : `1px solid rgba(232,179,57,0.4)`,
-    borderRadius: 7,
-    padding: "8px 22px",
-    color: isPremium ? "#fff" : "#e8b339",
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: "inherit",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    transition: "background 0.15s, color 0.15s, border-color 0.15s",
-  }}
-  onMouseEnter={(e) => {
-    if (isPremium) {
-      e.currentTarget.style.background = T.accentHover;
-    } else {
-      e.currentTarget.style.background = "rgba(232,179,57,0.16)";
-      e.currentTarget.style.borderColor = "#e8b339";
-      e.currentTarget.style.color = "#f4c64f";
-    }
-  }}
-  onMouseLeave={(e) => {
-    if (isPremium) {
-      e.currentTarget.style.background = T.accent;
-    } else {
-      e.currentTarget.style.background = "rgba(232,179,57,0.06)";
-      e.currentTarget.style.color = "#e8b339";
-      e.currentTarget.style.borderColor = "rgba(232,179,57,0.4)";
-    }
-  }}
-  title={isPremium ? "" : "Start a free trial or upgrade to create cards"}
->
-  {isPremium ? (
-    <>
-      Create Card
-      <span style={{
-        width: 18, height: 18, borderRadius: 4,
-        border: "1.5px solid rgba(255,255,255,0.5)",
-        display: "flex", alignItems: "center",
-        justifyContent: "center", fontSize: 11,
-      }}>✦</span>
-    </>
-  ) : (
-    <>
-      🔒 Create Card
-      <span style={{
-        fontSize: 10, fontWeight: 700,
-        background: "rgba(232,179,57,0.18)",
-        color: "#f4c64f",
-        border: "1px solid rgba(232,179,57,0.4)",
-        borderRadius: 4,
-        padding: "1px 6px",
-        letterSpacing: "0.03em",
-      }}>PRO</span>
-    </>
-  )}
-</button>
+          <button
+              onClick={isPremium ? handleSave : onUpgradeClick}
+              style={{
+                background: isPremium ? T.accent : "rgba(232,179,57,0.06)",
+                border: isPremium ? "none" : `1px solid rgba(232,179,57,0.4)`,
+                borderRadius: 7,
+                padding: "8px 22px",
+                color: isPremium ? "#fff" : "#e8b339",
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: "inherit",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                if (isPremium) e.currentTarget.style.background = T.accentHover;
+                else e.currentTarget.style.borderColor = "#e8b339";
+              }}
+              onMouseLeave={(e) => {
+                if (isPremium) e.currentTarget.style.background = T.accent;
+                else e.currentTarget.style.borderColor = "#444";
+              }}
+              title={isPremium ? "" : "Start a free trial or upgrade to create cards"}
+            >
+              {isPremium ? (
+                <>
+                  Create Card
+                  <span style={{
+                    width: 18, height: 18, borderRadius: 4,
+                    border: "1.5px solid rgba(255,255,255,0.5)",
+                    display: "flex", alignItems: "center",
+                    justifyContent: "center", fontSize: 11,
+                  }}>✦</span>
+                </>
+              ) : (
+                <>
+                  🔒 Create Card
+                  <span style={{
+                    fontSize: 10, fontWeight: 700,
+                    background: "rgba(232,179,57,0.12)",
+                    color: "#e8b339",
+                    border: "1px solid rgba(232,179,57,0.25)",
+                    borderRadius: 4,
+                    padding: "1px 6px",
+                    letterSpacing: "0.03em",
+                  }}>PRO</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
