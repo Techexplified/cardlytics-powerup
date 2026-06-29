@@ -2209,6 +2209,8 @@ function CardConfigModal({
   const [customHex, setCustomHex] = useState("#3B82F6");
   const [customTextHex, setCustomTextHex] = useState("#FFFFFF");
   const [liveResultsOpen, setLiveResultsOpen] = useState(true);
+  
+
 
   const [activeFilters, setActiveFilters] = useState(() => {
     if (blankStart || statType === "custom") return [];
