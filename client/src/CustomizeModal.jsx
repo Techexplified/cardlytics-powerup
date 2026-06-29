@@ -3094,9 +3094,9 @@ function CardConfigModal({
     if (isPremium) {
       e.currentTarget.style.background = T.accentHover;
     } else {
-      e.currentTarget.style.background = "#e8b339";
-      e.currentTarget.style.color = "#1a1300";
+      e.currentTarget.style.background = "rgba(232,179,57,0.16)";
       e.currentTarget.style.borderColor = "#e8b339";
+      e.currentTarget.style.color = "#f4c64f";
     }
   }}
   onMouseLeave={(e) => {
@@ -3125,9 +3125,9 @@ function CardConfigModal({
       🔒 Create Card
       <span style={{
         fontSize: 10, fontWeight: 700,
-        background: "rgba(0,0,0,0.15)",
-        color: "#1a1300",
-        border: "1px solid rgba(0,0,0,0.2)",
+        background: "rgba(232,179,57,0.18)",
+        color: "#f4c64f",
+        border: "1px solid rgba(232,179,57,0.4)",
         borderRadius: 4,
         padding: "1px 6px",
         letterSpacing: "0.03em",
