@@ -2209,7 +2209,7 @@ function CardConfigModal({
   const [customHex, setCustomHex] = useState("#3B82F6");
   const [customTextHex, setCustomTextHex] = useState("#FFFFFF");
   const [liveResultsOpen, setLiveResultsOpen] = useState(true);
-  const [showUpgradePanel, setShowUpgradePanel] = useState(false);
+  
 
 
   const [activeFilters, setActiveFilters] = useState(() => {
@@ -2568,87 +2568,6 @@ function CardConfigModal({
                 scrollbarColor: `${T.border} transparent`,
               }}
             >
-
-              {showUpgradePanel && (
-  <div style={{
-    display: "flex", flexDirection: "column", alignItems: "center",
-    justifyContent: "center", padding: "40px 32px", gap: 24, height: "100%",
-  }}>
-    <div style={{ textAlign: "center", marginBottom: 4 }}>
-      <h2 style={{ color: "#e0e0e0", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>
-        Unlock Cardlytics Pro
-      </h2>
-      <p style={{ color: "#777", fontSize: 13, margin: 0 }}>
-        AI insights, unlimited reports, and team analytics.
-      </p>
-    </div>
-    <div style={{ display: "flex", gap: 12, width: "100%", maxWidth: 460 }}>
-      {/* Free plan */}
-      <div style={{
-        flex: 1, borderRadius: 10, padding: "16px 14px",
-        background: "#252525", border: "1px solid #333",
-      }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#aaa", marginBottom: 4 }}>
-          Free <span style={{ color: "#4caf50", fontWeight: 500 }}>· current</span>
-        </div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: "#e0e0e0", marginBottom: 10 }}>
-          $0<span style={{ fontSize: 11, color: "#666", fontWeight: 400 }}>/mo</span>
-        </div>
-        {["Basic analytics", "Limited reports", "Single workspace"].map((f, i) => (
-          <div key={i} style={{ display: "flex", gap: 6, fontSize: 12, color: "#999", marginBottom: 5 }}>
-            <span style={{ color: "#555" }}>✓</span>{f}
-          </div>
-        ))}
-      </div>
-      {/* Pro plan */}
-      <div style={{
-        flex: 1, borderRadius: 10, padding: "16px 14px",
-        background: "rgba(232,179,57,0.08)", border: "1.5px solid #e8b339",
-        position: "relative",
-      }}>
-        <div style={{
-          position: "absolute", top: -10, right: 10,
-          background: "#e8b339", color: "#1a1a1a",
-          fontSize: 9.5, fontWeight: 700, padding: "2px 8px",
-          borderRadius: 5, letterSpacing: 0.3,
-        }}>POPULAR</div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#e8b339", marginBottom: 4 }}>Pro</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: "#e0e0e0", marginBottom: 10 }}>
-          $19<span style={{ fontSize: 11, color: "#666", fontWeight: 400 }}>/mo</span>
-        </div>
-        {["AI insights", "Unlimited reports", "Team analytics", "Priority support"].map((f, i) => (
-          <div key={i} style={{ display: "flex", gap: 6, fontSize: 12, color: "#999", marginBottom: 5 }}>
-            <span style={{ color: "#e8b339" }}>✓</span>{f}
-          </div>
-        ))}
-      </div>
-    </div>
-    <button
-      onClick={() => { onUpgradeClick?.(); setShowUpgradePanel(false); }}
-      style={{
-        width: "100%", maxWidth: 460, padding: "13px 0", borderRadius: 10,
-        border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer",
-        background: "linear-gradient(135deg, #e8b339, #c9962a)", color: "#1a1a1a",
-        fontFamily: "inherit",
-      }}
-    >
-      ⚡ Upgrade to Pro
-    </button>
-    <p style={{ fontSize: 11, color: "#555", margin: 0 }}>
-      Payments securely processed by Paddle.
-    </p>
-    <button
-      onClick={() => setShowUpgradePanel(false)}
-      style={{
-        background: "none", border: "none", color: "#555", fontSize: 12,
-        cursor: "pointer", fontFamily: "inherit", textDecoration: "underline",
-      }}
-    >
-      ← Back to card settings
-    </button>
-  </div>
-)}
-
               {/* ── FILTERS TAB ── */}
               {activeTab === "filters" && (
                 <div style={{ display: "flex", flexDirection: "column" }}>
@@ -3157,7 +3076,7 @@ function CardConfigModal({
             </button>
 
           <button
-              onClick={isPremium ? handleSave : () => setShowUpgradePanel(true)}
+              onClick={isPremium ? handleSave : onUpgradeClick}
               style={{
                 background: isPremium ? T.accent : "rgba(232,179,57,0.06)",
                 border: isPremium ? "none" : `1px solid rgba(232,179,57,0.4)`,
