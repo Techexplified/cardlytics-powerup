@@ -2246,7 +2246,15 @@ const DEFAULT_FILTERS_BY_STAT = {
     active: ["createdDate"],
     values: () => ({ createdDate: ["today"] }),
   },
-  withLabel: { active: ["label"], values: () => ({ label: [] }) }, // left open — user picks the label
+  withLabel: {
+  active: ["label"],
+  // Pre-select every label on the board — makes "has a label" explicit
+  // instead of relying on an empty filter silently falling back to the
+  // stat's built-in "has any label" logic.
+  values: (uid, allLabels) => ({
+    label: (allLabels || []).map((l) => l.id),
+  }),
+},
   cardsInList: { active: [], values: () => ({}) },
 };
 
@@ -2308,7 +2316,7 @@ function CardConfigModal({
     };
     if (blankStart || statType === "custom") return base;
     const preset = DEFAULT_FILTERS_BY_STAT[statType];
-    return { ...base, ...(preset ? preset.values(currentUserId) : {}) };
+   return { ...base, ...(preset ? preset.values(currentUserId, boardLabels) : {}) };
   });
   const [customDateFrom, setCustomDateFrom] = useState("");
   const [customDateTo, setCustomDateTo] = useState("");
