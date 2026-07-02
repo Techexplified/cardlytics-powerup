@@ -56,19 +56,40 @@ const FilterIcons = {
     </svg>
   ),
   status: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
       <path d="M8 12.5l2.8 2.8L16.5 9" />
     </svg>
   ),
   cardActivity: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="12" cy="12" r="8.5" />
       <path d="M12 7.5V12l3.2 2" />
     </svg>
   ),
   createdDate: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <circle cx="12" cy="12" r="8.5" />
       <path d="M12 8v8M8 12h8" />
     </svg>
@@ -89,20 +110,76 @@ const COVER_COLORS = [
 ];
 
 const COVER_GRADIENTS = [
-  { id: "grad-blue-sky", css: "linear-gradient(135deg,#0052cc,#29b6f6)", label: "Blue → Sky" },
-  { id: "grad-green-sky", css: "linear-gradient(135deg,#1a7a4a,#29b6f6)", label: "Green → Sky" },
-  { id: "grad-orange-pink", css: "linear-gradient(135deg,#e67e22,#e91e8c)", label: "Orange → Pink" },
-  { id: "grad-purple-pink", css: "linear-gradient(135deg,#7e57c2,#e91e8c)", label: "Purple → Pink" },
-  { id: "grad-yellow-orange", css: "linear-gradient(135deg,#e6a817,#e67e22)", label: "Yellow → Orange" },
-  { id: "grad-red-purple", css: "linear-gradient(135deg,#c0392b,#7e57c2)", label: "Red → Purple" },
-  { id: "grad-slate-blue", css: "linear-gradient(135deg,#374151,#0052cc)", label: "Slate → Blue" },
-  { id: "grad-multi", css: "linear-gradient(135deg,#0052cc,#7e57c2,#e91e8c)", label: "Blue → Purple → Pink" },
-  { id: "grad-violet", css: "linear-gradient(135deg,#a78bfa,#6d28d9)", label: "Violet" },
-  { id: "grad-indigo", css: "linear-gradient(135deg,#6366f1,#3730a3)", label: "Indigo" },
-  { id: "grad-crimson", css: "linear-gradient(135deg,#ef4444,#7f1d1d)", label: "Crimson" },
-  { id: "grad-amethyst", css: "linear-gradient(135deg,#a78bfa,#5b21b6)", label: "Amethyst" },
-  { id: "grad-deep-purple", css: "linear-gradient(135deg,#7c3aed,#4338ca)", label: "Deep Purple" },
-  { id: "grad-navy", css: "linear-gradient(135deg,#4f63d2,#1e3a8a)", label: "Navy" },
+  {
+    id: "grad-blue-sky",
+    css: "linear-gradient(135deg,#0052cc,#29b6f6)",
+    label: "Blue → Sky",
+  },
+  {
+    id: "grad-green-sky",
+    css: "linear-gradient(135deg,#1a7a4a,#29b6f6)",
+    label: "Green → Sky",
+  },
+  {
+    id: "grad-orange-pink",
+    css: "linear-gradient(135deg,#e67e22,#e91e8c)",
+    label: "Orange → Pink",
+  },
+  {
+    id: "grad-purple-pink",
+    css: "linear-gradient(135deg,#7e57c2,#e91e8c)",
+    label: "Purple → Pink",
+  },
+  {
+    id: "grad-yellow-orange",
+    css: "linear-gradient(135deg,#e6a817,#e67e22)",
+    label: "Yellow → Orange",
+  },
+  {
+    id: "grad-red-purple",
+    css: "linear-gradient(135deg,#c0392b,#7e57c2)",
+    label: "Red → Purple",
+  },
+  {
+    id: "grad-slate-blue",
+    css: "linear-gradient(135deg,#374151,#0052cc)",
+    label: "Slate → Blue",
+  },
+  {
+    id: "grad-multi",
+    css: "linear-gradient(135deg,#0052cc,#7e57c2,#e91e8c)",
+    label: "Blue → Purple → Pink",
+  },
+  {
+    id: "grad-violet",
+    css: "linear-gradient(135deg,#a78bfa,#6d28d9)",
+    label: "Violet",
+  },
+  {
+    id: "grad-indigo",
+    css: "linear-gradient(135deg,#6366f1,#3730a3)",
+    label: "Indigo",
+  },
+  {
+    id: "grad-crimson",
+    css: "linear-gradient(135deg,#ef4444,#7f1d1d)",
+    label: "Crimson",
+  },
+  {
+    id: "grad-amethyst",
+    css: "linear-gradient(135deg,#a78bfa,#5b21b6)",
+    label: "Amethyst",
+  },
+  {
+    id: "grad-deep-purple",
+    css: "linear-gradient(135deg,#7c3aed,#4338ca)",
+    label: "Deep Purple",
+  },
+  {
+    id: "grad-navy",
+    css: "linear-gradient(135deg,#4f63d2,#1e3a8a)",
+    label: "Navy",
+  },
 ];
 
 function resolveCoverBackground(id, customHex) {
@@ -913,7 +990,6 @@ function FilterValuePicker({
   return null;
 }
 
-
 function AssignedToPillContent({ values, members }) {
   if (!values || !values.length) {
     return <span style={{ color: T.textMuted }}>Any</span>;
@@ -949,7 +1025,12 @@ function AssignedToPillContent({ values, members }) {
         }
         const m = (members || []).find((x) => x.id === id);
         const initials = m
-          ? m.fullName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
+          ? m.fullName
+              .split(" ")
+              .map((w) => w[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2)
           : "?";
         return (
           <div
@@ -2159,7 +2240,7 @@ const DEFAULT_FILTERS_BY_STAT = {
   overdue: { active: ["dueDate"], values: () => ({ dueDate: ["overdue"] }) },
   stale: {
     active: ["cardActivity"],
-    values: () => ({ cardActivity: ["stale30"] }),
+    values: () => ({ cardActivity: ["stale14"] }),
   },
   createdToday: {
     active: ["createdDate"],
@@ -2194,14 +2275,14 @@ function CardConfigModal({
 }) {
   const [activeTab, setActiveTab] = useState("filters");
   const [cardName, setCardName] = useState(
-  blankStart ? "" : DEFAULT_NAMES[statType] || ""
-);
+    blankStart ? "" : DEFAULT_NAMES[statType] || "",
+  );
   const [boardScope, setBoardScope] = useState("this");
   const [filterSearch, setFilterSearch] = useState("");
 
   const [coverColor, setCoverColor] = useState(
-  DEFAULT_COVER[statType] || "grad-multi",
-);
+    DEFAULT_COVER[statType] || "grad-multi",
+  );
   const [coverImage, setCoverImage] = useState(null);
   const [styleSubtitle, setStyleSubtitle] = useState("");
   const [textColor, setTextColor] = useState("white");
@@ -2209,8 +2290,6 @@ function CardConfigModal({
   const [customHex, setCustomHex] = useState("#3B82F6");
   const [customTextHex, setCustomTextHex] = useState("#FFFFFF");
   const [liveResultsOpen, setLiveResultsOpen] = useState(true);
-  
-
 
   const [activeFilters, setActiveFilters] = useState(() => {
     if (blankStart || statType === "custom") return [];
@@ -2880,10 +2959,7 @@ function CardConfigModal({
                       label="Title (Label)"
                       value={previewName}
                       max={30}
-                      onChange={(v) => {
-                        setCardName(v);
-                        setNameManuallyEdited(true);
-                      }}
+                      onChange={setCardName}
                       placeholder="Card title"
                     />
                     <LimitedInput
@@ -3075,7 +3151,7 @@ function CardConfigModal({
               Cancel
             </button>
 
-          <button
+            <button
               onClick={isPremium ? handleSave : onUpgradeClick}
               style={{
                 background: isPremium ? T.accent : "rgba(232,179,57,0.06)",
@@ -3100,30 +3176,45 @@ function CardConfigModal({
                 if (isPremium) e.currentTarget.style.background = T.accent;
                 else e.currentTarget.style.borderColor = "#444";
               }}
-              title={isPremium ? "" : "Start a free trial or upgrade to create cards"}
+              title={
+                isPremium ? "" : "Start a free trial or upgrade to create cards"
+              }
             >
               {isPremium ? (
                 <>
                   Create Card
-                  <span style={{
-                    width: 18, height: 18, borderRadius: 4,
-                    border: "1.5px solid rgba(255,255,255,0.5)",
-                    display: "flex", alignItems: "center",
-                    justifyContent: "center", fontSize: 11,
-                  }}>✦</span>
+                  <span
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 4,
+                      border: "1.5px solid rgba(255,255,255,0.5)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 11,
+                    }}
+                  >
+                    ✦
+                  </span>
                 </>
               ) : (
                 <>
                   🔒 Create Card
-                  <span style={{
-                    fontSize: 10, fontWeight: 700,
-                    background: "rgba(232,179,57,0.12)",
-                    color: "#e8b339",
-                    border: "1px solid rgba(232,179,57,0.25)",
-                    borderRadius: 4,
-                    padding: "1px 6px",
-                    letterSpacing: "0.03em",
-                  }}>PRO</span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      background: "rgba(232,179,57,0.12)",
+                      color: "#e8b339",
+                      border: "1px solid rgba(232,179,57,0.25)",
+                      borderRadius: 4,
+                      padding: "1px 6px",
+                      letterSpacing: "0.03em",
+                    }}
+                  >
+                    PRO
+                  </span>
                 </>
               )}
             </button>
