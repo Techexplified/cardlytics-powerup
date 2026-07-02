@@ -1604,11 +1604,6 @@ window._toggleRefreshTimer = setTimeout(() => {
   function handleOpenCreateView() {
     if (!trelloT) return;
     trelloT.board("id").then((board) => {
-      // Close the current (fullscreen) Card Details modal first — stacking a
-      // second modal on top of an already-open one is what caused the
-      // broken sizing/scroll issue. Closing first lets the new modal render
-      // as its own clean, correctly-sized popup instead of a nested overlay.
-      trelloT.closeModal().catch(() => {});
       trelloT.modal({
         title: "Cardlytics",
         url: `./index.html?boardId=${board.id}&autoCustomize=true`,
