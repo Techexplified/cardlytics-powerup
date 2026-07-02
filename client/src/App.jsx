@@ -1015,12 +1015,20 @@ function CardBackView() {
       }
 
       trelloT.board("id").then((board) => {
-        trelloT.modal({
-          title: "Cardlytics",
-          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}${filtersRaw ? `&filters=${filtersRaw}` : ""}&cardName=${encodeURIComponent(card.name)}`,
-          fullscreen: true,
-        });
-      });
+  let isPersonalized = false;
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(`cardlytics:personalized:${board.id}`) || "[]",
+    );
+    isPersonalized = saved.some((v) => v.cardId === card.id);
+  } catch (_) {}
+
+  trelloT.modal({
+    title: "Cardlytics",
+    url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}${filtersRaw ? `&filters=${filtersRaw}` : ""}${isPersonalized ? "&personalized=1" : ""}&cardName=${encodeURIComponent(card.name)}`,
+    fullscreen: true,
+  });
+});
     });
   }
 
@@ -1147,6 +1155,7 @@ function CardDetailsView() {
   const [sortCol, setSortCol] = useState("name");
   const [sortAsc, setSortAsc] = useState(true);
   const [leftTab, setLeftTab] = useState(() => {
+    if (params.current.get("personalized") === "1") return "personalized";
     const filtersParam = params.current.get("filters");
     return filtersParam ? "personalized" : "general";
   });
@@ -1804,7 +1813,7 @@ window._toggleRefreshTimer = setTimeout(() => {
                       );
                       trelloT.modal({
                         title: `Cardlytics — ${view.cardName}`,
-                        url: `./index.html?view=card-details&boardId=${board.id}&statType=${view.statType}&mode=${view.mode}${view.listId ? `&listId=${view.listId}` : ""}&filters=${filtersStr}&cardName=${encodeURIComponent(view.cardName)}`,
+                        url: `./index.html?view=card-details&boardId=${board.id}&statType=${view.statType}&mode=${view.mode}${view.listId ? `&listId=${view.listId}` : ""}&filters=${filtersStr}&personalized=1&cardName=${encodeURIComponent(view.cardName)}`,
                         fullscreen: true,
                       });
                     });
@@ -3191,7 +3200,7 @@ async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg)
                 const filtersStr = encodeURIComponent(JSON.stringify(view.filters));
                 trelloT.modal({
                   title: `Cardlytics — ${view.cardName}`,
-                  url: `./index.html?view=card-details&boardId=${board.id}&statType=${view.statType}&mode=${view.mode}${view.listId ? `&listId=${view.listId}` : ""}&filters=${filtersStr}&cardName=${encodeURIComponent(view.cardName)}`,
+                  url: `./index.html?view=card-details&boardId=${board.id}&statType=${view.statType}&mode=${view.mode}${view.listId ? `&listId=${view.listId}` : ""}&filters=${filtersStr}&personalized=1&cardName=${encodeURIComponent(view.cardName)}`,
                   fullscreen: true,
                 });
               });
