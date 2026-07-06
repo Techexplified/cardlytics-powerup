@@ -2,12 +2,13 @@ export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   "https://cardlyticsapi-pf6diz22ka-uc.a.run.app";
 
+// Returns: { plan, isPro, isTrialActive, isActive, expiresAt, trialEndsAt }
 export async function fetchSubscriptionStatus(token) {
   const res = await fetch(`${API_BASE_URL}/api/subscription/status`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error("verify_failed");
-  return res.json(); // { plan, expiresAt, isActive }
+  return res.json();
 }
 
 export async function initCheckout(token) {
