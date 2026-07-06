@@ -97,7 +97,7 @@ export default function CheckoutPage() {
       paddle?.Checkout.open({
         transactionId,
         settings: {
-          successUrl: window.location.origin + "/",
+          successUrl: window.location.href,
         },
       });
 
