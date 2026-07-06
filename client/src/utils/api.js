@@ -22,3 +22,15 @@ export async function initCheckout(token) {
   if (!res.ok) throw new Error("checkout_failed");
   return res.json(); // { checkoutUrl }
 }
+
+// Returns: { overview, cancelSubscription, updatePaymentMethod }
+// Only works for Pro members who've completed at least one real payment.
+// Returns null for trial/free users (backend sends 404).
+export async function fetchBillingPortal(token) {
+  const res = await fetch(`${API_BASE_URL}/api/subscription/portal`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("portal_failed");
+  return res.json();
+}
