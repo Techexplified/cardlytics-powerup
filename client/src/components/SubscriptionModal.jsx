@@ -248,22 +248,6 @@ export default function SubscriptionModal({
     }
   }
 
-  async function handleCancelTrial() {
-    // TESTING ONLY — clears the local trial flag so you can re-test the
-    // "Start Trial" flow without waiting 14 days or faking timestamps.
-    if (!trelloT) return;
-    setCheckoutError(null);
-    try {
-      await trelloT.remove("member", "private", "cardlyticsTrialStartedAt");
-      const s = { ...status, isPro: false, isTrialActive: false, trialEndsAt: null };
-      setStatus(s);
-      onStatusKnown?.(s);
-      setPhase("free");
-    } catch {
-      setCheckoutError("Couldn't cancel trial. Please try again.");
-    }
-  }
-
   async function handleUpgrade() {
     setCheckoutError(null);
 
@@ -676,25 +660,6 @@ export default function SubscriptionModal({
               >
                 🔒 Keep access after the trial ends · Paddle
               </p>
-
-              {/* TESTING ONLY — remove before shipping */}
-              <button
-                onClick={handleCancelTrial}
-                style={{
-                  width: "100%",
-                  marginTop: 12,
-                  padding: "8px 0",
-                  background: "transparent",
-                  border: "1px dashed rgba(255,82,82,0.4)",
-                  borderRadius: 8,
-                  color: "#ff8080",
-                  fontSize: 12,
-                  cursor: "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                }}
-              >
-                🧪 Cancel Trial (testing)
-              </button>
             </div>
           )}
 
