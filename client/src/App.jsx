@@ -2513,11 +2513,28 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    if (token)
-      fetchSubscriptionStatus(token)
-        .then(setKnownPlan)
-        .catch(() => {});
-  }, [token]);
+  if (!token) return;
+  fetchSubscriptionStatus(token)
+    .then(async (s) => {
+      if (!s.isPro && trelloT) {
+        const startedAt = await trelloT
+          .get("member", "private", "cardlyticsTrialStartedAt")
+          .catch(() => null);
+        if (startedAt) {
+          const trialEndsAt = new Date(startedAt + 14 * 24 * 60 * 60 * 1000);
+          const stillActive = Date.now() < trialEndsAt.getTime();
+          setKnownPlan({
+            ...s,
+            isTrialActive: stillActive,
+            trialEndsAt: trialEndsAt.toISOString(),
+          });
+          return;
+        }
+      }
+      setKnownPlan(s);
+    })
+    .catch(() => {});
+}, [token]);
 
   useEffect(() => {
     if (autoCustomize && token) {
@@ -2851,6 +2868,7 @@ export default function App() {
         token={token}
         onClose={() => setShowSubscription(false)}
         onStatusKnown={setKnownPlan}
+        trelloT={trelloT}
       />
 
       <CustomizeFlow

@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { fetchSubscriptionStatus, initCheckout, fetchBillingPortal } from "../utils/api";
+import {
+  fetchSubscriptionStatus,
+  initCheckout,
+  fetchBillingPortal,
+} from "../utils/api";
 
 const GOLD = "#f5c842";
 const GOLD_DARK = "#d4a017";
@@ -22,11 +26,13 @@ function daysUntil(dateStr) {
 // ─── Verification ring: draws in, then resolves to ✓ or 👑 ──────────────────
 function VerifyRing({ resolved, isPro, isTrial }) {
   const color = resolved
-    ? isPro ? GOLD : isTrial ? "#4ea1ff" : "#666"
+    ? isPro
+      ? GOLD
+      : isTrial
+        ? "#4ea1ff"
+        : "#666"
     : "#f5c842";
-  const icon = resolved
-    ? isPro ? "👑" : isTrial ? "⏳" : "✓"
-    : "···";
+  const icon = resolved ? (isPro ? "👑" : isTrial ? "⏳" : "✓") : "···";
 
   return (
     <div style={{ position: "relative", width: 72, height: 72 }}>
@@ -120,15 +126,26 @@ function BillingLink({ icon, label, url }) {
     <button
       onClick={() => window.open(url, "_blank")}
       style={{
-        display: "flex", alignItems: "center", gap: 8,
-        width: "100%", padding: "11px 14px", borderRadius: 8,
-        background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.1)",
-        color: "rgba(255,255,255,0.7)", fontSize: 12.5, cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        width: "100%",
+        padding: "11px 14px",
+        borderRadius: 8,
+        background: "rgba(255,255,255,0.04)",
+        border: "0.5px solid rgba(255,255,255,0.1)",
+        color: "rgba(255,255,255,0.7)",
+        fontSize: 12.5,
+        cursor: "pointer",
         fontFamily: "'DM Sans', sans-serif",
         transition: "border-color 0.15s",
       }}
-      onMouseEnter={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)"}
-      onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"}
+      onMouseEnter={(e) =>
+        (e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)")
+      }
+      onMouseLeave={(e) =>
+        (e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)")
+      }
     >
       <span style={{ fontSize: 14 }}>{icon}</span>
       <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
@@ -142,6 +159,7 @@ export default function SubscriptionModal({
   token,
   onClose,
   onStatusKnown,
+  trelloT,
 }) {
   // phases: verifying | pro | trial | free | checkout-wait | error
   const [phase, setPhase] = useState("verifying");
@@ -169,7 +187,9 @@ export default function SubscriptionModal({
 
       // If Pro, also fetch billing portal links
       if (s.isPro) {
-        fetchBillingPortal(token).then(setPortalUrls).catch(() => {});
+        fetchBillingPortal(token)
+          .then(setPortalUrls)
+          .catch(() => {});
       }
 
       // FIX: use isPro and isTrialActive instead of just isActive
@@ -180,6 +200,31 @@ export default function SubscriptionModal({
       }, 450);
     } catch {
       setPhase("error");
+    }
+  }
+
+  async function handleStartTrial() {
+    if (!trelloT) return;
+    setCheckoutError(null);
+
+    const trialStartedAt = Date.now();
+    const trialEndsAt = new Date(
+      trialStartedAt + 14 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+
+    try {
+      await trelloT.set(
+        "member",
+        "private",
+        "cardlyticsTrialStartedAt",
+        trialStartedAt,
+      );
+      const s = { ...status, isPro: false, isTrialActive: true, trialEndsAt };
+      setStatus(s);
+      onStatusKnown?.(s);
+      setPhase("trial");
+    } catch {
+      setCheckoutError("Couldn't start your trial. Please try again.");
     }
   }
 
@@ -217,7 +262,9 @@ export default function SubscriptionModal({
           clearInterval(pollRef.current);
           setStatus(s);
           onStatusKnown?.(s);
-          fetchBillingPortal(token).then(setPortalUrls).catch(() => {});
+          fetchBillingPortal(token)
+            .then(setPortalUrls)
+            .catch(() => {});
           setPhase("pro");
         }
       } catch {
@@ -428,13 +475,41 @@ export default function SubscriptionModal({
 
               {/* ── Billing management links ── */}
               {portalUrls && (
-                <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
+                <div
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    marginBottom: 20,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "rgba(255,255,255,0.3)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      marginBottom: 4,
+                    }}
+                  >
                     Manage billing
                   </div>
-                  <BillingLink icon="📋" label="View billing overview" url={portalUrls.overview} />
-                  <BillingLink icon="💳" label="Update payment method" url={portalUrls.updatePaymentMethod} />
-                  <BillingLink icon="✕" label="Cancel subscription" url={portalUrls.cancelSubscription} />
+                  <BillingLink
+                    icon="📋"
+                    label="View billing overview"
+                    url={portalUrls.overview}
+                  />
+                  <BillingLink
+                    icon="💳"
+                    label="Update payment method"
+                    url={portalUrls.updatePaymentMethod}
+                  />
+                  <BillingLink
+                    icon="✕"
+                    label="Cancel subscription"
+                    url={portalUrls.cancelSubscription}
+                  />
                 </div>
               )}
 
@@ -447,35 +522,102 @@ export default function SubscriptionModal({
           {/* ── TRIAL PHASE (new) ──────────────────────────────── */}
           {phase === "trial" && (
             <div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center",
+                }}
+              >
                 <VerifyRing resolved isTrial />
-                <h2 style={{ color: "#ffffff", fontSize: 17, fontWeight: 700, margin: "18px 0 4px" }}>
+                <h2
+                  style={{
+                    color: "#ffffff",
+                    fontSize: 17,
+                    fontWeight: 700,
+                    margin: "18px 0 4px",
+                  }}
+                >
                   Free Trial · {trialDays} day{trialDays !== 1 ? "s" : ""} left
                 </h2>
-                <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 12.5, margin: "0 0 6px" }}>
-                  All Pro features are unlocked until {formatDate(status?.trialEndsAt)}.
+                <p
+                  style={{
+                    color: "rgba(255,255,255,0.45)",
+                    fontSize: 12.5,
+                    margin: "0 0 6px",
+                  }}
+                >
+                  All Pro features are unlocked until{" "}
+                  {formatDate(status?.trialEndsAt)}.
                 </p>
 
                 {/* trial progress bar */}
-                <div style={{ width: "100%", height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2, margin: "10px 0 20px", overflow: "hidden" }}>
-                  <div style={{
-                    height: "100%", borderRadius: 2,
-                    background: trialDays <= 3 ? "#ff5252" : GOLD,
-                    width: `${Math.max(5, ((14 - trialDays) / 14) * 100)}%`,
-                    transition: "width 0.5s ease",
-                  }} />
+                <div
+                  style={{
+                    width: "100%",
+                    height: 4,
+                    background: "rgba(255,255,255,0.08)",
+                    borderRadius: 2,
+                    margin: "10px 0 20px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      borderRadius: 2,
+                      background: trialDays <= 3 ? "#ff5252" : GOLD,
+                      width: `${Math.max(5, ((14 - trialDays) / 14) * 100)}%`,
+                      transition: "width 0.5s ease",
+                    }}
+                  />
                 </div>
               </div>
 
-              <ul style={{ listStyle: "none", margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 10, padding: 0 }}>
-                {["Unlimited tracked cards & reports", "CSV, JSON & PDF export", "Team-wide analytics", "Priority support"].map((f, i) => (
-                  <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
-                    <span style={{
-                      width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
-                      background: "rgba(212,160,23,0.18)", border: "0.5px solid rgba(212,160,23,0.4)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 10, color: GOLD,
-                    }}>✓</span>
+              <ul
+                style={{
+                  listStyle: "none",
+                  margin: "0 0 18px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                  padding: 0,
+                }}
+              >
+                {[
+                  "Unlimited tracked cards & reports",
+                  "CSV, JSON & PDF export",
+                  "Team-wide analytics",
+                  "Priority support",
+                ].map((f, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      fontSize: 13,
+                      color: "rgba(255,255,255,0.8)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: "50%",
+                        flexShrink: 0,
+                        background: "rgba(212,160,23,0.18)",
+                        border: "0.5px solid rgba(212,160,23,0.4)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 10,
+                        color: GOLD,
+                      }}
+                    >
+                      ✓
+                    </span>
                     {f}
                   </li>
                 ))}
@@ -484,7 +626,18 @@ export default function SubscriptionModal({
               <button onClick={handleUpgrade} style={btnPrimary(true)}>
                 ⚡ Upgrade to Pro now
               </button>
-              <p style={{ textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "10px 0 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+              <p
+                style={{
+                  textAlign: "center",
+                  fontSize: 11,
+                  color: "rgba(255,255,255,0.25)",
+                  margin: "10px 0 0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 5,
+                }}
+              >
                 🔒 Keep access after the trial ends · Paddle
               </p>
             </div>
@@ -883,7 +1036,10 @@ export default function SubscriptionModal({
                     </div>
                   ) : (
                     <>
-                      <button onClick={handleUpgrade} style={btnPrimary(true)}>
+                      <button
+                        onClick={handleStartTrial}
+                        style={btnPrimary(true)}
+                      >
                         ⚡ Start free trial
                       </button>
                       <p
