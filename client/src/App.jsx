@@ -2932,7 +2932,7 @@ export default function App() {
           const tkn = getStoredToken();
           return getBoardScopedData(key, tkn, targetBoardId, boards);
         }}
-        isPremium={knownPlan?.isActive ?? false}
+        isPremium={(knownPlan?.isPro || knownPlan?.isTrialActive) ?? false}
         onUpgradeClick={() => setShowSubscription(true)}
         trelloT={trelloT}
       />
