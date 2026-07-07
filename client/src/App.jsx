@@ -2592,10 +2592,6 @@ const handleTrack = async (statsOverride, configOverride) => {
     const statsToTrack = statsOverride ?? selectedStats;
     const configToUse = configOverride ?? cardConfig;
 
-    if (trialExpired) {
-      setShowTrialExpiredModal(true);
-      return;
-    }
 
     if (statsToTrack.length === 0) {
       showToast("Please select at least one stat to track", "error");
@@ -3371,49 +3367,22 @@ const handleTrack = async (statsOverride, configOverride) => {
       >
         <button
           className="btn-customize"
-          onClick={() => {
-            if (trialExpired) {
-              setShowTrialExpiredModal(true);
-              return;
-            }
-            handleTrack();
-          }}
-          disabled={
-            (selectedStats.length === 0 && !trialExpired) || isTracking
-          }
-          title={
-            trialExpired
-              ? "Your 14-day trial has ended — upgrade to Pro to keep tracking"
-              : undefined
-          }
+          onClick={handleTrack}
+          disabled={selectedStats.length === 0 || isTracking}
           style={{
-            background: trialExpired
-              ? "#3a3a3a"
-              : selectedStats.length > 0
-                ? "#1d4ed8"
-                : undefined,
-            borderColor: trialExpired
-              ? "#555"
-              : selectedStats.length > 0
-                ? "#3B82F6"
-                : undefined,
-            color: trialExpired
-              ? "#999"
-              : selectedStats.length > 0
-                ? "#fff"
-                : undefined,
+            background: selectedStats.length > 0 ? "#1d4ed8" : undefined,
+            borderColor: selectedStats.length > 0 ? "#3B82F6" : undefined,
+            color: selectedStats.length > 0 ? "#fff" : undefined,
             cursor:
-              (selectedStats.length === 0 && !trialExpired) || isTracking
-                ? trialExpired
-                  ? "pointer"
-                  : "not-allowed"
+              selectedStats.length === 0 || isTracking
+                ? "not-allowed"
                 : "pointer",
-            opacity: selectedStats.length === 0 && !trialExpired ? 0.5 : 1,
+            opacity: selectedStats.length === 0 ? 0.5 : 1,
             padding: "7px 24px",
             fontSize: "13px",
           }}
         >
-          {isTracking ? "Creating..." : trialExpired ? "🔒 Track" : "Track"}
+          {isTracking ? "Creating..." : "Track"}
         </button>
       </div>
 
