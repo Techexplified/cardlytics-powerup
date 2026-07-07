@@ -199,7 +199,11 @@ export default function SubscriptionModal({
           : null;
 
         if (startedAt) {
-          const trialEndsAt = new Date(startedAt + 14 * 24 * 60 * 60 * 1000);
+          const trialStartDay = new Date(startedAt);
+          trialStartDay.setHours(0, 0, 0, 0); // snap to midnight of day 1
+          const trialEndsAt = new Date(
+            trialStartDay.getTime() + 14 * 24 * 60 * 60 * 1000, // + 14 full days
+          );
           s = {
             ...s,
             isTrialActive: Date.now() < trialEndsAt.getTime(),
@@ -236,9 +240,11 @@ export default function SubscriptionModal({
     setCheckoutError(null);
 
     const trialStartedAt = Date.now();
-    const trialEndsAt = new Date(
-      trialStartedAt + 14 * 24 * 60 * 60 * 1000,
-    ).toISOString();
+const trialStartDay = new Date(trialStartedAt);
+trialStartDay.setHours(0, 0, 0, 0); // snap to midnight of day 1
+const trialEndsAt = new Date(
+  trialStartDay.getTime() + 14 * 24 * 60 * 60 * 1000, // + 14 full days
+).toISOString();
 
     try {
       await trelloT.set(
@@ -672,406 +678,183 @@ export default function SubscriptionModal({
           )}
 
           {/* ── FREE / CHECKOUT-WAIT PHASE ─────────────────────── */}
-          {(phase === "free" || phase === "checkout-wait") && (() => {
-            const trialUsed = !!status?.trialEndsAt;
-            return (
-            <div>
-              {/* Plan tabs — UI only, selectedTab does not affect phase logic */}
-              <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-                {[
-                  { key: "free", label: "Free" },
-                  ...(trialUsed ? [] : [{ key: "trial", label: "14-day trial" }]),
-                  { key: "pro", label: "Pro" },
-                ].map((t) => (
-                  <button
-                    key={t.key}
-                    onClick={() =>
-                      phase !== "checkout-wait" && setSelectedTab(t.key)
-                    }
-                    style={{
-                      flex: 1,
-                      padding: "7px 0",
-                      fontSize: 12,
-                      fontWeight: 500,
-                      fontFamily: "'DM Sans', sans-serif",
-                      borderRadius: 8,
-                      border:
-                        selectedTab === t.key
-                          ? `0.5px solid ${GOLD_DARK}`
-                          : "0.5px solid rgba(255,255,255,0.1)",
-                      background:
-                        selectedTab === t.key
-                          ? "rgba(212,160,23,0.15)"
-                          : "transparent",
-                      color:
-                        selectedTab === t.key ? GOLD : "rgba(255,255,255,0.45)",
-                      cursor: phase === "checkout-wait" ? "default" : "pointer",
-                    }}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* FREE TAB */}
-              {selectedTab === "free" && (
-                <>
-                  <div
-                    style={{
-                      borderRadius: 12,
-                      padding: "12px 16px",
-                      marginBottom: 18,
-                      minHeight: 80,
-                      background: "#1a1a2e",
-                      border: "0.5px solid rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        fontSize: 11,
-                        fontWeight: 500,
-                        padding: "3px 10px",
-                        borderRadius: 20,
-                        marginBottom: 12,
-                        background: "rgba(255,255,255,0.08)",
-                        color: "rgba(255,255,255,0.5)",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 5,
-                          height: 5,
-                          borderRadius: "50%",
-                          background: "currentColor",
-                        }}
-                      />
-                      Free plan
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: 2,
-                        marginBottom: 4,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 500,
-                          color: "rgba(255,255,255,0.6)",
-                        }}
-                      >
-                        $
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 24,
-                          fontWeight: 700,
-                          color: "#ffffff",
-                          lineHeight: 1,
-                        }}
-                      >
-                        0
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          color: "rgba(255,255,255,0.4)",
-                          marginLeft: 2,
-                        }}
-                      >
-                        /mo
-                      </span>
-                    </div>
-                    <div
-                      style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}
-                    >
-                      Basic access · no card needed
-                    </div>
-                  </div>
-                  <ul
-                    style={{
-                      listStyle: "none",
-                      margin: "0 0 18px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                      padding: 0,
-                    }}
-                  >
+          {(phase === "free" || phase === "checkout-wait") &&
+            (() => {
+              const trialUsed = !!status?.trialEndsAt;
+              return (
+                <div>
+                  {/* Plan tabs — UI only, selectedTab does not affect phase logic */}
+                  <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
                     {[
-                      "Basic analytics",
-                      "Limited reports (5/mo)",
-                      "Single workspace",
-                    ].map((f, i) => (
-                      <li
-                        key={i}
+                      { key: "free", label: "Free" },
+                      ...(trialUsed
+                        ? []
+                        : [{ key: "trial", label: "14-day trial" }]),
+                      { key: "pro", label: "Pro" },
+                    ].map((t) => (
+                      <button
+                        key={t.key}
+                        onClick={() =>
+                          phase !== "checkout-wait" && setSelectedTab(t.key)
+                        }
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          fontSize: 13,
-                          color: "rgba(255,255,255,0.8)",
+                          flex: 1,
+                          padding: "7px 0",
+                          fontSize: 12,
+                          fontWeight: 500,
+                          fontFamily: "'DM Sans', sans-serif",
+                          borderRadius: 8,
+                          border:
+                            selectedTab === t.key
+                              ? `0.5px solid ${GOLD_DARK}`
+                              : "0.5px solid rgba(255,255,255,0.1)",
+                          background:
+                            selectedTab === t.key
+                              ? "rgba(212,160,23,0.15)"
+                              : "transparent",
+                          color:
+                            selectedTab === t.key
+                              ? GOLD
+                              : "rgba(255,255,255,0.45)",
+                          cursor:
+                            phase === "checkout-wait" ? "default" : "pointer",
                         }}
                       >
-                        <span
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* FREE TAB */}
+                  {selectedTab === "free" && (
+                    <>
+                      <div
+                        style={{
+                          borderRadius: 12,
+                          padding: "12px 16px",
+                          marginBottom: 18,
+                          minHeight: 80,
+                          background: "#1a1a2e",
+                          border: "0.5px solid rgba(255,255,255,0.08)",
+                        }}
+                      >
+                        <div
                           style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: "50%",
-                            flexShrink: 0,
-                            background: "rgba(255,255,255,0.06)",
-                            border: "0.5px solid rgba(255,255,255,0.12)",
-                            display: "flex",
+                            display: "inline-flex",
                             alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 10,
+                            gap: 5,
+                            fontSize: 11,
+                            fontWeight: 500,
+                            padding: "3px 10px",
+                            borderRadius: 20,
+                            marginBottom: 12,
+                            background: "rgba(255,255,255,0.08)",
+                            color: "rgba(255,255,255,0.5)",
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 5,
+                              height: 5,
+                              borderRadius: "50%",
+                              background: "currentColor",
+                            }}
+                          />
+                          Free plan
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "baseline",
+                            gap: 2,
+                            marginBottom: 4,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color: "rgba(255,255,255,0.6)",
+                            }}
+                          >
+                            $
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 24,
+                              fontWeight: 700,
+                              color: "#ffffff",
+                              lineHeight: 1,
+                            }}
+                          >
+                            0
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              color: "rgba(255,255,255,0.4)",
+                              marginLeft: 2,
+                            }}
+                          >
+                            /mo
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
                             color: "rgba(255,255,255,0.35)",
                           }}
                         >
-                          ✓
-                        </span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <button style={btnGhost(true)}>Current plan</button>
-                  <p
-                    style={{
-                      textAlign: "center",
-                      fontSize: 11,
-                      color: "rgba(255,255,255,0.25)",
-                      margin: "10px 0 0",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 5,
-                    }}
-                  >
-                    🔒 Secure checkout via Paddle
-                  </p>
-                </>
-              )}
-
-              {/* TRIAL TAB — never shown once the user has already had a trial */}
-              {selectedTab === "trial" && !trialUsed && (
-                <>
-                  <div
-                    style={{
-                      background: "rgba(212,160,23,0.1)",
-                      border: "0.5px solid rgba(212,160,23,0.25)",
-                      borderRadius: 8,
-                      padding: "9px 12px",
-                      marginBottom: 14,
-                      fontSize: 11.5,
-                      color: "#e8b830",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 7,
-                    }}
-                  >
-                    ⚡ No credit card required · cancel anytime
-                  </div>
-                  <div
-                    style={{
-                      borderRadius: 12,
-                      padding: "12px 16px",
-                      marginBottom: 18,
-                      minHeight: 80,
-                      position: "relative",
-                      overflow: "hidden",
-                      background:
-                        "linear-gradient(135deg, #1a1200 0%, #2a1f00 60%, #1a1a2e 100%)",
-                      border: "0.5px solid rgba(212,160,23,0.3)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: -30,
-                        right: -30,
-                        width: 120,
-                        height: 120,
-                        borderRadius: "50%",
-                        background:
-                          "radial-gradient(circle, rgba(212,160,23,0.18) 0%, transparent 70%)",
-                        pointerEvents: "none",
-                      }}
-                    />
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        fontSize: 11,
-                        fontWeight: 500,
-                        padding: "3px 10px",
-                        borderRadius: 20,
-                        marginBottom: 12,
-                        background: "rgba(212,160,23,0.18)",
-                        color: GOLD,
-                      }}
-                    >
-                      <span
+                          Basic access · no card needed
+                        </div>
+                      </div>
+                      <ul
                         style={{
-                          width: 5,
-                          height: 5,
-                          borderRadius: "50%",
-                          background: "currentColor",
-                        }}
-                      />
-                      14-day free trial
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: 2,
-                        marginBottom: 4,
-                      }}
-                    >
-                      <span
-                        style={{ fontSize: 14, fontWeight: 500, color: GOLD }}
-                      >
-                        $
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 24,
-                          fontWeight: 700,
-                          color: GOLD,
-                          lineHeight: 1,
-                        }}
-                      >
-                        0
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          color: "rgba(255,255,255,0.4)",
-                          marginLeft: 2,
-                        }}
-                      >
-                        for 14 days
-                      </span>
-                    </div>
-                    <div
-                      style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}
-                    >
-                      Then $19/mo · cancel before trial ends
-                    </div>
-                  </div>
-                  <ul
-                    style={{
-                      listStyle: "none",
-                      margin: "0 0 18px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                      padding: 0,
-                    }}
-                  >
-                    {[
-                      "Unlimited tracked cards & reports",
-                      "CSV, JSON & PDF export",
-                      "Team-wide analytics",
-                      "Priority support",
-                    ].map((f, i) => (
-                      <li
-                        key={i}
-                        style={{
+                          listStyle: "none",
+                          margin: "0 0 18px",
                           display: "flex",
-                          alignItems: "center",
+                          flexDirection: "column",
                           gap: 10,
-                          fontSize: 13,
-                          color: "rgba(255,255,255,0.8)",
+                          padding: 0,
                         }}
                       >
-                        <span
-                          style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: "50%",
-                            flexShrink: 0,
-                            background: "rgba(212,160,23,0.18)",
-                            border: "0.5px solid rgba(212,160,23,0.4)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 10,
-                            color: GOLD,
-                          }}
-                        >
-                          ✓
-                        </span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {checkoutError && (
-                    <div
-                      style={{
-                        background: "rgba(220,53,69,0.12)",
-                        border: "1px solid rgba(220,53,69,0.35)",
-                        borderRadius: 8,
-                        padding: "9px 12px",
-                        color: "#ff8fa3",
-                        fontSize: 12,
-                        marginBottom: 14,
-                        textAlign: "center",
-                      }}
-                    >
-                      {checkoutError}
-                    </div>
-                  )}
-
-                  {phase === "checkout-wait" ? (
-                    <div style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          width: 16,
-                          height: 16,
-                          border: "2px solid rgba(255,255,255,0.15)",
-                          borderTopColor: GOLD,
-                          borderRadius: "50%",
-                          animation: "spin 0.7s linear infinite",
-                          margin: "0 auto 10px",
-                        }}
-                      />
-                      <p
-                        style={{
-                          color: "rgba(255,255,255,0.55)",
-                          fontSize: 12.5,
-                          margin: "0 0 14px",
-                        }}
-                      >
-                        Complete your payment in the new window — we'll detect
-                        it automatically.
-                      </p>
-                      <button
-                        onClick={() => {
-                          popupRef.current?.close();
-                          clearInterval(pollRef.current);
-                          setPhase("free");
-                        }}
-                        style={btnGhost()}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={handleStartTrial}
-                        style={btnPrimary(true)}
-                      >
-                        ⚡ Start free trial
-                      </button>
+                        {[
+                          "Basic analytics",
+                          "Limited reports (5/mo)",
+                          "Single workspace",
+                        ].map((f, i) => (
+                          <li
+                            key={i}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              fontSize: 13,
+                              color: "rgba(255,255,255,0.8)",
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 18,
+                                height: 18,
+                                borderRadius: "50%",
+                                flexShrink: 0,
+                                background: "rgba(255,255,255,0.06)",
+                                border: "0.5px solid rgba(255,255,255,0.12)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 10,
+                                color: "rgba(255,255,255,0.35)",
+                              }}
+                            >
+                              ✓
+                            </span>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                      <button style={btnGhost(true)}>Current plan</button>
                       <p
                         style={{
                           textAlign: "center",
@@ -1088,226 +871,475 @@ export default function SubscriptionModal({
                       </p>
                     </>
                   )}
-                </>
-              )}
 
-              {/* PRO TAB */}
-              {selectedTab === "pro" && (
-                <>
-                  <div
-                    style={{
-                      borderRadius: 12,
-                      padding: "12px 16px",
-                      marginBottom: 18,
-                      minHeight: 80,
-                      position: "relative",
-                      overflow: "hidden",
-                      background:
-                        "linear-gradient(135deg, #130e00 0%, #241800 60%, #1a1a2e 100%)",
-                      border: "0.5px solid rgba(212,160,23,0.5)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: -30,
-                        right: -30,
-                        width: 120,
-                        height: 120,
-                        borderRadius: "50%",
-                        background:
-                          "radial-gradient(circle, rgba(212,160,23,0.18) 0%, transparent 70%)",
-                        pointerEvents: "none",
-                      }}
-                    />
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        fontSize: 11,
-                        fontWeight: 500,
-                        padding: "3px 10px",
-                        borderRadius: 20,
-                        marginBottom: 12,
-                        background: "rgba(212,160,23,0.22)",
-                        color: GOLD,
-                      }}
-                    >
-                      <span
+                  {/* TRIAL TAB — never shown once the user has already had a trial */}
+                  {selectedTab === "trial" && !trialUsed && (
+                    <>
+                      <div
                         style={{
-                          width: 5,
-                          height: 5,
-                          borderRadius: "50%",
-                          background: "currentColor",
-                        }}
-                      />
-                      Pro plan
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: 2,
-                        marginBottom: 4,
-                      }}
-                    >
-                      <span
-                        style={{ fontSize: 14, fontWeight: 500, color: GOLD }}
-                      >
-                        $
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 24,
-                          fontWeight: 700,
-                          color: GOLD,
-                          lineHeight: 1,
-                        }}
-                      >
-                        19
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          color: "rgba(255,255,255,0.4)",
-                          marginLeft: 2,
-                        }}
-                      >
-                        /mo
-                      </span>
-                    </div>
-                    <div
-                      style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}
-                    >
-                      Billed monthly · cancel anytime
-                    </div>
-                  </div>
-                  <ul
-                    style={{
-                      listStyle: "none",
-                      margin: "0 0 18px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                      padding: 0,
-                    }}
-                  >
-                    {[
-                      "Unlimited tracked cards & reports",
-                      "CSV, JSON & PDF export",
-                      "Team-wide analytics",
-                      "Priority support",
-                    ].map((f, i) => (
-                      <li
-                        key={i}
-                        style={{
+                          background: "rgba(212,160,23,0.1)",
+                          border: "0.5px solid rgba(212,160,23,0.25)",
+                          borderRadius: 8,
+                          padding: "9px 12px",
+                          marginBottom: 14,
+                          fontSize: 11.5,
+                          color: "#e8b830",
                           display: "flex",
                           alignItems: "center",
-                          gap: 10,
-                          fontSize: 13,
-                          color: "rgba(255,255,255,0.8)",
+                          gap: 7,
                         }}
                       >
-                        <span
+                        ⚡ No credit card required · cancel anytime
+                      </div>
+                      <div
+                        style={{
+                          borderRadius: 12,
+                          padding: "12px 16px",
+                          marginBottom: 18,
+                          minHeight: 80,
+                          position: "relative",
+                          overflow: "hidden",
+                          background:
+                            "linear-gradient(135deg, #1a1200 0%, #2a1f00 60%, #1a1a2e 100%)",
+                          border: "0.5px solid rgba(212,160,23,0.3)",
+                        }}
+                      >
+                        <div
                           style={{
-                            width: 18,
-                            height: 18,
+                            position: "absolute",
+                            top: -30,
+                            right: -30,
+                            width: 120,
+                            height: 120,
                             borderRadius: "50%",
-                            flexShrink: 0,
-                            background: "rgba(212,160,23,0.18)",
-                            border: "0.5px solid rgba(212,160,23,0.4)",
-                            display: "flex",
+                            background:
+                              "radial-gradient(circle, rgba(212,160,23,0.18) 0%, transparent 70%)",
+                            pointerEvents: "none",
+                          }}
+                        />
+                        <div
+                          style={{
+                            display: "inline-flex",
                             alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 10,
+                            gap: 5,
+                            fontSize: 11,
+                            fontWeight: 500,
+                            padding: "3px 10px",
+                            borderRadius: 20,
+                            marginBottom: 12,
+                            background: "rgba(212,160,23,0.18)",
                             color: GOLD,
                           }}
                         >
-                          ✓
-                        </span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {checkoutError && (
-                    <div
-                      style={{
-                        background: "rgba(220,53,69,0.12)",
-                        border: "1px solid rgba(220,53,69,0.35)",
-                        borderRadius: 8,
-                        padding: "9px 12px",
-                        color: "#ff8fa3",
-                        fontSize: 12,
-                        marginBottom: 14,
-                        textAlign: "center",
-                      }}
-                    >
-                      {checkoutError}
-                    </div>
-                  )}
-
-                  {phase === "checkout-wait" ? (
-                    <div style={{ textAlign: "center" }}>
-                      <div
+                          <span
+                            style={{
+                              width: 5,
+                              height: 5,
+                              borderRadius: "50%",
+                              background: "currentColor",
+                            }}
+                          />
+                          14-day free trial
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "baseline",
+                            gap: 2,
+                            marginBottom: 4,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color: GOLD,
+                            }}
+                          >
+                            $
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 24,
+                              fontWeight: 700,
+                              color: GOLD,
+                              lineHeight: 1,
+                            }}
+                          >
+                            0
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              color: "rgba(255,255,255,0.4)",
+                              marginLeft: 2,
+                            }}
+                          >
+                            for 14 days
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "rgba(255,255,255,0.35)",
+                          }}
+                        >
+                          Then $19/mo · cancel before trial ends
+                        </div>
+                      </div>
+                      <ul
                         style={{
-                          width: 16,
-                          height: 16,
-                          border: "2px solid rgba(255,255,255,0.15)",
-                          borderTopColor: GOLD,
-                          borderRadius: "50%",
-                          animation: "spin 0.7s linear infinite",
-                          margin: "0 auto 10px",
-                        }}
-                      />
-                      <p
-                        style={{
-                          color: "rgba(255,255,255,0.55)",
-                          fontSize: 12.5,
-                          margin: "0 0 14px",
-                        }}
-                      >
-                        Complete your payment in the new window — we'll detect
-                        it automatically.
-                      </p>
-                      <button
-                        onClick={() => {
-                          popupRef.current?.close();
-                          clearInterval(pollRef.current);
-                          setPhase("free");
-                        }}
-                        style={btnGhost()}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <button onClick={handleUpgrade} style={btnPrimary(true)}>
-                        ⚡ Upgrade to Pro
-                      </button>
-                      <p
-                        style={{
-                          textAlign: "center",
-                          fontSize: 11,
-                          color: "rgba(255,255,255,0.25)",
-                          margin: "10px 0 0",
+                          listStyle: "none",
+                          margin: "0 0 18px",
                           display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 5,
+                          flexDirection: "column",
+                          gap: 10,
+                          padding: 0,
                         }}
                       >
-                        🔒 Secure checkout via Paddle
-                      </p>
+                        {[
+                          "Unlimited tracked cards & reports",
+                          "CSV, JSON & PDF export",
+                          "Team-wide analytics",
+                          "Priority support",
+                        ].map((f, i) => (
+                          <li
+                            key={i}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              fontSize: 13,
+                              color: "rgba(255,255,255,0.8)",
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 18,
+                                height: 18,
+                                borderRadius: "50%",
+                                flexShrink: 0,
+                                background: "rgba(212,160,23,0.18)",
+                                border: "0.5px solid rgba(212,160,23,0.4)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 10,
+                                color: GOLD,
+                              }}
+                            >
+                              ✓
+                            </span>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {checkoutError && (
+                        <div
+                          style={{
+                            background: "rgba(220,53,69,0.12)",
+                            border: "1px solid rgba(220,53,69,0.35)",
+                            borderRadius: 8,
+                            padding: "9px 12px",
+                            color: "#ff8fa3",
+                            fontSize: 12,
+                            marginBottom: 14,
+                            textAlign: "center",
+                          }}
+                        >
+                          {checkoutError}
+                        </div>
+                      )}
+
+                      {phase === "checkout-wait" ? (
+                        <div style={{ textAlign: "center" }}>
+                          <div
+                            style={{
+                              width: 16,
+                              height: 16,
+                              border: "2px solid rgba(255,255,255,0.15)",
+                              borderTopColor: GOLD,
+                              borderRadius: "50%",
+                              animation: "spin 0.7s linear infinite",
+                              margin: "0 auto 10px",
+                            }}
+                          />
+                          <p
+                            style={{
+                              color: "rgba(255,255,255,0.55)",
+                              fontSize: 12.5,
+                              margin: "0 0 14px",
+                            }}
+                          >
+                            Complete your payment in the new window — we'll
+                            detect it automatically.
+                          </p>
+                          <button
+                            onClick={() => {
+                              popupRef.current?.close();
+                              clearInterval(pollRef.current);
+                              setPhase("free");
+                            }}
+                            style={btnGhost()}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={handleStartTrial}
+                            style={btnPrimary(true)}
+                          >
+                            ⚡ Start free trial
+                          </button>
+                          <p
+                            style={{
+                              textAlign: "center",
+                              fontSize: 11,
+                              color: "rgba(255,255,255,0.25)",
+                              margin: "10px 0 0",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 5,
+                            }}
+                          >
+                            🔒 Secure checkout via Paddle
+                          </p>
+                        </>
+                      )}
                     </>
                   )}
-                </>
-              )}
-            </div>
-            );
-          })()}
+
+                  {/* PRO TAB */}
+                  {selectedTab === "pro" && (
+                    <>
+                      <div
+                        style={{
+                          borderRadius: 12,
+                          padding: "12px 16px",
+                          marginBottom: 18,
+                          minHeight: 80,
+                          position: "relative",
+                          overflow: "hidden",
+                          background:
+                            "linear-gradient(135deg, #130e00 0%, #241800 60%, #1a1a2e 100%)",
+                          border: "0.5px solid rgba(212,160,23,0.5)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: -30,
+                            right: -30,
+                            width: 120,
+                            height: 120,
+                            borderRadius: "50%",
+                            background:
+                              "radial-gradient(circle, rgba(212,160,23,0.18) 0%, transparent 70%)",
+                            pointerEvents: "none",
+                          }}
+                        />
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            fontSize: 11,
+                            fontWeight: 500,
+                            padding: "3px 10px",
+                            borderRadius: 20,
+                            marginBottom: 12,
+                            background: "rgba(212,160,23,0.22)",
+                            color: GOLD,
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 5,
+                              height: 5,
+                              borderRadius: "50%",
+                              background: "currentColor",
+                            }}
+                          />
+                          Pro plan
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "baseline",
+                            gap: 2,
+                            marginBottom: 4,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color: GOLD,
+                            }}
+                          >
+                            $
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 24,
+                              fontWeight: 700,
+                              color: GOLD,
+                              lineHeight: 1,
+                            }}
+                          >
+                            19
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              color: "rgba(255,255,255,0.4)",
+                              marginLeft: 2,
+                            }}
+                          >
+                            /mo
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "rgba(255,255,255,0.35)",
+                          }}
+                        >
+                          Billed monthly · cancel anytime
+                        </div>
+                      </div>
+                      <ul
+                        style={{
+                          listStyle: "none",
+                          margin: "0 0 18px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                          padding: 0,
+                        }}
+                      >
+                        {[
+                          "Unlimited tracked cards & reports",
+                          "CSV, JSON & PDF export",
+                          "Team-wide analytics",
+                          "Priority support",
+                        ].map((f, i) => (
+                          <li
+                            key={i}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 10,
+                              fontSize: 13,
+                              color: "rgba(255,255,255,0.8)",
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 18,
+                                height: 18,
+                                borderRadius: "50%",
+                                flexShrink: 0,
+                                background: "rgba(212,160,23,0.18)",
+                                border: "0.5px solid rgba(212,160,23,0.4)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 10,
+                                color: GOLD,
+                              }}
+                            >
+                              ✓
+                            </span>
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {checkoutError && (
+                        <div
+                          style={{
+                            background: "rgba(220,53,69,0.12)",
+                            border: "1px solid rgba(220,53,69,0.35)",
+                            borderRadius: 8,
+                            padding: "9px 12px",
+                            color: "#ff8fa3",
+                            fontSize: 12,
+                            marginBottom: 14,
+                            textAlign: "center",
+                          }}
+                        >
+                          {checkoutError}
+                        </div>
+                      )}
+
+                      {phase === "checkout-wait" ? (
+                        <div style={{ textAlign: "center" }}>
+                          <div
+                            style={{
+                              width: 16,
+                              height: 16,
+                              border: "2px solid rgba(255,255,255,0.15)",
+                              borderTopColor: GOLD,
+                              borderRadius: "50%",
+                              animation: "spin 0.7s linear infinite",
+                              margin: "0 auto 10px",
+                            }}
+                          />
+                          <p
+                            style={{
+                              color: "rgba(255,255,255,0.55)",
+                              fontSize: 12.5,
+                              margin: "0 0 14px",
+                            }}
+                          >
+                            Complete your payment in the new window — we'll
+                            detect it automatically.
+                          </p>
+                          <button
+                            onClick={() => {
+                              popupRef.current?.close();
+                              clearInterval(pollRef.current);
+                              setPhase("free");
+                            }}
+                            style={btnGhost()}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={handleUpgrade}
+                            style={btnPrimary(true)}
+                          >
+                            ⚡ Upgrade to Pro
+                          </button>
+                          <p
+                            style={{
+                              textAlign: "center",
+                              fontSize: 11,
+                              color: "rgba(255,255,255,0.25)",
+                              margin: "10px 0 0",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 5,
+                            }}
+                          >
+                            🔒 Secure checkout via Paddle
+                          </p>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
 
           {phase === "error" && (
             <div style={{ textAlign: "center" }}>
