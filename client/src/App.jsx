@@ -20,6 +20,7 @@ import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
 import { TRELLO_API_KEY, getStoredToken, storeToken } from "./utils/auth";
 import SubscriptionModal from "./components/SubscriptionModal";
+import TrialExpiredModal from "./components/TrialExpiredModal";
 import { fetchSubscriptionStatus } from "./utils/api";
 import "./index.css";
 import html2canvas from "html2canvas";
@@ -2211,6 +2212,7 @@ export default function App() {
 
   const [token, setToken] = useState(() => getStoredToken());
   const [showSubscription, setShowSubscription] = useState(false);
+  const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
   const [knownPlan, setKnownPlan] = useState(null);
   const [stats, setStats] = useState({
     assigned: 0,
@@ -2576,9 +2578,24 @@ export default function App() {
       prev.includes(type) ? prev.filter((i) => i !== type) : [...prev, type],
     );
 
-  const handleTrack = async (statsOverride, configOverride) => {
+  const trialExpired =
+  !!knownPlan &&
+  !knownPlan.isPro &&
+  !knownPlan.isTrialActive &&
+  !!knownPlan.trialEndsAt;
+
+  useEffect(() => {
+  if (trialExpired) setShowTrialExpiredModal(true);
+}, [trialExpired]);
+
+const handleTrack = async (statsOverride, configOverride) => {
     const statsToTrack = statsOverride ?? selectedStats;
     const configToUse = configOverride ?? cardConfig;
+
+    if (trialExpired) {
+      setShowTrialExpiredModal(true);
+      return;
+    }
 
     if (statsToTrack.length === 0) {
       showToast("Please select at least one stat to track", "error");
@@ -2878,6 +2895,12 @@ export default function App() {
         onClose={() => setShowSubscription(false)}
         onStatusKnown={setKnownPlan}
         trelloT={trelloT}
+      />
+
+      <TrialExpiredModal
+        show={showTrialExpiredModal}
+        token={token}
+        onClose={() => setShowTrialExpiredModal(false)}
       />
 
       <CustomizeFlow
@@ -3348,22 +3371,49 @@ export default function App() {
       >
         <button
           className="btn-customize"
-          onClick={() => handleTrack()}
-          disabled={selectedStats.length === 0 || isTracking}
+          onClick={() => {
+            if (trialExpired) {
+              setShowTrialExpiredModal(true);
+              return;
+            }
+            handleTrack();
+          }}
+          disabled={
+            (selectedStats.length === 0 && !trialExpired) || isTracking
+          }
+          title={
+            trialExpired
+              ? "Your 14-day trial has ended — upgrade to Pro to keep tracking"
+              : undefined
+          }
           style={{
-            background: selectedStats.length > 0 ? "#1d4ed8" : undefined,
-            borderColor: selectedStats.length > 0 ? "#3B82F6" : undefined,
-            color: selectedStats.length > 0 ? "#fff" : undefined,
+            background: trialExpired
+              ? "#3a3a3a"
+              : selectedStats.length > 0
+                ? "#1d4ed8"
+                : undefined,
+            borderColor: trialExpired
+              ? "#555"
+              : selectedStats.length > 0
+                ? "#3B82F6"
+                : undefined,
+            color: trialExpired
+              ? "#999"
+              : selectedStats.length > 0
+                ? "#fff"
+                : undefined,
             cursor:
-              selectedStats.length === 0 || isTracking
-                ? "not-allowed"
+              (selectedStats.length === 0 && !trialExpired) || isTracking
+                ? trialExpired
+                  ? "pointer"
+                  : "not-allowed"
                 : "pointer",
-            opacity: selectedStats.length === 0 ? 0.5 : 1,
+            opacity: selectedStats.length === 0 && !trialExpired ? 0.5 : 1,
             padding: "7px 24px",
             fontSize: "13px",
           }}
         >
-          {isTracking ? "Creating..." : "Track"}
+          {isTracking ? "Creating..." : trialExpired ? "🔒 Track" : "Track"}
         </button>
       </div>
 
