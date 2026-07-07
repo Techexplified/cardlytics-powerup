@@ -2513,33 +2513,37 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-  if (!token) return;
-  fetchSubscriptionStatus(token)
-    .then(async (s) => {
-      if (!s.isPro) {
-        const startedAt = trelloT
-          ? await trelloT
-              .get("member", "private", "cardlyticsTrialStartedAt")
-              .catch(() => null)
-          : null;
+    if (!token) return;
+    fetchSubscriptionStatus(token)
+      .then(async (s) => {
+        if (!s.isPro) {
+          const startedAt = trelloT
+            ? await trelloT
+                .get("member", "private", "cardlyticsTrialStartedAt")
+                .catch(() => null)
+            : null;
 
-        if (startedAt) {
-          const trialEndsAt = new Date(startedAt + 14 * 24 * 60 * 60 * 1000);
-          const stillActive = Date.now() < trialEndsAt.getTime();
-          setKnownPlan({
-            ...s,
-            isTrialActive: stillActive,
-            trialEndsAt: trialEndsAt.toISOString(),
-          });
-        } else {
-          setKnownPlan({ ...s, isTrialActive: false, trialEndsAt: null });
+          if (startedAt) {
+            const trialStartDay = new Date(startedAt);
+            trialStartDay.setHours(0, 0, 0, 0); // snap to midnight of day 1
+            const trialEndsAt = new Date(
+              trialStartDay.getTime() + 14 * 24 * 60 * 60 * 1000, // + 14 full days
+            );
+            const stillActive = Date.now() < trialEndsAt.getTime();
+            setKnownPlan({
+              ...s,
+              isTrialActive: stillActive,
+              trialEndsAt: trialEndsAt.toISOString(),
+            });
+          } else {
+            setKnownPlan({ ...s, isTrialActive: false, trialEndsAt: null });
+          }
+          return;
         }
-        return;
-      }
-      setKnownPlan(s);
-    })
-    .catch(() => {});
-}, [token]);
+        setKnownPlan(s);
+      })
+      .catch(() => {});
+  }, [token]);
 
   useEffect(() => {
     if (autoCustomize && token) {
