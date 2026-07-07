@@ -181,7 +181,27 @@ export default function SubscriptionModal({
 
   async function verify() {
     try {
-      const s = await fetchSubscriptionStatus(token);
+      let s = await fetchSubscriptionStatus(token);
+
+      if (!s.isPro) {
+        const startedAt = trelloT
+          ? await trelloT
+              .get("member", "private", "cardlyticsTrialStartedAt")
+              .catch(() => null)
+          : null;
+
+        if (startedAt) {
+          const trialEndsAt = new Date(startedAt + 14 * 24 * 60 * 60 * 1000);
+          s = {
+            ...s,
+            isTrialActive: Date.now() < trialEndsAt.getTime(),
+            trialEndsAt: trialEndsAt.toISOString(),
+          };
+        } else {
+          s = { ...s, isTrialActive: false, trialEndsAt: null };
+        }
+      }
+
       setStatus(s);
       onStatusKnown?.(s);
 

@@ -2516,10 +2516,13 @@ export default function App() {
   if (!token) return;
   fetchSubscriptionStatus(token)
     .then(async (s) => {
-      if (!s.isPro && trelloT) {
-        const startedAt = await trelloT
-          .get("member", "private", "cardlyticsTrialStartedAt")
-          .catch(() => null);
+      if (!s.isPro) {
+        const startedAt = trelloT
+          ? await trelloT
+              .get("member", "private", "cardlyticsTrialStartedAt")
+              .catch(() => null)
+          : null;
+
         if (startedAt) {
           const trialEndsAt = new Date(startedAt + 14 * 24 * 60 * 60 * 1000);
           const stillActive = Date.now() < trialEndsAt.getTime();
@@ -2528,8 +2531,10 @@ export default function App() {
             isTrialActive: stillActive,
             trialEndsAt: trialEndsAt.toISOString(),
           });
-          return;
+        } else {
+          setKnownPlan({ ...s, isTrialActive: false, trialEndsAt: null });
         }
+        return;
       }
       setKnownPlan(s);
     })
