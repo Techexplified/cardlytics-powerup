@@ -166,7 +166,7 @@ export default function SubscriptionModal({
   const [status, setStatus] = useState(null);
   const [portalUrls, setPortalUrls] = useState(null);
   const [checkoutError, setCheckoutError] = useState(null);
-  const [selectedTab, setSelectedTab] = useState("trial"); // UI-only tab for free/checkout-wait phase
+  const [selectedTab, setSelectedTab] = useState("pro"); // UI-only tab for free/checkout-wait phase
   const pollRef = useRef(null);
   const popupRef = useRef(null);
 
@@ -178,6 +178,14 @@ export default function SubscriptionModal({
     verify();
     return () => clearInterval(pollRef.current);
   }, [show]);
+
+  // Once we know the user's trial history, land them on the right tab:
+  // never show/select the trial tab again for someone who already used it.
+  useEffect(() => {
+    if (phase !== "free") return;
+    const trialUsed = !!status?.trialEndsAt;
+    setSelectedTab(trialUsed ? "pro" : "trial");
+  }, [phase, status?.trialEndsAt]);
 
   async function verify() {
     try {
@@ -664,13 +672,15 @@ export default function SubscriptionModal({
           )}
 
           {/* ── FREE / CHECKOUT-WAIT PHASE ─────────────────────── */}
-          {(phase === "free" || phase === "checkout-wait") && (
+          {(phase === "free" || phase === "checkout-wait") && (() => {
+            const trialUsed = !!status?.trialEndsAt;
+            return (
             <div>
               {/* Plan tabs — UI only, selectedTab does not affect phase logic */}
               <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
                 {[
                   { key: "free", label: "Free" },
-                  { key: "trial", label: "14-day trial" },
+                  ...(trialUsed ? [] : [{ key: "trial", label: "14-day trial" }]),
                   { key: "pro", label: "Pro" },
                 ].map((t) => (
                   <button
@@ -847,8 +857,8 @@ export default function SubscriptionModal({
                 </>
               )}
 
-              {/* TRIAL TAB */}
-              {selectedTab === "trial" && (
+              {/* TRIAL TAB — never shown once the user has already had a trial */}
+              {selectedTab === "trial" && !trialUsed && (
                 <>
                   <div
                     style={{
@@ -1296,7 +1306,8 @@ export default function SubscriptionModal({
                 </>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {phase === "error" && (
             <div style={{ textAlign: "center" }}>
