@@ -131,7 +131,7 @@ export default function CheckoutPage() {
         attempts++;
         try {
           const data = await fetchSubscriptionStatus(token);
-          if (data.isActive) {
+          if (data.isPro) {
             handleSuccess();
             return;
           }
