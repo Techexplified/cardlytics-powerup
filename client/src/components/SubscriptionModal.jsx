@@ -1,9 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import {
-  fetchSubscriptionStatus,
-  initCheckout,
-  fetchBillingPortal,
-} from "../utils/api";
+import { fetchSubscriptionStatus, initCheckout, fetchBillingPortal } from "../utils/api";
 
 const GOLD = "#f5c842";
 const GOLD_DARK = "#d4a017";
@@ -23,10 +19,15 @@ function daysUntil(dateStr) {
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 }
 
-// ─── Verification ring: draws in, then resolves to ✓, 👑 or ⏳ ───────────────
+// ─── Verification ring: draws in, then resolves to ✓ or 👑 ──────────────────
 function VerifyRing({ resolved, isPro, isTrial }) {
-  const resolvedColor = isPro ? GOLD : isTrial ? "#4ea1ff" : "#f5c842";
-  const resolvedIcon = isPro ? "👑" : isTrial ? "⏳" : "✓";
+  const color = resolved
+    ? isPro ? GOLD : isTrial ? "#4ea1ff" : "#666"
+    : "#f5c842";
+  const icon = resolved
+    ? isPro ? "👑" : isTrial ? "⏳" : "✓"
+    : "···";
+
   return (
     <div style={{ position: "relative", width: 72, height: 72 }}>
       <svg width="72" height="72" viewBox="0 0 72 72">
@@ -43,7 +44,7 @@ function VerifyRing({ resolved, isPro, isTrial }) {
           cy="36"
           r="30"
           fill="none"
-          stroke={resolved ? resolvedColor : "#f5c842"}
+          stroke={color}
           strokeWidth="4"
           strokeLinecap="round"
           strokeDasharray="188.5"
@@ -63,48 +64,14 @@ function VerifyRing({ resolved, isPro, isTrial }) {
           alignItems: "center",
           justifyContent: "center",
           fontSize: resolved ? 26 : 13,
-          color: resolved ? resolvedColor : "rgba(255,255,255,0.4)",
+          color: resolved ? color : "rgba(255,255,255,0.4)",
           transition: "opacity 0.3s ease",
           opacity: 1,
         }}
       >
-        {resolved ? resolvedIcon : "···"}
+        {icon}
       </div>
     </div>
-  );
-}
-
-// ─── Billing management link (shown to Pro members) ─────────────────────────
-function BillingLink({ icon, label, url }) {
-  return (
-    <button
-      onClick={() => window.open(url, "_blank")}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        width: "100%",
-        padding: "11px 14px",
-        borderRadius: 8,
-        background: "rgba(255,255,255,0.04)",
-        border: "0.5px solid rgba(255,255,255,0.1)",
-        color: "rgba(255,255,255,0.8)",
-        fontSize: 12.5,
-        cursor: "pointer",
-        fontFamily: "'DM Sans', sans-serif",
-        transition: "border-color 0.15s",
-      }}
-      onMouseEnter={(e) =>
-        (e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)")
-      }
-      onMouseLeave={(e) =>
-        (e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)")
-      }
-    >
-      <span style={{ fontSize: 14 }}>{icon}</span>
-      <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
-      <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>↗</span>
-    </button>
   );
 }
 
@@ -147,17 +114,41 @@ function Row({ label, value, state }) {
   );
 }
 
+// ─── Billing link button ────────────────────────────────────────────────────
+function BillingLink({ icon, label, url }) {
+  return (
+    <button
+      onClick={() => window.open(url, "_blank")}
+      style={{
+        display: "flex", alignItems: "center", gap: 8,
+        width: "100%", padding: "11px 14px", borderRadius: 8,
+        background: "rgba(255,255,255,0.04)", border: "0.5px solid rgba(255,255,255,0.1)",
+        color: "rgba(255,255,255,0.7)", fontSize: 12.5, cursor: "pointer",
+        fontFamily: "'DM Sans', sans-serif",
+        transition: "border-color 0.15s",
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.25)"}
+      onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"}
+    >
+      <span style={{ fontSize: 14 }}>{icon}</span>
+      <span style={{ flex: 1, textAlign: "left" }}>{label}</span>
+      <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>↗</span>
+    </button>
+  );
+}
+
 export default function SubscriptionModal({
   show,
   token,
   onClose,
   onStatusKnown,
 }) {
-  const [phase, setPhase] = useState("verifying"); // verifying | pro | trial | free | checkout-wait | error
+  // phases: verifying | pro | trial | free | checkout-wait | error
+  const [phase, setPhase] = useState("verifying");
   const [status, setStatus] = useState(null);
   const [portalUrls, setPortalUrls] = useState(null);
   const [checkoutError, setCheckoutError] = useState(null);
-  const [selectedTab, setSelectedTab] = useState("trial"); // UI-only: free | trial | pro — does not affect phase logic
+  const [selectedTab, setSelectedTab] = useState("trial"); // UI-only tab for free/checkout-wait phase
   const pollRef = useRef(null);
   const popupRef = useRef(null);
 
@@ -176,17 +167,14 @@ export default function SubscriptionModal({
       setStatus(s);
       onStatusKnown?.(s);
 
-      const isPro = s.isPro || s.isActive;
-
-      // If Pro, also fetch billing portal links (hidden gracefully if 404)
-      if (isPro) {
+      // If Pro, also fetch billing portal links
+      if (s.isPro) {
         fetchBillingPortal(token).then(setPortalUrls).catch(() => {});
       }
 
-      // Resolve the ring visibly, then land on the right phase:
-      //   Pro → "pro", active trial → "trial", otherwise → "free"
+      // FIX: use isPro and isTrialActive instead of just isActive
       setTimeout(() => {
-        if (isPro) setPhase("pro");
+        if (s.isPro) setPhase("pro");
         else if (s.isTrialActive) setPhase("trial");
         else setPhase("free");
       }, 450);
@@ -200,11 +188,7 @@ export default function SubscriptionModal({
 
     try {
       const { checkoutUrl } = await initCheckout(token);
-
-      // ← open in new tab — Power-Up stays open
       window.open(checkoutUrl, "_blank");
-
-      // ← start polling immediately
       setPhase("checkout-wait");
       pollAfterCheckout();
     } catch (err) {
@@ -213,7 +197,6 @@ export default function SubscriptionModal({
         if (s) {
           setStatus(s);
           onStatusKnown?.(s);
-          fetchBillingPortal(token).then(setPortalUrls).catch(() => {});
         }
         setPhase("pro");
       } else {
@@ -223,19 +206,19 @@ export default function SubscriptionModal({
   }
 
   async function pollAfterCheckout() {
-    const maxAttempts = 40; // 2 minutes
+    const maxAttempts = 40;
     let attempts = 0;
 
     pollRef.current = setInterval(async () => {
       attempts++;
       try {
         const s = await fetchSubscriptionStatus(token);
-        if (s.isPro || s.isActive) {
+        if (s.isPro) {
           clearInterval(pollRef.current);
           setStatus(s);
           onStatusKnown?.(s);
           fetchBillingPortal(token).then(setPortalUrls).catch(() => {});
-          setPhase("pro"); // ← shows Pro UI automatically
+          setPhase("pro");
         }
       } catch {
         // keep polling
@@ -243,7 +226,7 @@ export default function SubscriptionModal({
 
       if (attempts >= maxAttempts) {
         clearInterval(pollRef.current);
-        setPhase("free"); // timeout — go back to free UI
+        setPhase("free");
       }
     }, 3000);
   }
@@ -367,6 +350,7 @@ export default function SubscriptionModal({
             </div>
           )}
 
+          {/* ── PRO PHASE ──────────────────────────────────────── */}
           {phase === "pro" && (
             <div
               style={{
@@ -442,44 +426,15 @@ export default function SubscriptionModal({
                 )}
               </div>
 
-              {/* ── Billing management (Pro only, shown when available) ── */}
+              {/* ── Billing management links ── */}
               {portalUrls && (
-                <div
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    marginBottom: 20,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "rgba(255,255,255,0.4)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.06em",
-                      marginBottom: 4,
-                      textAlign: "left",
-                    }}
-                  >
+                <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
                     Manage billing
                   </div>
-                  <BillingLink
-                    icon="📋"
-                    label="View billing overview"
-                    url={portalUrls.overview}
-                  />
-                  <BillingLink
-                    icon="💳"
-                    label="Update payment method"
-                    url={portalUrls.updatePaymentMethod}
-                  />
-                  <BillingLink
-                    icon="✕"
-                    label="Cancel subscription"
-                    url={portalUrls.cancelSubscription}
-                  />
+                  <BillingLink icon="📋" label="View billing overview" url={portalUrls.overview} />
+                  <BillingLink icon="💳" label="Update payment method" url={portalUrls.updatePaymentMethod} />
+                  <BillingLink icon="✕" label="Cancel subscription" url={portalUrls.cancelSubscription} />
                 </div>
               )}
 
@@ -489,109 +444,56 @@ export default function SubscriptionModal({
             </div>
           )}
 
-          {/* ── TRIAL (active free trial) ──────────────────────────── */}
+          {/* ── TRIAL PHASE (new) ──────────────────────────────── */}
           {phase === "trial" && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                textAlign: "center",
-              }}
-            >
-              <VerifyRing resolved isTrial />
-              <h2
-                style={{
-                  color: "#ffffff",
-                  fontSize: 17,
-                  fontWeight: 700,
-                  margin: "18px 0 4px",
-                }}
-              >
-                Free Trial · {trialDays} day{trialDays !== 1 ? "s" : ""} left
-              </h2>
-              <p
-                style={{
-                  color: "rgba(255,255,255,0.45)",
-                  fontSize: 12.5,
-                  margin: "0 0 6px",
-                }}
-              >
-                All Pro features are unlocked until{" "}
-                {formatDate(status?.trialEndsAt)}.
-              </p>
+            <div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+                <VerifyRing resolved isTrial />
+                <h2 style={{ color: "#ffffff", fontSize: 17, fontWeight: 700, margin: "18px 0 4px" }}>
+                  Free Trial · {trialDays} day{trialDays !== 1 ? "s" : ""} left
+                </h2>
+                <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 12.5, margin: "0 0 6px" }}>
+                  All Pro features are unlocked until {formatDate(status?.trialEndsAt)}.
+                </p>
 
-              {/* trial progress bar */}
-              <div
-                style={{
-                  width: "100%",
-                  height: 4,
-                  background: "rgba(255,255,255,0.1)",
-                  borderRadius: 2,
-                  margin: "10px 0 20px",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    height: "100%",
-                    borderRadius: 2,
-                    background: trialDays <= 3 ? "#ff5252" : "#4ea1ff",
+                {/* trial progress bar */}
+                <div style={{ width: "100%", height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2, margin: "10px 0 20px", overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", borderRadius: 2,
+                    background: trialDays <= 3 ? "#ff5252" : GOLD,
                     width: `${Math.max(5, ((14 - trialDays) / 14) * 100)}%`,
                     transition: "width 0.5s ease",
-                  }}
-                />
+                  }} />
+                </div>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  marginBottom: 18,
-                  width: "100%",
-                }}
-              >
-                <PlanCard
-                  title="Free Trial"
-                  active
-                  price="$0"
-                  features={[
-                    "All Pro features",
-                    `${trialDays} days remaining`,
-                    "No card required",
-                  ]}
-                />
-                <PlanCard
-                  title="Pro"
-                  highlight
-                  price="$19"
-                  features={[
-                    "Unlimited tracked cards",
-                    "Team-wide analytics",
-                    "Priority support",
-                  ]}
-                />
-              </div>
+              <ul style={{ listStyle: "none", margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 10, padding: 0 }}>
+                {["Unlimited tracked cards & reports", "CSV, JSON & PDF export", "Team-wide analytics", "Priority support"].map((f, i) => (
+                  <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "rgba(255,255,255,0.8)" }}>
+                    <span style={{
+                      width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
+                      background: "rgba(212,160,23,0.18)", border: "0.5px solid rgba(212,160,23,0.4)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 10, color: GOLD,
+                    }}>✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
 
               <button onClick={handleUpgrade} style={btnPrimary(true)}>
                 ⚡ Upgrade to Pro now
               </button>
-              <p
-                style={{
-                  textAlign: "center",
-                  fontSize: 10.5,
-                  color: "rgba(255,255,255,0.35)",
-                  margin: "12px 0 0",
-                }}
-              >
-                Keep access after the trial ends. Payments by Paddle.
+              <p style={{ textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.25)", margin: "10px 0 0", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                🔒 Keep access after the trial ends · Paddle
               </p>
             </div>
           )}
 
+          {/* ── FREE / CHECKOUT-WAIT PHASE ─────────────────────── */}
           {(phase === "free" || phase === "checkout-wait") && (
             <div>
-              {/* Plan tabs — UI only, selectedTab does not affect phase/logic */}
+              {/* Plan tabs — UI only, selectedTab does not affect phase logic */}
               <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
                 {[
                   { key: "free", label: "Free" },
@@ -864,7 +766,6 @@ export default function SubscriptionModal({
                       >
                         0
                       </span>
-
                       <span
                         style={{
                           fontSize: 13,
@@ -972,6 +873,7 @@ export default function SubscriptionModal({
                       <button
                         onClick={() => {
                           popupRef.current?.close();
+                          clearInterval(pollRef.current);
                           setPhase("free");
                         }}
                         style={btnGhost()}
@@ -1186,6 +1088,7 @@ export default function SubscriptionModal({
                       <button
                         onClick={() => {
                           popupRef.current?.close();
+                          clearInterval(pollRef.current);
                           setPhase("free");
                         }}
                         style={btnGhost()}

@@ -2923,12 +2923,7 @@ async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg)
           const tkn = getStoredToken();
           return getBoardScopedData(key, tkn, targetBoardId, boards);
         }}
-        isPremium={
-          (knownPlan?.isPro ||
-            knownPlan?.isActive ||
-            knownPlan?.isTrialActive) ??
-          false
-        }
+        isPremium={(knownPlan?.isPro || knownPlan?.isTrialActive) ?? false}
         onUpgradeClick={() => setShowSubscription(true)}
         trelloT={trelloT}
       />
@@ -2996,35 +2991,26 @@ async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg)
               className="btn-customize"
               onClick={() => setShowSubscription(true)}
               style={{
-                background:
-                  knownPlan?.isPro || knownPlan?.isActive
-                    ? "linear-gradient(135deg, #e8b339, #c9962a)"
-                    : "transparent",
-                border:
-                  knownPlan?.isPro || knownPlan?.isActive
-                    ? "none"
-                    : knownPlan?.isTrialActive
-                      ? "1px solid #4ea1ff"
-                      : "1px solid #e8b339",
-                color:
-                  knownPlan?.isPro || knownPlan?.isActive
-                    ? "#1a1a1a"
-                    : knownPlan?.isTrialActive
-                      ? "#4ea1ff"
-                      : "#e8b339",
+                background: knownPlan?.isPro
+                  ? "linear-gradient(135deg, #e8b339, #c9962a)"
+                  : "transparent",
+                border: knownPlan?.isPro
+                  ? "none"
+                  : knownPlan?.isTrialActive
+                    ? "1px solid #4ea1ff"
+                    : "1px solid #e8b339",
+                color: knownPlan?.isPro
+                  ? "#1a1a1a"
+                  : knownPlan?.isTrialActive
+                    ? "#4ea1ff"
+                    : "#e8b339",
                 fontWeight: 700,
               }}
             >
-              {knownPlan?.isPro || knownPlan?.isActive
+              {knownPlan?.isPro
                 ? "👑 Pro"
                 : knownPlan?.isTrialActive
-                  ? `⏳ Trial · ${Math.max(
-                      0,
-                      Math.ceil(
-                        (new Date(knownPlan.trialEndsAt) - Date.now()) /
-                          86400000,
-                      ),
-                    )}d`
+                  ? `⏳ Trial · ${Math.max(0, Math.ceil((new Date(knownPlan.trialEndsAt) - Date.now()) / 86400000))}d`
                   : "⚡ Buy Pro"}
             </button>
             <button
