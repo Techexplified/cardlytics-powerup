@@ -20,7 +20,6 @@ import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
 import { TRELLO_API_KEY, getStoredToken, storeToken } from "./utils/auth";
 import SubscriptionModal from "./components/SubscriptionModal";
-import TrialExpiredModal from "./components/TrialExpiredModal";
 import { fetchSubscriptionStatus } from "./utils/api";
 import "./index.css";
 import html2canvas from "html2canvas";
@@ -1016,20 +1015,20 @@ function CardBackView() {
       }
 
       trelloT.board("id").then((board) => {
-        let isPersonalized = false;
-        try {
-          const saved = JSON.parse(
-            localStorage.getItem(`cardlytics:personalized:${board.id}`) || "[]",
-          );
-          isPersonalized = saved.some((v) => v.cardId === card.id);
-        } catch (_) {}
+  let isPersonalized = false;
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(`cardlytics:personalized:${board.id}`) || "[]",
+    );
+    isPersonalized = saved.some((v) => v.cardId === card.id);
+  } catch (_) {}
 
-        trelloT.modal({
-          title: "Cardlytics",
-          url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}${filtersRaw ? `&filters=${filtersRaw}` : ""}${isPersonalized ? "&personalized=1" : ""}&cardName=${encodeURIComponent(card.name)}`,
-          fullscreen: true,
-        });
-      });
+  trelloT.modal({
+    title: "Cardlytics",
+    url: `./index.html?view=card-details&listId=${resolvedListId}&boardId=${board.id}&statType=${statType}&mode=${cardMode}${filtersRaw ? `&filters=${filtersRaw}` : ""}${isPersonalized ? "&personalized=1" : ""}&cardName=${encodeURIComponent(card.name)}`,
+    fullscreen: true,
+  });
+});
     });
   }
 
@@ -1051,7 +1050,7 @@ function CardBackView() {
       : [];
 
   return (
-    <div className="cb-root">
+<div className="cb-root">
       <div
         style={{
           display: "flex",
@@ -1551,13 +1550,13 @@ function CardDetailsView() {
         body: JSON.stringify({ dueComplete: newValue }),
       });
       clearTimeout(window._toggleRefreshTimer);
-      window._toggleRefreshTimer = setTimeout(() => {
-        if (trelloT) {
-          runTrackerRefresh(key, tkn, trelloT).catch((err) =>
-            console.error("Tracker refresh after toggleDone failed:", err),
-          );
-        }
-      }, 2000);
+window._toggleRefreshTimer = setTimeout(() => {
+  if (trelloT) {
+    runTrackerRefresh(key, tkn, trelloT).catch((err) =>
+      console.error("Tracker refresh after toggleDone failed:", err),
+    );
+  }
+}, 2000);
     } catch (err) {
       setCards((prev) =>
         prev.map((c) =>
@@ -1613,6 +1612,7 @@ function CardDetailsView() {
       });
     });
   }
+
 
   function SortArrow({ col }) {
     if (sortCol !== col)
@@ -2212,8 +2212,7 @@ export default function App() {
 
   const [token, setToken] = useState(() => getStoredToken());
   const [showSubscription, setShowSubscription] = useState(false);
-  const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
-  const [knownPlan, setKnownPlan] = useState(null);
+const [knownPlan, setKnownPlan] = useState(null);
   const [stats, setStats] = useState({
     assigned: 0,
     dueThisWeek: 0,
@@ -2253,8 +2252,8 @@ export default function App() {
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState(null);
   const [currentWorkspaceName, setCurrentWorkspaceName] = useState("");
   const [trackTab, setTrackTab] = useState("general");
-  const [personalizedViews, setPersonalizedViews] = useState([]);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+const [personalizedViews, setPersonalizedViews] = useState([]);
+const [deleteTarget, setDeleteTarget] = useState(null);
 
   const scopeListIdRef = useRef(
     (() => {
@@ -2281,96 +2280,89 @@ export default function App() {
   }
 
   // ── Load + compute live counts for popup's Personalized tab ───────────────
-  async function loadPersonalizedViews(
-    boardIdArg,
-    fullBoardCardsArg,
-    memberIdArg,
-  ) {
-    if (!boardIdArg) {
+async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg) {
+  if (!boardIdArg) {
+    setPersonalizedViews([]);
+    return;
+  }
+  try {
+    const key = TRELLO_API_KEY;
+    const tkn = getStoredToken();
+
+    const savedViews = JSON.parse(
+      localStorage.getItem(`cardlytics:personalized:${boardIdArg}`) || "[]",
+    );
+    if (savedViews.length === 0) {
       setPersonalizedViews([]);
       return;
     }
-    try {
-      const key = TRELLO_API_KEY;
-      const tkn = getStoredToken();
 
-      const savedViews = JSON.parse(
-        localStorage.getItem(`cardlytics:personalized:${boardIdArg}`) || "[]",
+    // Prune views whose tracker card no longer exists in the Cardlytics list
+    const allLists = await getBoardLists(key, tkn, boardIdArg);
+    const cardlyticsLists = allLists.filter(
+      (l) => l.name.toLowerCase() === "cardlytics",
+    );
+    const cardlyticsCardArrays = await Promise.all(
+      cardlyticsLists.map((l) => getListCards(key, tkn, l.id)),
+    );
+    const liveTrackerCardIds = new Set(
+      cardlyticsCardArrays.flat().map((c) => c.id),
+    );
+
+    const stillValidViews = savedViews.filter(
+      (view) => !view.cardId || liveTrackerCardIds.has(view.cardId),
+    );
+
+    if (stillValidViews.length !== savedViews.length) {
+      localStorage.setItem(
+        `cardlytics:personalized:${boardIdArg}`,
+        JSON.stringify(stillValidViews),
       );
-      if (savedViews.length === 0) {
-        setPersonalizedViews([]);
-        return;
-      }
-
-      // Prune views whose tracker card no longer exists in the Cardlytics list
-      const allLists = await getBoardLists(key, tkn, boardIdArg);
-      const cardlyticsLists = allLists.filter(
-        (l) => l.name.toLowerCase() === "cardlytics",
-      );
-      const cardlyticsCardArrays = await Promise.all(
-        cardlyticsLists.map((l) => getListCards(key, tkn, l.id)),
-      );
-      const liveTrackerCardIds = new Set(
-        cardlyticsCardArrays.flat().map((c) => c.id),
-      );
-
-      const stillValidViews = savedViews.filter(
-        (view) => !view.cardId || liveTrackerCardIds.has(view.cardId),
-      );
-
-      if (stillValidViews.length !== savedViews.length) {
-        localStorage.setItem(
-          `cardlytics:personalized:${boardIdArg}`,
-          JSON.stringify(stillValidViews),
-        );
-      }
-
-      const cardlyticsListIds = cardlyticsLists.map((l) => l.id);
-      const boardWideCards = (fullBoardCardsArg || []).filter(
-        (c) => !isTrackerCard(c) && !cardlyticsListIds.includes(c.idList),
-      );
-
-      const viewsWithCounts = stillValidViews.map((view) => {
-        const scopedCards =
-          view.mode === "list" && view.listId
-            ? boardWideCards.filter((c) => c.idList === view.listId)
-            : boardWideCards;
-
-        const f = view.filters || {};
-        const hasFilters =
-          f.due?.length > 0 ||
-          f.members?.length > 0 ||
-          f.labels?.length > 0 ||
-          f.lists?.length > 0 ||
-          f.status?.length > 0 ||
-          f.activity?.length > 0 ||
-          f.createdDate?.length > 0 ||
-          !!f.customDateFrom ||
-          !!f.customDateTo;
-
-        let count;
-        if (hasFilters) {
-          count = applyFilters(scopedCards, f, memberIdArg).length;
-        } else {
-          const statFilterMap = buildStatFilterMap(
-            memberIdArg,
-            view.listId || null,
-          );
-          const statFn = statFilterMap[view.statType];
-          count =
-            statFn && view.statType !== "cardsInList" && view.statType !== "all"
-              ? scopedCards.filter(statFn).length
-              : scopedCards.length;
-        }
-
-        return { ...view, count };
-      });
-
-      setPersonalizedViews(viewsWithCounts);
-    } catch (err) {
-      console.error("loadPersonalizedViews error:", err);
     }
+
+    const cardlyticsListIds = cardlyticsLists.map((l) => l.id);
+    const boardWideCards = (fullBoardCardsArg || []).filter(
+      (c) => !isTrackerCard(c) && !cardlyticsListIds.includes(c.idList),
+    );
+
+    const viewsWithCounts = stillValidViews.map((view) => {
+      const scopedCards =
+        view.mode === "list" && view.listId
+          ? boardWideCards.filter((c) => c.idList === view.listId)
+          : boardWideCards;
+
+      const f = view.filters || {};
+      const hasFilters =
+        f.due?.length > 0 ||
+        f.members?.length > 0 ||
+        f.labels?.length > 0 ||
+        f.lists?.length > 0 ||
+        f.status?.length > 0 ||
+        f.activity?.length > 0 ||
+        f.createdDate?.length > 0 ||
+        !!f.customDateFrom ||
+        !!f.customDateTo;
+
+      let count;
+      if (hasFilters) {
+        count = applyFilters(scopedCards, f, memberIdArg).length;
+      } else {
+        const statFilterMap = buildStatFilterMap(memberIdArg, view.listId || null);
+        const statFn = statFilterMap[view.statType];
+        count =
+          statFn && view.statType !== "cardsInList" && view.statType !== "all"
+            ? scopedCards.filter(statFn).length
+            : scopedCards.length;
+      }
+
+      return { ...view, count };
+    });
+
+    setPersonalizedViews(viewsWithCounts);
+  } catch (err) {
+    console.error("loadPersonalizedViews error:", err);
   }
+}
 
   async function fetchAllWorkspaces() {
     if (_workspacesCache) return _workspacesCache;
@@ -2506,8 +2498,8 @@ export default function App() {
     fetchData();
 
     const intervalId = setInterval(() => {
-      fetchData();
-    }, 60_000);
+  fetchData();
+}, 60_000);
 
     return () => {
       clearInterval(intervalId);
@@ -2515,37 +2507,8 @@ export default function App() {
   }, [token]);
 
   useEffect(() => {
-    if (!token) return;
-    fetchSubscriptionStatus(token)
-      .then(async (s) => {
-        if (!s.isPro) {
-          const startedAt = trelloT
-            ? await trelloT
-                .get("member", "private", "cardlyticsTrialStartedAt")
-                .catch(() => null)
-            : null;
-
-          if (startedAt) {
-            const trialStartDay = new Date(startedAt);
-            trialStartDay.setHours(0, 0, 0, 0); // snap to midnight of day 1
-            const trialEndsAt = new Date(
-              trialStartDay.getTime() + 14 * 24 * 60 * 60 * 1000, // + 14 full days
-            );
-            const stillActive = Date.now() < trialEndsAt.getTime();
-            setKnownPlan({
-              ...s,
-              isTrialActive: stillActive,
-              trialEndsAt: trialEndsAt.toISOString(),
-            });
-          } else {
-            setKnownPlan({ ...s, isTrialActive: false, trialEndsAt: null });
-          }
-          return;
-        }
-        setKnownPlan(s);
-      })
-      .catch(() => {});
-  }, [token]);
+  if (token) fetchSubscriptionStatus(token).then(setKnownPlan).catch(() => {});
+}, [token]);
 
   useEffect(() => {
     if (autoCustomize && token) {
@@ -2578,20 +2541,9 @@ export default function App() {
       prev.includes(type) ? prev.filter((i) => i !== type) : [...prev, type],
     );
 
-  const trialExpired =
-  !!knownPlan &&
-  !knownPlan.isPro &&
-  !knownPlan.isTrialActive &&
-  !!knownPlan.trialEndsAt;
-
-  useEffect(() => {
-  if (trialExpired) setShowTrialExpiredModal(true);
-}, [trialExpired]);
-
-const handleTrack = async (statsOverride, configOverride) => {
+  const handleTrack = async (statsOverride, configOverride) => {
     const statsToTrack = statsOverride ?? selectedStats;
     const configToUse = configOverride ?? cardConfig;
-
 
     if (statsToTrack.length === 0) {
       showToast("Please select at least one stat to track", "error");
@@ -2886,18 +2838,11 @@ const handleTrack = async (statsOverride, configOverride) => {
       <Toast toast={toast} />
 
       <SubscriptionModal
-        show={showSubscription}
-        token={token}
-        onClose={() => setShowSubscription(false)}
-        onStatusKnown={setKnownPlan}
-        trelloT={trelloT}
-      />
-
-      <TrialExpiredModal
-        show={showTrialExpiredModal}
-        token={token}
-        onClose={() => setShowTrialExpiredModal(false)}
-      />
+  show={showSubscription}
+  token={token}
+  onClose={() => setShowSubscription(false)}
+  onStatusKnown={setKnownPlan}
+/>
 
       <CustomizeFlow
         show={showCustomize}
@@ -2933,33 +2878,33 @@ const handleTrack = async (statsOverride, configOverride) => {
           setCustomizeBlankStart(false);
         }}
         computeFilteredCount={(statType, filters) => {
-          const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
+  const cards = allBoardCards.length > 0 ? allBoardCards : boardCards;
 
-          // Guard — if memberId hasn't loaded yet, return 0 rather than
-          // passing null to applyFilters which silently breaks member matching
-          if (!currentMemberId) return 0;
+  // Guard — if memberId hasn't loaded yet, return 0 rather than
+  // passing null to applyFilters which silently breaks member matching
+  if (!currentMemberId) return 0;
 
-          const hasExplicitFilters =
-            filters.due?.length > 0 ||
-            filters.members?.length > 0 ||
-            filters.labels?.length > 0 ||
-            filters.lists?.length > 0 ||
-            filters.status?.length > 0 ||
-            filters.activity?.length > 0 ||
-            filters.createdDate?.length > 0 ||
-            !!filters.customDateFrom ||
-            !!filters.customDateTo;
+  const hasExplicitFilters =
+    filters.due?.length > 0 ||
+    filters.members?.length > 0 ||
+    filters.labels?.length > 0 ||
+    filters.lists?.length > 0 ||
+    filters.status?.length > 0 ||
+    filters.activity?.length > 0 ||
+    filters.createdDate?.length > 0 ||
+    !!filters.customDateFrom ||
+    !!filters.customDateTo;
 
-          if (hasExplicitFilters) {
-            return applyFilters(cards, filters, currentMemberId).length;
-          }
+  if (hasExplicitFilters) {
+    return applyFilters(cards, filters, currentMemberId).length;
+  }
 
-          const statFn = buildStatFilterMap(currentMemberId, null)[statType];
-          if (!statFn || statType === "cardsInList" || statType === "all") {
-            return cards.length;
-          }
-          return cards.filter(statFn).length;
-        }}
+  const statFn = buildStatFilterMap(currentMemberId, null)[statType];
+  if (!statFn || statType === "cardsInList" || statType === "all") {
+    return cards.length;
+  }
+  return cards.filter(statFn).length;
+}}
         boardId={currentBoardId}
         boardName={currentBoardName}
         workspaceId={currentWorkspaceId}
@@ -2978,50 +2923,51 @@ const handleTrack = async (statsOverride, configOverride) => {
           const tkn = getStoredToken();
           return getBoardScopedData(key, tkn, targetBoardId, boards);
         }}
-        isPremium={(knownPlan?.isPro || knownPlan?.isTrialActive) ?? false}
+        isPremium={
+          (knownPlan?.isPro ||
+            knownPlan?.isActive ||
+            knownPlan?.isTrialActive) ??
+          false
+        }
         onUpgradeClick={() => setShowSubscription(true)}
         trelloT={trelloT}
       />
 
       {deleteTarget && (
-        <ConfirmDialog
-          title="Remove this view?"
-          message={
-            deleteTarget.cardId
-              ? `Remove "${deleteTarget.cardName}"? This will also delete its tracker card from the board.`
-              : `Remove "${deleteTarget.cardName}" from your personalized views?`
-          }
-          onConfirm={async () => {
-            const view = deleteTarget;
-            setDeleteTarget(null);
-            if (view.cardId) {
-              try {
-                await fetch(
-                  `${TRELLO_BASE}/cards/${view.cardId}?key=${TRELLO_API_KEY}&token=${getStoredToken()}`,
-                  { method: "DELETE" },
-                );
-              } catch (err) {
-                console.error("Failed to delete tracker card:", err);
-              }
-            }
-            setPersonalizedViews((prev) =>
-              prev.filter((v) => v.id !== view.id),
-            );
-            if (currentBoardId) {
-              const saved = JSON.parse(
-                localStorage.getItem(
-                  `cardlytics:personalized:${currentBoardId}`,
-                ) || "[]",
-              );
-              localStorage.setItem(
-                `cardlytics:personalized:${currentBoardId}`,
-                JSON.stringify(saved.filter((v) => v.id !== view.id)),
-              );
-            }
-          }}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      )}
+  <ConfirmDialog
+    title="Remove this view?"
+    message={
+      deleteTarget.cardId
+        ? `Remove "${deleteTarget.cardName}"? This will also delete its tracker card from the board.`
+        : `Remove "${deleteTarget.cardName}" from your personalized views?`
+    }
+    onConfirm={async () => {
+      const view = deleteTarget;
+      setDeleteTarget(null);
+      if (view.cardId) {
+        try {
+          await fetch(
+            `${TRELLO_BASE}/cards/${view.cardId}?key=${TRELLO_API_KEY}&token=${getStoredToken()}`,
+            { method: "DELETE" },
+          );
+        } catch (err) {
+          console.error("Failed to delete tracker card:", err);
+        }
+      }
+      setPersonalizedViews((prev) => prev.filter((v) => v.id !== view.id));
+      if (currentBoardId) {
+        const saved = JSON.parse(
+          localStorage.getItem(`cardlytics:personalized:${currentBoardId}`) || "[]",
+        );
+        localStorage.setItem(
+          `cardlytics:personalized:${currentBoardId}`,
+          JSON.stringify(saved.filter((v) => v.id !== view.id)),
+        );
+      }
+    }}
+    onCancel={() => setDeleteTarget(null)}
+  />
+)}
 
       <div
         className="header"
@@ -3050,28 +2996,35 @@ const handleTrack = async (statsOverride, configOverride) => {
               className="btn-customize"
               onClick={() => setShowSubscription(true)}
               style={{
-                background: knownPlan?.isPro
-                  ? "linear-gradient(135deg, #e8b339, #c9962a)"
-                  : knownPlan?.isTrialActive
-                    ? "transparent"
+                background:
+                  knownPlan?.isPro || knownPlan?.isActive
+                    ? "linear-gradient(135deg, #e8b339, #c9962a)"
                     : "transparent",
-                border: knownPlan?.isPro
-                  ? "none"
-                  : knownPlan?.isTrialActive
-                    ? "1px solid #4ea1ff"
-                    : "1px solid #e8b339",
-                color: knownPlan?.isPro
-                  ? "#1a1a1a"
-                  : knownPlan?.isTrialActive
-                    ? "#4ea1ff"
-                    : "#e8b339",
+                border:
+                  knownPlan?.isPro || knownPlan?.isActive
+                    ? "none"
+                    : knownPlan?.isTrialActive
+                      ? "1px solid #4ea1ff"
+                      : "1px solid #e8b339",
+                color:
+                  knownPlan?.isPro || knownPlan?.isActive
+                    ? "#1a1a1a"
+                    : knownPlan?.isTrialActive
+                      ? "#4ea1ff"
+                      : "#e8b339",
                 fontWeight: 700,
               }}
             >
-              {knownPlan?.isPro
+              {knownPlan?.isPro || knownPlan?.isActive
                 ? "👑 Pro"
                 : knownPlan?.isTrialActive
-                  ? `⏳ Trial · ${Math.max(0, Math.ceil((new Date(knownPlan.trialEndsAt) - Date.now()) / 86400000))}d`
+                  ? `⏳ Trial · ${Math.max(
+                      0,
+                      Math.ceil(
+                        (new Date(knownPlan.trialEndsAt) - Date.now()) /
+                          86400000,
+                      ),
+                    )}d`
                   : "⚡ Buy Pro"}
             </button>
             <button
@@ -3134,34 +3087,31 @@ const handleTrack = async (statsOverride, configOverride) => {
       </div>
 
       <div
-        style={{
-          display: "flex",
-          gap: 4,
-          padding: "10px 12px",
-          background: "#1a1a1a",
-          borderBottom: "1px solid #2a2a2a",
-        }}
-      >
-        <div className="track-tabs">
-          <button
-            className={`track-tab ${trackTab === "general" ? "active" : ""}`}
-            onClick={() => setTrackTab("general")}
-          >
-            General
-          </button>
-          <button
-            className={`track-tab ${trackTab === "personalized" ? "active" : ""}`}
-            onClick={() => setTrackTab("personalized")}
-          >
-            Personalized
-          </button>
-        </div>
-      </div>
+  style={{
+    display: "flex",
+    gap: 4,
+    padding: "10px 12px",
+    background: "#1a1a1a",
+    borderBottom: "1px solid #2a2a2a",
+  }}
+>
+  <div className="track-tabs">
+  <button
+    className={`track-tab ${trackTab === "general" ? "active" : ""}`}
+    onClick={() => setTrackTab("general")}
+  >
+    General
+  </button>
+  <button
+    className={`track-tab ${trackTab === "personalized" ? "active" : ""}`}
+    onClick={() => setTrackTab("personalized")}
+  >
+    Personalized
+  </button>
+</div>
+</div>
 
-      <div
-        className="body"
-        style={{ display: trackTab === "general" ? undefined : "none" }}
-      >
+      <div className="body" style={{ display: trackTab === "general" ? undefined : "none" }}>
         {mode === "list" && trackingListName && (
           <div className="list-context-badge">
             <span className="badge-scope">Scope</span>
@@ -3252,111 +3202,71 @@ const handleTrack = async (statsOverride, configOverride) => {
         </Section>
       </div>
 
+       
       {trackTab === "personalized" && (
-        <div className="body">
-          {personalizedViews.length === 0 ? (
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                padding: "32px 16px",
-                color: "#666",
-                fontSize: 13,
-              }}
-            >
-              <div style={{ fontSize: 28 }}>👤</div>
-              <div style={{ color: "#aaa", fontWeight: 600 }}>
-                Your custom views
-              </div>
-              <div
-                style={{
-                  color: "#666",
-                  fontSize: 12,
-                  textAlign: "center",
-                  lineHeight: 1.5,
-                }}
-              >
-                Save a card with Customize to see it here.
-              </div>
-            </div>
-          ) : (
-            <Section title="PERSONALIZED">
-              {personalizedViews.map((view) => (
-                <div
-                  key={view.id}
-                  className="card"
-                  style={{
-                    position: "relative",
-                    borderLeft: `3px solid ${COVER_BG_COLORS[view.cover] || "#4ea1ff"}`,
-                  }}
-                  onClick={() => {
-                    if (!trelloT) return;
-                    trelloT.board("id").then((board) => {
-                      const filtersStr = encodeURIComponent(
-                        JSON.stringify(view.filters),
-                      );
-                      trelloT.modal({
-                        title: `Cardlytics — ${view.cardName}`,
-                        url: `./index.html?view=card-details&boardId=${board.id}&statType=${view.statType}&mode=${view.mode}${view.listId ? `&listId=${view.listId}` : ""}&filters=${filtersStr}&personalized=1&cardName=${encodeURIComponent(view.cardName)}`,
-                        fullscreen: true,
-                      });
-                    });
-                  }}
-                >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeleteTarget(view);
-                    }}
-                    title="Remove this view"
-                    style={{
-                      position: "absolute",
-                      top: 6,
-                      right: 6,
-                      background: "transparent",
-                      border: "none",
-                      color: "#666",
-                      cursor: "pointer",
-                      padding: 5,
-                      borderRadius: 6,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(255,82,82,0.12)";
-                      e.currentTarget.style.color = "#ff5252";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.color = "#666";
-                    }}
-                  >
-                    <TrashIcon size={13} />
-                  </button>
-                  <div className="card-value">{view.count ?? 0}</div>
-                  <div className="card-label">{view.cardName}</div>
-                </div>
-              ))}
-
-              <div
-                className="add-filter-card"
-                onClick={() => {
-                  setCustomizeBlankStart(true);
-                  setCustomizeStat("custom");
-                  setShowCustomize(true);
-                }}
-              >
-                + Add filter
-              </div>
-            </Section>
-          )}
+  <div className="body">
+    {personalizedViews.length === 0 ? (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, padding: "32px 16px", color: "#666", fontSize: 13 }}>
+        <div style={{ fontSize: 28 }}>👤</div>
+        <div style={{ color: "#aaa", fontWeight: 600 }}>Your custom views</div>
+        <div style={{ color: "#666", fontSize: 12, textAlign: "center", lineHeight: 1.5 }}>
+          Save a card with Customize to see it here.
         </div>
-      )}
+      </div>
+    ) : (
+      <Section title="PERSONALIZED">
+        {personalizedViews.map((view) => (
+          <div
+            key={view.id}
+            className="card"
+            style={{ position: "relative", borderLeft: `3px solid ${COVER_BG_COLORS[view.cover] || "#4ea1ff"}` }}
+            onClick={() => {
+              if (!trelloT) return;
+              trelloT.board("id").then((board) => {
+                const filtersStr = encodeURIComponent(JSON.stringify(view.filters));
+                trelloT.modal({
+                  title: `Cardlytics — ${view.cardName}`,
+                  url: `./index.html?view=card-details&boardId=${board.id}&statType=${view.statType}&mode=${view.mode}${view.listId ? `&listId=${view.listId}` : ""}&filters=${filtersStr}&personalized=1&cardName=${encodeURIComponent(view.cardName)}`,
+                  fullscreen: true,
+                });
+              });
+            }}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteTarget(view);
+              }}
+              title="Remove this view"
+              style={{
+                position: "absolute", top: 6, right: 6, background: "transparent",
+                border: "none", color: "#666", cursor: "pointer", padding: 5,
+                borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,82,82,0.12)"; e.currentTarget.style.color = "#ff5252"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#666"; }}
+            >
+              <TrashIcon size={13} />
+            </button>
+            <div className="card-value">{view.count ?? 0}</div>
+            <div className="card-label">{view.cardName}</div>
+          </div>
+        ))}
+
+        <div
+          className="add-filter-card"
+          onClick={() => {
+            setCustomizeBlankStart(true);
+            setCustomizeStat("custom");
+            setShowCustomize(true);
+          }}
+        >
+          + Add filter
+        </div>
+      </Section>
+    )}
+  </div>
+)}
 
       <div
         style={{
@@ -3367,7 +3277,7 @@ const handleTrack = async (statsOverride, configOverride) => {
       >
         <button
           className="btn-customize"
-          onClick={handleTrack}
+          onClick={() => handleTrack()}
           disabled={selectedStats.length === 0 || isTracking}
           style={{
             background: selectedStats.length > 0 ? "#1d4ed8" : undefined,

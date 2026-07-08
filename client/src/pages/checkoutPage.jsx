@@ -131,7 +131,7 @@ export default function CheckoutPage() {
         attempts++;
         try {
           const data = await fetchSubscriptionStatus(token);
-          if (data.isPro) {
+          if (data.isActive) {
             handleSuccess();
             return;
           }
@@ -204,8 +204,8 @@ export default function CheckoutPage() {
             maxWidth: 300,
           }}
         >
-          Your payment was received. It may take a moment to activate. Please
-          close this tab and reopen Cardlytics.
+          Your payment was received. It may take a moment to activate.
+          Please close this tab and reopen Cardlytics.
         </p>
       </div>
     );
@@ -236,7 +236,9 @@ export default function CheckoutPage() {
           animation: "spin 0.8s linear infinite",
         }}
       />
-      <p style={{ color: "#777", fontSize: 13 }}>Activating your Pro plan...</p>
+      <p style={{ color: "#777", fontSize: 13 }}>
+        Activating your Pro plan...
+      </p>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
