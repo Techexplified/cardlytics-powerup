@@ -2888,7 +2888,7 @@ async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg)
       <TrialExpiredModal
         show={showTrialExpired}
         token={token}
-        onClose={() => setShowTrialExpired(false)}
+        onClose={() => setShowTrialExpired(true)}
       />
 
       <CustomizeFlow
