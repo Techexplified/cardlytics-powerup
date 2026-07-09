@@ -20,6 +20,8 @@ import { CustomizeFlow } from "./CustomizeModal";
 import LoginScreen from "./components/LoginScreen";
 import { TRELLO_API_KEY, getStoredToken, storeToken } from "./utils/auth";
 import SubscriptionModal from "./components/SubscriptionModal";
+import TrialStartedModal from "./components/TrialStartedModal";
+import TrialExpiredModal from "./components/TrialExpiredModal";
 import { fetchSubscriptionStatus } from "./utils/api";
 import "./index.css";
 import html2canvas from "html2canvas";
@@ -2213,6 +2215,8 @@ export default function App() {
   const [token, setToken] = useState(() => getStoredToken());
   const [showSubscription, setShowSubscription] = useState(false);
 const [knownPlan, setKnownPlan] = useState(null);
+const [showTrialStarted, setShowTrialStarted] = useState(false);
+const [showTrialExpired, setShowTrialExpired] = useState(false);
   const [stats, setStats] = useState({
     assigned: 0,
     dueThisWeek: 0,
@@ -2509,6 +2513,37 @@ async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg)
   useEffect(() => {
   if (token) fetchSubscriptionStatus(token).then(setKnownPlan).catch(() => {});
 }, [token]);
+
+  // ── Trial popups: show "started" once, "ended" when trial lapses ──────────
+  useEffect(() => {
+    if (!knownPlan) return;
+
+    // A stable per-user key. Falls back to a generic key if id is absent.
+    const userKey = knownPlan.userId || knownPlan.atlassianId || "me";
+
+    // 1. Trial STARTED — show once, the first time we see this user in trial.
+    if (knownPlan.isTrialActive && !knownPlan.isPro) {
+      const startedKey = `cardlytics:trialStartedSeen:${userKey}`;
+      if (!localStorage.getItem(startedKey)) {
+        setShowTrialStarted(true);
+        localStorage.setItem(startedKey, "1");
+      }
+    }
+
+    // 2. Trial ENDED — trial no longer active, not paid, but user *had* a trial.
+    //    (trialEndsAt exists = they were on a trial at some point.)
+    if (
+      !knownPlan.isTrialActive &&
+      !knownPlan.isPro &&
+      knownPlan.trialEndsAt
+    ) {
+      const endedKey = `cardlytics:trialEndedSeen:${userKey}`;
+      if (!localStorage.getItem(endedKey)) {
+        setShowTrialExpired(true);
+        localStorage.setItem(endedKey, "1");
+      }
+    }
+  }, [knownPlan]);
 
   useEffect(() => {
     if (autoCustomize && token) {
@@ -2843,6 +2878,18 @@ async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg)
   onClose={() => setShowSubscription(false)}
   onStatusKnown={setKnownPlan}
 />
+
+      <TrialStartedModal
+        show={showTrialStarted}
+        trialEndsAt={knownPlan?.trialEndsAt}
+        onClose={() => setShowTrialStarted(false)}
+      />
+
+      <TrialExpiredModal
+        show={showTrialExpired}
+        token={token}
+        onClose={() => setShowTrialExpired(false)}
+      />
 
       <CustomizeFlow
         show={showCustomize}
