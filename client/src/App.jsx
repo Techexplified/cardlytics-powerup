@@ -2886,7 +2886,7 @@ async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg)
       />
 
       <TrialExpiredModal
-        show={true}
+        show={showTrialExpired}
         token={token}
         onClose={() => setShowTrialExpired(false)}
       />
