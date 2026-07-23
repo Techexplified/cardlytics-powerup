@@ -373,14 +373,16 @@ export default function SubscriptionModal({
               </h2>
               <p
                 style={{
-                  color: "rgba(255,255,255,0.45)",
+                  color: status?.cancelAtPeriodEnd ? "#ffb74d" : "rgba(255,255,255,0.45)",
                   fontSize: 12.5,
                   margin: "0 0 20px",
                 }}
               >
-                {status?.expiresAt
-                  ? `Renews on ${formatDate(status.expiresAt)}`
-                  : "Your plan is active"}
+                {status?.cancelAtPeriodEnd
+                  ? `Cancels on ${formatDate(status.expiresAt)} — you'll keep Pro until then`
+                  : status?.expiresAt
+                    ? `Renews on ${formatDate(status.expiresAt)}`
+                    : "Your plan is active"}
               </p>
               <div
                 style={{
@@ -434,7 +436,11 @@ export default function SubscriptionModal({
                   </div>
                   <BillingLink icon="📋" label="View billing overview" url={portalUrls.overview} />
                   <BillingLink icon="💳" label="Update payment method" url={portalUrls.updatePaymentMethod} />
-                  <BillingLink icon="✕" label="Cancel subscription" url={portalUrls.cancelSubscription} />
+                  {status?.cancelAtPeriodEnd ? (
+                    <BillingLink icon="↩" label="Changed your mind? Reactivate here" url={portalUrls.overview} />
+                  ) : (
+                    <BillingLink icon="✕" label="Cancel subscription" url={portalUrls.cancelSubscription} />
+                  )}
                 </div>
               )}
 
