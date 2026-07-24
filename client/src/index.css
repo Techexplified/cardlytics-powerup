@@ -747,6 +747,36 @@ body {
   margin-left: auto;
 }
 
+.footer-support {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.footer-support-icon {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4ea1ff;
+  flex-shrink: 0;
+}
+.footer-support-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+.footer-support-label { font-size: 10px; color: #666; }
+.footer-support-mail {
+  font-size: 11px;
+  color: #4ea1ff;
+  text-decoration: none;
+}
+.footer-support-mail:hover { text-decoration: underline; }
+
 /* ─── LIST CONTEXT BADGE ─── */
 .list-context-badge {
   display: inline-flex;

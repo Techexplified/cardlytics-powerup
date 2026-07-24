@@ -3336,11 +3336,21 @@ async function loadPersonalizedViews(boardIdArg, fullBoardCardsArg, memberIdArg)
             Tracking to: <strong>{trackingListName || "..."}</strong>
           </span>
         </div>
-        <div className="footer-right">
-          <span className="footer-text">Updated: {lastUpdated}</span>
-          <button className="btn-refresh" onClick={fetchData}>
-            ↻
-          </button>
+        <div className="footer-support">
+          <span className="footer-support-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" strokeWidth="2"
+                 strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <path d="m3 7 9 6 9-6" />
+            </svg>
+          </span>
+          <span className="footer-support-text">
+            <span className="footer-support-label">Reach out to us</span>
+            <a href="mailto:support@explified.com" className="footer-support-mail">
+              support@explified.com
+            </a>
+          </span>
         </div>
       </div>
     </div>
