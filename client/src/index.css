@@ -750,32 +750,39 @@ body {
 .footer-support {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 11px;
   margin-left: auto;
 }
 .footer-support-icon {
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
   border: 1px solid #3a3a3a;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4ea1ff;
+  color: #e8e8e8;
   flex-shrink: 0;
 }
 .footer-support-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.35;
+  gap: 3px;
 }
-.footer-support-label { font-size: 10px; color: #666; }
+.footer-support-label {
+  font-size: 10px;
+  color: #7a7a7a;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
 .footer-support-mail {
-  font-size: 11px;
-  color: #4ea1ff;
+  font-size: 12.5px;
+  color: #f0f0f0;
+  font-weight: 500;
+  line-height: 1;
   text-decoration: none;
 }
-.footer-support-mail:hover { text-decoration: underline; }
+.footer-support-mail:hover { color: #fff; text-decoration: underline; }
 
 /* ─── LIST CONTEXT BADGE ─── */
 .list-context-badge {
