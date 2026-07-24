@@ -785,7 +785,7 @@ export default function SubscriptionModal({
                     <div
                       style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}
                     >
-                      Then $19/mo · cancel before trial ends
+                      Then $5/mo · cancel before trial ends
                     </div>
                   </div>
                   <ul
@@ -985,7 +985,7 @@ export default function SubscriptionModal({
                           lineHeight: 1,
                         }}
                       >
-                        19
+                        5
                       </span>
                       <span
                         style={{
