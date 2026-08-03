@@ -467,7 +467,8 @@ export default function SubscriptionModal({
                   <div style={{
                     height: "100%", borderRadius: 2,
                     background: trialDays <= 3 ? "#ff5252" : GOLD,
-                    width: `${Math.max(5, ((14 - trialDays) / 14) * 100)}%`,
+                    width: `${Math.max(5, ((7 - trialDays) / 7) * 100)}%`,
+                    
                     transition: "width 0.5s ease",
                   }} />
                 </div>
@@ -503,7 +504,7 @@ export default function SubscriptionModal({
               <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
                 {[
                   { key: "free", label: "Free" },
-                  { key: "trial", label: "14-day trial" },
+                  { key: "trial", label: "7-day trial" },
                   { key: "pro", label: "Pro" },
                 ].map((t) => (
                   <button
@@ -747,7 +748,7 @@ export default function SubscriptionModal({
                           background: "currentColor",
                         }}
                       />
-                      14-day free trial
+                     7-day free trial
                     </div>
                     <div
                       style={{
@@ -779,13 +780,13 @@ export default function SubscriptionModal({
                           marginLeft: 2,
                         }}
                       >
-                        for 14 days
+                        for 7 days
                       </span>
                     </div>
                     <div
                       style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}
                     >
-                      Then $5/mo · cancel before trial ends
+                      Then $19/mo · cancel before trial ends
                     </div>
                   </div>
                   <ul
@@ -985,7 +986,7 @@ export default function SubscriptionModal({
                           lineHeight: 1,
                         }}
                       >
-                        5
+                        19
                       </span>
                       <span
                         style={{

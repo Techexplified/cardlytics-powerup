@@ -131,7 +131,7 @@ export default function TrialExpiredModal({ show, token, onClose }) {
               lineHeight: 1.5,
             }}
           >
-            Your 14-day free trial is over. Upgrade to Pro to keep creating tracker cards.
+            Your 7-day free trial is over. Upgrade to Pro to keep creating tracker cards.
           </p>
 
           {error && (

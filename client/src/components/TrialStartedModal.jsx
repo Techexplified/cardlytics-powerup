@@ -3,7 +3,7 @@ import { useState } from "react";
 const GOLD = "#f5c842";
 const GOLD_DARK = "#d4a017";
 
-// Shows once when a user's 14-day trial begins.
+// Shows once when a user's 7-day trial begins.
 // Purely informational — no API calls. Parent decides when to show it
 // (first time we see the user in an active trial) and clears the flag on close.
 export default function TrialStartedModal({ show, trialEndsAt, onClose }) {
@@ -13,7 +13,7 @@ export default function TrialStartedModal({ show, trialEndsAt, onClose }) {
 
   const daysLeft = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt) - Date.now()) / 86400000))
-    : 14;
+    : 7;
 
   const endDateLabel = trialEndsAt
     ? new Date(trialEndsAt).toLocaleDateString("en-US", {
