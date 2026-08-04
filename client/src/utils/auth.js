@@ -2,7 +2,7 @@ export const TRELLO_API_KEY = import.meta.env.VITE_TRELLO_API_KEY;
 
 // ✅ Hardcoded — window.location.origin is unreliable inside Trello iframes
 export const AUTH_CALLBACK_URL =
-  "https://cardlytics-powerup.vercel.app/";
+  "https://cardlytics-powerup-eight.vercel.app/";
 
 export const TRELLO_AUTH_URL = () =>
   `https://trello.com/1/authorize?` +
